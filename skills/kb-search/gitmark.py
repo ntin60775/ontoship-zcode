@@ -43,6 +43,7 @@ EXCLUDE_DIRS = {
     ".git", "node_modules", ".next", "dist", "build", "__pycache__",
     ".pytest_cache", "_vendor", ".venv", "venv", "vendor",
     ".gitmark",
+    ".zcode",  # вендор-копия payload: тот же контент, что skills/ — корпус не дублируем
 }
 DB_REL = ".gitmark/index.db"
 HEAD_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*$")

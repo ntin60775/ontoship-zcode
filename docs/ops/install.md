@@ -19,8 +19,8 @@ is created afterwards by the plugin itself.
 
 ## Operations
 
-All commands run from a checkout of the marketplace repo
-(`sot-zcode-marketplace/deploy/`), `<target>` — the project's root:
+All commands run from the **root** of a marketplace repo checkout
+(`sot-zcode-marketplace/`), `<target>` — the project's root:
 
 ```bash
 python3 deploy/deploy-plugin.py install ontoship <target>   # vendor the pinned release

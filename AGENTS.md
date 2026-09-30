@@ -1,7 +1,7 @@
 # OntoShip (zcode) — entry point
 
-OntoShip is a **zcode plugin** — `skills/` (Agent Skills), `.zcode-plugin/plugin.json`
-(manifest), hooks/agents as they land — shipping **GitMark** (an md+git knowledge base
+OntoShip is a **zcode plugin** delivered through the `sot-zcode-marketplace` runner
+(`deploy.json`: strategy replace, mappings into the consumer's `.zcode/`), shipping **GitMark** (an md+git knowledge base
 with FTS5 search and an ontology linter) plus the spec-driven dev-flow and the
 autonomous grilling built on top of it, on zcode-native primitives.
 
@@ -13,8 +13,9 @@ autonomous grilling built on top of it, on zcode-native primitives.
 ## Where things live
 
 ```
-.zcode-plugin/plugin.json   the plugin manifest (skills)
+deploy.json                 the deploy contract v1 (mappings, post_update)
 package.json                the package manifest (gitmark version reads it)
+.zcode/                     the vendored last release (self-hosting; runner-written)
 skills/
   kb-search/                the gitmark CLI engine (gitmark.py) + SKILL.md
 docs/                       the knowledge base itself (this is the KB)
