@@ -21,6 +21,7 @@ skills/
 docs/                       the knowledge base itself (this is the KB)
 tests/                      engine tests (pytest, zcode layout)
 scripts/deploy-check.sh     one-command validation of the vendored layout
+hooks/session-start.sh      KB index freshness notice at session start
 AGENTS.md                   this entry point (read by zcode)
 ```
 

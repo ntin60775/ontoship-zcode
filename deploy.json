@@ -42,6 +42,10 @@
     {
       "from": "scripts",
       "to": ".zcode/scripts"
+    },
+    {
+      "from": "hooks",
+      "to": ".zcode/hooks"
     }
   ],
   "post_update": [
@@ -54,6 +58,9 @@
     },
     {
       "say": "Роли: проектный оверрайд — <repo>/.zcode/ontoship/roles.md; разрешение: .zcode/defaults/roles.md → ~/.zcode/ontoship/roles.md → <repo>/.zcode/ontoship/roles.md."
+    },
+    {
+      "say": "SessionStart-хук свежести KB: код вендорится в .zcode/hooks/session-start.sh, но регистрация — данные проекта. Чтобы включить, добавьте в .zcode/config.json блок hooks: {\"enabled\": true, \"events\": {\"SessionStart\": [{\"hooks\": [{\"type\": \"command\", \"command\": \"bash \\\"${ZCODE_PROJECT_DIR}/.zcode/hooks/session-start.sh\\\"\", \"timeoutMs\": 60000, \"statusMessage\": \"свежесть индекса KB\"}]}]}}. Хук молчит вне KB-проектов и никогда не блокирует сессию; --rebuild перестраивает индекс тихо."
     }
   ]
 }

@@ -16,3 +16,5 @@ Operational procedures for the plugin itself.
   релизный цикл, политика `.zcode/`.
 - [deploy-check.md](deploy-check.md) — проверка вендоренной раскладки одной
   командой (запуск из проекта-потребителя; зелёный/FAIL/WARN).
+- [session-start-hook.md](session-start-hook.md) — хук свежести индекса:
+  регистрация в `.zcode/config.json` (данные проекта), поведение, проверка.
