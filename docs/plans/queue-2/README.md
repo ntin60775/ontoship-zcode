@@ -114,7 +114,7 @@ Split-brain нет: проект переезжает **полностью**, в
 
 | # | Title | Status | Blocked by |
 |---|---|---|---|
-| [01](01-install-visibility.md) | Установка из локальной директории + видимость в воркспейсе | draft | — |
+| [01](01-install-visibility.md) | Канал доставки — раннер маркетплейса + самодеплой | **archived** (`ceae568`, релиз v0.5.2) | — |
 | [02](02-deploy-check.md) | Порт deploy-check под zcode-раскладку | draft | 01 |
 | [03](03-session-start-hook.md) | SessionStart-хук свежести индекса | draft | 01 |
 | [04](04-to-tickets-port.md) | Порт to-tickets + критерии неделимости Q1–Q7 | draft | 01 |
