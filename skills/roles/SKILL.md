@@ -65,3 +65,11 @@ Before running a subagent step on a role: `roles.py resolve --json`, take the ro
 Any mismatch → **stop the step** with a diagnostic naming the role, the expected id,
 and the layer file to fix. **Never fall back to the session model** — the entire value
 of an assigned role is that a different model does the step.
+
+The diagnostic must name the fix **with its layer**: read the role's `_source` first.
+A project-layer id stops resolving on a foreign host, and a plain `/roles set` writes
+the user layer — which the project layer shadows, so the fix silently does nothing.
+Correct guidance: `/roles unset <role>` (drop the stale project override) or
+`/roles set <role> <model>$<level> --project` (re-pin the project deliberately).
+Prefer an explicit `$level` in every set — a bare model replaces the whole role record,
+silently dropping any level inherited from a lower layer.

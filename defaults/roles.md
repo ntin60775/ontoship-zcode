@@ -19,6 +19,7 @@ The **least specific layer**: a user overrides these for all projects in
 - `challenger` — grilling: red team over the draft decisions.
 
 These ids are the author's host plan (Z.AI individual coding plan). On another host
-they may not resolve — the consuming skill must verify against ListModels and stop
-with a diagnostic if the model is unavailable (fail-closed, never fall back to the
-session model).
+they will not resolve — by design the consuming skill then stops with a diagnostic
+(fail-closed, never falls back to the session model). Follow the diagnostic's
+layer-aware guidance (roles skill, fail-closed rule): a bare `/roles set` writes the
+user layer and is a no-op whenever a project layer pins the role.
