@@ -14,3 +14,5 @@ Operational procedures for the plugin itself.
 
 - [install.md](install.md) — установка/обновление плагина раннером маркетплейса,
   релизный цикл, политика `.zcode/`.
+- [deploy-check.md](deploy-check.md) — проверка вендоренной раскладки одной
+  командой (запуск из проекта-потребителя; зелёный/FAIL/WARN).

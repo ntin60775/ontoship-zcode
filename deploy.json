@@ -38,6 +38,10 @@
     {
       "from": "package.json",
       "to": ".zcode/package.json"
+    },
+    {
+      "from": "scripts",
+      "to": ".zcode/scripts"
     }
   ],
   "post_update": [

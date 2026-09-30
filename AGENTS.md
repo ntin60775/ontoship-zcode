@@ -20,6 +20,7 @@ skills/
   kb-search/                the gitmark CLI engine (gitmark.py) + SKILL.md
 docs/                       the knowledge base itself (this is the KB)
 tests/                      engine tests (pytest, zcode layout)
+scripts/deploy-check.sh     one-command validation of the vendored layout
 AGENTS.md                   this entry point (read by zcode)
 ```
 
