@@ -6,8 +6,8 @@ status: draft
 updated: 2026-09-30
 tags: [plan, queue-2, delivery, migration, parity]
 links:
-  relates_to: [../README.md, ../reference/commands.md, ../../README.md]
-  depends_on: [../ontology.md]
+  relates_to: [../README.md, ../../reference/commands.md, ../../README.md]
+  depends_on: [../../ontology.md]
 ---
 
 # Контракт: очередь 2 — доставка, паритет, переезд
