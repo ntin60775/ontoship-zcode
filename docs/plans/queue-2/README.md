@@ -127,8 +127,9 @@ Split-brain нет: проект переезжает **полностью**, в
 4. Hygiene + memory: runbook ночного lint+index+map (cron/off-peak, sink ERR —
    `--strict` → лог → SessionStart), шаблон тонкого MEMORY.md-указателя в KB.
 5. Migration runbook + пилот: **полный переезд** проекта на zcode — аудит
-   omp-payload (rule/skill/command → keep/drop/replace, протокол решений в KB),
-   снять ontoship-payload оба канала (plugin remove / локальная копия), init
-   обновит общий managed-блок, эквиваленты правил — AGENTS.md/хуки, deploy-check
-   + lint; omp остаётся терминалом-фоллбэком. Precondition — срезы 03+04
-   зашиплены.
+   omp-payload (rule/skill/command → keep/drop/replace; протокол: **один документ
+   аудита** в `docs/decisions/` проекта-потребителя, ADR — только для спорных
+   правил; решение оператора, 2026-09-30), снять ontoship-payload оба канала
+   (plugin remove / локальная копия), init обновит общий managed-блок,
+   эквиваленты правил — AGENTS.md/хуки, deploy-check + lint; omp остаётся
+   терминалом-фоллбэком. Precondition — срезы 03+04 зашиплены.
