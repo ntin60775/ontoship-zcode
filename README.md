@@ -11,7 +11,9 @@ rebuilt as a **zcode plugin**:
 - the ship reviewer and the grilling challenger run on **explicitly assigned models**
   (roles: plugin default → user-global → per-project override);
 - fan-out work (KB bootstrap, two-axis review, architecture scans) runs as **workflows**;
-- destructive-command safety ships **in the plugin** as a PreToolUse hook.
+- destructive-command safety is a **host-layer** concern: the plugin documents
+  enabling a host-level PreToolUse guard (an in-plugin hook for guardless hosts is
+  deliberately deferred — two guards on one command means two confirmation protocols).
 
 Sister project: [ontoship-omp](https://github.com/vakovalskii/ontoship) (the omp agent
 version). This repo shares only the GitMark engine (`gitmark.py`, vendored, MIT) and the

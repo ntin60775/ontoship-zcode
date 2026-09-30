@@ -17,3 +17,5 @@ written by `grilling`; `/to-tickets` (backlog) promotes it to a folder with tick
 
 - [kb-service-doc.md](kb-service-doc.md) — задокументировать сервис kb-search в KB
   (file plan; внутренний смоук девфлоу).
+- [queue-2/](queue-2/README.md) — очередь 2: доставка (install, deploy-check, хук),
+  порт to-tickets, хвост срезов и подготовленный переезд с omp (папка, 4 тикета головы).
