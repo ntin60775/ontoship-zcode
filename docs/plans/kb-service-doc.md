@@ -2,7 +2,7 @@
 node_type: plan
 title: Задокументировать сервис kb-search в KB плагина
 service: _platform
-status: draft
+status: archived
 updated: 2026-09-30
 tags: [plan, kb, services, dogfood]
 links:
@@ -35,3 +35,11 @@ links:
 
 - `no-deploy` — контура деплоя нет; шаг prod-проверок = поиск+линт из Done.
 - Запуск руками оператора; один файл-план = один срез.
+
+**Отгружено (2026-09-30).** Единственный срез (файл-план) через полный луп: worktree
+`ship/kb-service-doc`, сервис-дока + индексы, гейты (lint/index/search/47 tests),
+независимый ревью на модели роли reviewer (GLM-5.3-Flash$max, workflow reviewer.workflow.ts):
+1 находка (мастер-индекс без ссылки на services/), подтверждена независимо — исправлена
+коммитом `638414d`. Подтверждение мержа покрыто выданным оператором одобрением
+стоп-точек на эту сессию. Отклонения: MR → локальный мерж (remote нет), prod-контур →
+поиск+линт из Done (no-deploy заявлен в Constraints).
