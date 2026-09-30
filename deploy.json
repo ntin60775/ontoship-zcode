@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "strategy": "replace",
+  "on_drift": "fail",
+  "mappings": [
+    { "from": "skills/kb-search", "to": ".zcode/skills/kb-search" },
+    { "from": "skills/kb-curate", "to": ".zcode/skills/kb-curate" },
+    { "from": "skills/grilling", "to": ".zcode/skills/grilling" },
+    { "from": "skills/ship", "to": ".zcode/skills/ship" },
+    { "from": "skills/init", "to": ".zcode/skills/init" },
+    { "from": "skills/doc", "to": ".zcode/skills/doc" },
+    { "from": "skills/roles", "to": ".zcode/skills/roles" },
+    { "from": "defaults", "to": ".zcode/defaults" }
+  ],
+  "post_update": [
+    {
+      "run": "python3 .zcode/skills/kb-search/gitmark.py index",
+      "if_exists": "docs"
+    },
+    {
+      "say": "Managed-блок в AGENTS.md: запустите init-скилл плагина (идемпотентен) — создаст блок или мигрирует его формат; строки .gitignore доложит он же."
+    },
+    {
+      "say": "Роли: проектный оверрайд — <repo>/.zcode/ontoship/roles.md; разрешение: .zcode/defaults/roles.md → ~/.zcode/ontoship/roles.md → <repo>/.zcode/ontoship/roles.md."
+    }
+  ]
+}
