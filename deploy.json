@@ -3,14 +3,42 @@
   "strategy": "replace",
   "on_drift": "fail",
   "mappings": [
-    { "from": "skills/kb-search", "to": ".zcode/skills/kb-search" },
-    { "from": "skills/kb-curate", "to": ".zcode/skills/kb-curate" },
-    { "from": "skills/grilling", "to": ".zcode/skills/grilling" },
-    { "from": "skills/ship", "to": ".zcode/skills/ship" },
-    { "from": "skills/init", "to": ".zcode/skills/init" },
-    { "from": "skills/doc", "to": ".zcode/skills/doc" },
-    { "from": "skills/roles", "to": ".zcode/skills/roles" },
-    { "from": "defaults", "to": ".zcode/defaults" }
+    {
+      "from": "skills/kb-search",
+      "to": ".zcode/skills/kb-search"
+    },
+    {
+      "from": "skills/kb-curate",
+      "to": ".zcode/skills/kb-curate"
+    },
+    {
+      "from": "skills/grilling",
+      "to": ".zcode/skills/grilling"
+    },
+    {
+      "from": "skills/ship",
+      "to": ".zcode/skills/ship"
+    },
+    {
+      "from": "skills/init",
+      "to": ".zcode/skills/init"
+    },
+    {
+      "from": "skills/doc",
+      "to": ".zcode/skills/doc"
+    },
+    {
+      "from": "skills/roles",
+      "to": ".zcode/skills/roles"
+    },
+    {
+      "from": "defaults",
+      "to": ".zcode/defaults"
+    },
+    {
+      "from": "package.json",
+      "to": ".zcode/package.json"
+    }
   ],
   "post_update": [
     {

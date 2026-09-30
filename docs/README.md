@@ -6,7 +6,7 @@ status: active
 updated: 2026-09-30
 links:
   documents: [../AGENTS.md]
-  relates_to: [ontology.md, reference/README.md, services/README.md, plans/README.md, reference/commands.md]
+  relates_to: [ontology.md, reference/README.md, services/README.md, ops/README.md, plans/README.md, reference/commands.md]
 ---
 
 # Docs
@@ -18,4 +18,5 @@ plugin ships is maintained by the plugin's own discipline (ontology, lint, index
 - [reference/](reference/README.md) — cross-cutting specs (command registry, roles).
 - [services/](services/README.md) — per-component docs (the gitmark CLI engine).
 - [plans/](plans/README.md) — plan contracts and tickets (the dev-flow substrate).
+- [ops/](ops/README.md) — operational procedures (install, update, release cycle).
 - [reference/commands.md](reference/commands.md) — the generated skill/command registry.

@@ -1,0 +1,44 @@
+{
+  "plugins": {
+    "ontoship": {
+      "url": "git@github.com:ntin60775/ontoship-zcode.git",
+      "ref": "v0.5.1",
+      "deployed_at": "2026-09-30T21:42:23+0200",
+      "manifest": "plugin",
+      "mappings": [
+        {
+          "from": "skills/kb-search",
+          "to": ".zcode/skills/kb-search"
+        },
+        {
+          "from": "skills/kb-curate",
+          "to": ".zcode/skills/kb-curate"
+        },
+        {
+          "from": "skills/grilling",
+          "to": ".zcode/skills/grilling"
+        },
+        {
+          "from": "skills/ship",
+          "to": ".zcode/skills/ship"
+        },
+        {
+          "from": "skills/init",
+          "to": ".zcode/skills/init"
+        },
+        {
+          "from": "skills/doc",
+          "to": ".zcode/skills/doc"
+        },
+        {
+          "from": "skills/roles",
+          "to": ".zcode/skills/roles"
+        },
+        {
+          "from": "defaults",
+          "to": ".zcode/defaults"
+        }
+      ]
+    }
+  }
+}

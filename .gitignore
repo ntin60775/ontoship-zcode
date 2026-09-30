@@ -5,3 +5,4 @@
 .scratch/
 __pycache__/
 .pytest_cache/
+.zcode/.backup/
