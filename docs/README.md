@@ -14,5 +14,6 @@ links:
 The knowledge base of the `ontoship-zcode` plugin itself — dogfooded: the KB the
 plugin ships is maintained by the plugin's own discipline (ontology, lint, index).
 
+- [ontology.md](ontology.md) — the knowledge model (types, properties, typed links, invariants).
 - [reference/](reference/README.md) — cross-cutting specs (command registry, roles).
 - [reference/commands.md](reference/commands.md) — the generated skill/command registry.
