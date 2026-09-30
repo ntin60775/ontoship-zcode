@@ -1,0 +1,7 @@
+# derived from md — regenerated, never committed as truth
+.gitmark/
+*-map.html
+# session-ephemeral (handoff, review reports)
+.scratch/
+__pycache__/
+.pytest_cache/
