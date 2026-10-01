@@ -127,7 +127,7 @@ Split-brain нет: проект переезжает **полностью**, в
 | [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | draft | — |
 | [12](12-migration-runbook-pilot.md) | migration runbook + пилотный переезд | draft | 03, 04 |
 | [13](13-reviewer-gate-split.md) | Разбивка reviewer-гейта по файлам | **archived** (`e9964e3`, релиз v0.5.8) | 06 |
-| [14](14-confirmer-synth-roles.md) | Роли confirmer и synth — модели подтверждающего и сводчика | draft | 13 |
+| [14](14-confirmer-synth-roles/README.md) | Роль confirmer — подтверждающий ран и свод (контракт; разбит на 14/01–02) | draft | 13 |
 
 Голова (01–04) размечена гриллингом 2026-09-30; хвост (05–12) — первый
 приёмочный прогон нативного to-tickets: пять Tail-срезов приведены к

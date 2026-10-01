@@ -6,7 +6,7 @@ status: draft
 updated: 2026-10-01
 links:
   part_of: [README.md]
-  depends_on: [13-reviewer-gate-split.md]
+  depends_on: [../13-reviewer-gate-split.md]
 ---
 
 # 14: Роль confirmer — подтверждающий ран и свод
@@ -71,3 +71,10 @@ verified/unconfirmed + conclusion + notCovered. code-review workflow перех�
 **Constraints:** `stop-before-commit` (дефолт); роль `synth` не заводится —
 потребность (отчёты упираются в лимит ответа, свод сложнее дедупа) — сигнал
 будущего тикета.
+
+## Tickets (разбит to-tickets, 2026-10-01)
+
+| # | Title | Status | Blocked by |
+|---|---|---|---|
+| [01](01-ship-gate-confirm-run.md) | ship-гейт — confirmer-ран | draft | 13 (archived) |
+| [02](02-code-review-confirm-run.md) | code-review — переход на confirm-ран | draft | 01 |

@@ -19,4 +19,4 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
   (file plan; внутренний смоук девфлоу).
 - [queue-2/](queue-2/README.md) — очередь 2: доставка (install, deploy-check, хук),
   порт to-tickets, размеченный хвост срезов и подготовленный переезд с omp
-  (папка, 14 тикетов: голова 01–04, хвост 05–14).
+  (папка, 16 тикетов: голова 01–04, хвост 05–14; 14 разбит на 14/01–02).
