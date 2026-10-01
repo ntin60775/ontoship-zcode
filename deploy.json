@@ -32,6 +32,10 @@
       "to": ".zcode/skills/roles"
     },
     {
+      "from": "skills/to-tickets",
+      "to": ".zcode/skills/to-tickets"
+    },
+    {
       "from": "defaults",
       "to": ".zcode/defaults"
     },

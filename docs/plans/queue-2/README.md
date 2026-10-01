@@ -2,8 +2,8 @@
 node_type: plan
 title: Очередь 2 — доставка, паритет, переезд
 service: _platform
-status: draft
-updated: 2026-09-30
+status: active
+updated: 2026-10-01
 tags: [plan, queue-2, delivery, migration, parity]
 links:
   relates_to: [../README.md, ../../reference/commands.md, ../../README.md]
@@ -110,7 +110,7 @@ Split-brain нет: проект переезжает **полностью**, в
 портов (вне этой очереди). При первой миграции — полный контроль: аудит старых
 правил с чисткой, значительная часть ожидаемо окажется лишней.
 
-## Head tickets (размечены этим гриллингом; хвост — после порта to-tickets)
+## Tickets (хвост размечен нативным to-tickets, 2026-10-01)
 
 | # | Title | Status | Blocked by |
 |---|---|---|---|
@@ -118,18 +118,18 @@ Split-brain нет: проект переезжает **полностью**, в
 | [02](02-deploy-check.md) | Порт deploy-check под zcode-раскладку | **archived** (`3ea5a93`, релиз v0.5.3) | 01 |
 | [03](03-session-start-hook.md) | SessionStart-хук свежести индекса | **archived** (`7efa273`, релиз v0.5.4) | 01 |
 | [04](04-to-tickets-port.md) | Порт to-tickets + критерии неделимости Q1–Q7 | draft | 01 |
+| [05](05-onto-doc-workflow.md) | onto-doc workflow — fan-out кураторов + lint-гейт | draft | — |
+| [06](06-code-review-workflow.md) | code-review workflow — две оси параллельно | draft | — |
+| [07](07-architecture-workflow.md) | architecture workflow — скан в фоне | draft | — |
+| [08](08-handoff.md) | handoff — ReadSessionContext + `.scratch/` | draft | — |
+| [09](09-diagnose.md) | diagnose — репро-цикл на вопросах | draft | — |
+| [10](10-hygiene-runbook.md) | hygiene runbook — ночной lint+index+map | draft | 03 |
+| [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | draft | — |
+| [12](12-migration-runbook-pilot.md) | migration runbook + пилотный переезд | draft | 03, 04 |
 
-## Tail (список срезов — разобьёт нативный to-tickets, тикет 04)
-
-1. onto-doc workflow: fan-out кураторов + lint-гейт + цикл долечивания.
-2. code-review (две оси параллельно) + architecture (скан в фоне) workflows.
-3. handoff (ReadSessionContext + `.scratch/`) + diagnose (репро-цикл на вопросах).
-4. Hygiene + memory: runbook ночного lint+index+map (cron/off-peak, sink ERR —
-   `--strict` → лог → SessionStart), шаблон тонкого MEMORY.md-указателя в KB.
-5. Migration runbook + пилот: **полный переезд** проекта на zcode — аудит
-   omp-payload (rule/skill/command → keep/drop/replace; протокол: **один документ
-   аудита** в `docs/decisions/` проекта-потребителя, ADR — только для спорных
-   правил; решение оператора, 2026-09-30), снять ontoship-payload оба канала
-   (plugin remove / локальная копия), init обновит общий managed-блок,
-   эквиваленты правил — AGENTS.md/хуки, deploy-check + lint; omp остаётся
-   терминалом-фоллбэком. Precondition — срезы 03+04 зашиплены.
+Голова (01–04) размечена гриллингом 2026-09-30; хвост (05–12) — первый
+приёмочный прогон нативного to-tickets: пять Tail-срезов приведены к
+восьми неделимым тикетам (code-review/architecture, handoff/diagnose,
+hygiene/memory разъединены по критерию «≥2 независимых обещаний»; runbook+пилот
+слиты — runbook проверяем только пилотом). Исходные формулировки срезов живут
+в тикетах.
