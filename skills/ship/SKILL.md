@@ -32,14 +32,22 @@ run, strictly sequential.
    linked (`implemented_by`) per `kb-curate`.
 5. **Tests** — write/adjust unit + E2E for the ticket; the test is part of the feature.
    Run the suite until green (background long runs, report honestly).
-6. **Independent review** — resolve the `reviewer` role (`roles.py resolve --json`,
-   roles skill) and verify it against **ListModels**: missing/disabled model or absent
-   level → **stop the run** with a diagnostic naming the role and the layer file to fix
-   (fail-closed; never review with your own model). Then run the gate:
+6. **Independent review** — resolve the two gate roles (`roles.py resolve --json`,
+   roles skill) — `reviewer` and `confirmer` — and verify each against **ListModels**:
+   missing/disabled model or absent level → **stop the run** with a diagnostic naming
+   the role and the layer file to fix (fail-closed; never review or confirm with your
+   own model). Then run the gate as two CreateWorkflows:
    `CreateWorkflow(path=reviewer.workflow.ts next to this SKILL.md, args={ticket:
    "<what + acceptance criteria + touched files>", base: "<merge-base ref>",
-   root: "<the worktree created in step 3>"}, subagent_model=<reviewer role$level>)`. Fix every `verified` finding; refute only
-   with evidence; `unconfirmed` findings are reported to the operator, never dropped.
+   root: "<the worktree created in step 3>"}, subagent_model=<reviewer role$level>)`
+   — it ends with raw findings;
+   `CreateWorkflow(path=confirm.workflow.ts next to this SKILL.md, args={root:
+   "<the same worktree>", findings: <the `findings` field of the review run's
+   return — the raw findings array, compact JSON>, ticket: "<the same ticket>"},
+   subagent_model=<confirmer role$level>)` —
+   it returns the verdicts (findings with verified/unconfirmed + conclusion +
+   notCovered). Fix every `verified` finding; refute only with evidence;
+   `unconfirmed` findings are reported to the operator, never dropped.
 7. **Dev checks** — merge the worktree branch into `dev` (local branch when there is no
    remote; MR when there is) and run the full suite there. Red → fix in the worktree,
    do not merge onward.

@@ -1,12 +1,13 @@
 ---
 name: roles
-description: View and reassign the subagent model roles (reviewer, challenger) across three layers — plugin default, user global, per-project. Use when the user runs /roles, says "поменяй модель ревьюера", "назначь модель для ролей", or asks which model reviews their ships. Shows the effective configuration with provenance and shadowing warnings.
+description: View and reassign the subagent model roles (reviewer, confirmer, challenger) across three layers — plugin default, user global, per-project. Use when the user runs /roles, says "поменяй модель ревьюера", "назначь модель для ролей", or asks which model reviews their ships. Shows the effective configuration with provenance and shadowing warnings.
 ---
 
 # /roles — subagent model roles
 
 A **role** names which model a subagent step runs on: `reviewer` (/ship step 6,
-independent diff review) and `challenger` (grilling red team) by default. Resolution
+independent diff review), `confirmer` (/ship step 6, second run — confirms the
+reviewer's findings) and `challenger` (grilling red team) by default. Resolution
 is three layers, most specific wins, **merged per role name** (a project `reviewer`
 does not hide a user `challenger`):
 
