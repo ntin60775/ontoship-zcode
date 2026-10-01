@@ -117,7 +117,7 @@ Split-brain нет: проект переезжает **полностью**, в
 | [01](01-install-visibility.md) | Канал доставки — раннер маркетплейса + самодеплой | **archived** (`ceae568`, релиз v0.5.2) | — |
 | [02](02-deploy-check.md) | Порт deploy-check под zcode-раскладку | **archived** (`3ea5a93`, релиз v0.5.3) | 01 |
 | [03](03-session-start-hook.md) | SessionStart-хук свежести индекса | **archived** (`7efa273`, релиз v0.5.4) | 01 |
-| [04](04-to-tickets-port.md) | Порт to-tickets + критерии неделимости Q1–Q7 | draft | 01 |
+| [04](04-to-tickets-port.md) | Порт to-tickets + критерии неделимости Q1–Q7 | **archived** (`07338b1`, релиз v0.5.5) | 01 |
 | [05](05-onto-doc-workflow.md) | onto-doc workflow — fan-out кураторов + lint-гейт | draft | — |
 | [06](06-code-review-workflow.md) | code-review workflow — две оси параллельно | draft | — |
 | [07](07-architecture-workflow.md) | architecture workflow — скан в фоне | draft | — |
