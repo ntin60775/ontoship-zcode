@@ -1,6 +1,6 @@
 ---
 node_type: ticket
-title: Роли confirmer и synth — модели подтверждающего и сводчика
+title: Роль confirmer — подтверждающий ран и свод
 service: _platform
 status: draft
 updated: 2026-10-01
@@ -9,28 +9,65 @@ links:
   depends_on: [13-reviewer-gate-split.md]
 ---
 
-# 14: Роли confirmer и synth — модели подтверждающего и сводчика
+# 14: Роль confirmer — подтверждающий ран и свод
 
-**What to build:** субагентные шаги «конфирмер» (подтверждение находки по
-evidence) и «сборщик отчётов» (свод вердиктов в один текст) получают
-собственные роли. Сейчас они наследуют модель, с которой запущен workflow
-(de facto `reviewer`), — удешевить/ускорить их по отдельности нельзя. Потребность
-наблюдена на qwen-эксперименте (2026-10-01): fp8 ронял ревьюера ContextLimit'ом,
-но конфирмеры на нём работали нормально — разные шаги требуют разные модели.
+**What to build:** шаг «подтверждение находок» получает собственную роль
+`confirmer`: фаза confirm выносится из `skills/ship/reviewer.workflow.ts` в
+отдельный `skills/ship/confirm.workflow.ts` (args: `{root, findings, ticket?}`,
+вход — находки `{where, claim, evidence, severity, quote?}`), запускаемый
+оркестратором скилла вторым CreateWorkflow на роли `confirmer` (fail-closed,
+как reviewer). В confirm-ране живут конфирмеры (ограда `<finding>` +
+neutralize) и сводчик; выход — прежний контракт: findings с
+verified/unconfirmed + conclusion + notCovered. code-review workflow переходит
+на тот же confirm-ран (нет split-brain). Роль `synth` не заводится — сводчик
+потребляет только вывод конфирмаций (code-review.workflow.ts:277-301).
 
 **Blocked by:** 13 (ревью-машинерия стабилизируется; 14 меняет её конфигурацию).
 
-Открытые вопросы (решаются гриллингом на шипе):
-- семантика незаданной роли: наследовать модель вызова (fallback, мягче) или
-  обязательный дефолт в defaults/roles.md (консистентнее с fail-closed);
-- scope: только reviewer-машинерия (reviewer.workflow, code-review) или сразу
-  кураторы onto-doc;
-- дефолты в defaults/roles.md (автор-хост) для чужих хостов.
+**Решение оператора (2026-10-01):** «квен почти бесплатный» — ролевое
+разделение даёт конфирмерам дешёвую модель, а ревьюеру сильную; мотивация
+наблюдена на qwen-эксперименте (fp8 ронял ревьюера, конфирмеры работали).
 
-- [ ] роли `confirmer` и `synth` известны `roles.py`/`defaults/roles.md`;
-      разрешение теми же тремя слоями, fail-closed без исключений
-- [ ] reviewer/code-review/onto-doc берут модель конфирмера и сводчика из ролей;
-      незаданная роль — семантика по решению гриллинга, существующие вызовы
-      не ломаются
-- [ ] `/roles` показывает все роли с провенансом; смоук-прогон каждой новой роли
-- [ ] `gitmark lint` + `pytest` зелёные
+- [ ] роль `confirmer` в `defaults/roles.md` (дефолт автора
+      `GLM-5.3-Flash$high`); разрешение тремя слоями, fail-closed без
+      исключений; `/roles` показывает её с провенансом; смоук-прогон
+- [ ] `skills/ship/confirm.workflow.ts` существует: конфирмеры + сводчик,
+      вход `{root, findings, ticket?}`, форма находок
+      `{where, claim, evidence, severity, quote?}` (quote обязателен там,
+      где был: основа конфирмации по цитате и дедупа сводчика), выход —
+      прежний контракт
+- [ ] `reviewer.workflow.ts` отдаёт confirm-фазу (review-ран заканчивается
+      сырыми находками), SKILL.md ship шаг 6 описывает два CreateWorkflow
+      с резолвом обеих ролей
+- [ ] code-review workflow переходит на общий confirm-ран (SKILL.md —
+      ссылка на `../ship/confirm.workflow.ts`)
+- [ ] onto-doc и challenger вне скоупа (конфирмаций нет)
+- [ ] приёмка: прогон гейта ship на реальном диффе — оба рана на своих
+      ролях, вердикты verified/unconfirmed различимы; `gitmark lint` +
+      `pytest` зелёные
+
+**Решения грилла (2026-10-01; challenger на qwen3.6-35b-a3b$high: 5 substantial
+возражений, все переопределены с evidence):**
+
+- **Q1. Как дать конфирмерам свою модель при фасаде «одна subagent_model на
+  ран»?** Двухрановый гейт: review-ран → confirm-ран. Отклонено: per-agent
+  override (не существует), третий ран для сводчика (YAGNI).
+- **Q2. Семантика незаданной роли?** Полноценная роль, применяемая
+  оркестратором скилла (резолв + subagent_model confirm-рана) — роль без
+  механизма применения no-op (возражение челленджера принято). Отклонено:
+  тихое наследование модели вызова.
+- **Q3. Scope?** ship-гейт + code-review; onto-doc/challenger вне
+  (конфирмаций нет, челленджер: severity none).
+- **Q4. Форма находок?** `{where, claim, evidence, severity, quote?}` —
+  quote сохранён (стирание ломало конфирмацию по цитате и дедуп сводчика —
+  возражение принято); один confirm-файл, code-review ссылается на него.
+- **Q5. Дефолт confirmer?** `GLM-5.3-Flash$high` (конфирмация — механическая
+  проверка; сигнал false-negative на цитатах — повод перенастроить через
+  `/roles`, не менять дефолт).
+- **Q6. Объём?** Рефакторинг: фаза confirm выносится, создаётся
+  confirm.workflow.ts, правятся оба SKILL.md; downstream (шаги 7+, оператор
+  code-review) не меняется.
+
+**Constraints:** `stop-before-commit` (дефолт); роль `synth` не заводится —
+потребность (отчёты упираются в лимит ответа, свод сложнее дедупа) — сигнал
+будущего тикета.
