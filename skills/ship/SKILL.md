@@ -37,8 +37,8 @@ run, strictly sequential.
    level → **stop the run** with a diagnostic naming the role and the layer file to fix
    (fail-closed; never review with your own model). Then run the gate:
    `CreateWorkflow(path=reviewer.workflow.ts next to this SKILL.md, args={ticket:
-   "<what + acceptance criteria + touched files>", base: "<merge-base ref>"},
-   subagent_model=<reviewer role$level>)`. Fix every `verified` finding; refute only
+   "<what + acceptance criteria + touched files>", base: "<merge-base ref>",
+   root: "<the worktree created in step 3>"}, subagent_model=<reviewer role$level>)`. Fix every `verified` finding; refute only
    with evidence; `unconfirmed` findings are reported to the operator, never dropped.
 7. **Dev checks** — merge the worktree branch into `dev` (local branch when there is no
    remote; MR when there is) and run the full suite there. Red → fix in the worktree,
