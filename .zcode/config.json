@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "enabled": true,
+    "events": {
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/session-start.sh\"",
+              "timeoutMs": 60000,
+              "statusMessage": "свежесть индекса KB"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
