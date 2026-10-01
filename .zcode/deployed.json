@@ -2,8 +2,8 @@
   "plugins": {
     "ontoship": {
       "url": "git@github.com:ntin60775/ontoship-zcode.git",
-      "ref": "v0.5.4",
-      "deployed_at": "2026-10-01T02:09:48+0200",
+      "ref": "v0.5.5",
+      "deployed_at": "2026-10-01T07:58:52+0200",
       "manifest": "plugin",
       "mappings": [
         {
@@ -33,6 +33,10 @@
         {
           "from": "skills/roles",
           "to": ".zcode/skills/roles"
+        },
+        {
+          "from": "skills/to-tickets",
+          "to": ".zcode/skills/to-tickets"
         },
         {
           "from": "defaults",
