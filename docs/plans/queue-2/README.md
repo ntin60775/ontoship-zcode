@@ -126,10 +126,14 @@ Split-brain нет: проект переезжает **полностью**, в
 | [10](10-hygiene-runbook.md) | hygiene runbook — ночной lint+index+map | draft | 03 |
 | [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | draft | — |
 | [12](12-migration-runbook-pilot.md) | migration runbook + пилотный переезд | draft | 03, 04 |
+| [13](13-reviewer-gate-split.md) | Разбивка reviewer-гейта по файлам | draft | 06 |
 
 Голова (01–04) размечена гриллингом 2026-09-30; хвост (05–12) — первый
 приёмочный прогон нативного to-tickets: пять Tail-срезов приведены к
 восьми неделимым тикетам (code-review/architecture, handoff/diagnose,
 hygiene/memory разъединены по критерию «≥2 независимых обещаний»; runbook+пилот
 слиты — runbook проверяем только пилотом). Исходные формулировки срезов живут
-в тикетах.
+в тикетах. Тикет 13 добавлен вручную (2026-10-01, решение оператора «разбивка
+всегда»): post-publish дробление зашипленного reviewer-гейта — монолитный
+читатель диффа роняет контекст на крупных диффах (ContextLimit qwen-fp8,
+наблюдено в прогоне 4 тикета 06).

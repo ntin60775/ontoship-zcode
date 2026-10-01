@@ -40,7 +40,9 @@ def test_merge_by_name_not_by_file(tmp_path: Path):
     assert got["challenger"]["_source"] == "user"
 
 
-def test_missing_layers_are_not_errors(tmp_path: Path):
+def test_missing_layers_are_not_errors(tmp_path: Path, monkeypatch):
+    # изолируем user-слой: тест не должен зависеть от реального ~/.zcode/ontoship
+    monkeypatch.setenv("ONTOSHIP_HOME", str(tmp_path / "home"))
     d = wf(tmp_path / "d.md", "roles:\n  reviewer:\n    model: default/r\n")
     got = roles.resolve(tmp_path, default_path=d)
     assert got["reviewer"]["_source"] == "plugin-default"
@@ -84,7 +86,9 @@ def test_set_project_writes_project_layer(tmp_path: Path):
     assert got["reviewer"] == {"model": "proj/m", "level": "high"}
 
 
-def test_unset_removes_project_role_only(tmp_path: Path):
+def test_unset_removes_project_role_only(tmp_path: Path, monkeypatch):
+    # изолируем user-слой: сняли project-роль — из реального home ничего не подтекает
+    monkeypatch.setenv("ONTOSHIP_HOME", str(tmp_path / "home"))
     roles.cmd_set("reviewer", "proj/m", project=True, root=tmp_path)
     roles.cmd_set("challenger", "proj/c", project=True, root=tmp_path)
     print(roles.cmd_unset("reviewer", user_layer=False, root=tmp_path))

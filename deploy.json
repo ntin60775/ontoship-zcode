@@ -36,6 +36,10 @@
       "to": ".zcode/skills/to-tickets"
     },
     {
+      "from": "skills/code-review",
+      "to": ".zcode/skills/code-review"
+    },
+    {
       "from": "defaults",
       "to": ".zcode/defaults"
     },
