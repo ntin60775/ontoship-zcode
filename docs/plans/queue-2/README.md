@@ -119,7 +119,7 @@ Split-brain нет: проект переезжает **полностью**, в
 | [03](03-session-start-hook.md) | SessionStart-хук свежести индекса | **archived** (`7efa273`, релиз v0.5.4) | 01 |
 | [04](04-to-tickets-port.md) | Порт to-tickets + критерии неделимости Q1–Q7 | **archived** (`07338b1`, релиз v0.5.5) | 01 |
 | [05](05-onto-doc-workflow.md) | onto-doc workflow — fan-out кураторов + lint-гейт | **archived** (`2f81507`, релиз v0.5.6) | — |
-| [06](06-code-review-workflow.md) | code-review workflow — две оси параллельно | draft | — |
+| [06](06-code-review-workflow.md) | code-review workflow — две оси параллельно | **archived** (`40358e8`, релиз v0.5.7) | — |
 | [07](07-architecture-workflow.md) | architecture workflow — скан в фоне | draft | — |
 | [08](08-handoff.md) | handoff — ReadSessionContext + `.scratch/` | draft | — |
 | [09](09-diagnose.md) | diagnose — репро-цикл на вопросах | draft | — |
