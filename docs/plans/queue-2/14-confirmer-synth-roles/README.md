@@ -2,8 +2,8 @@
 node_type: ticket
 title: Роль confirmer — подтверждающий ран и свод
 service: _platform
-status: draft
-updated: 2026-10-01
+status: archived
+updated: 2026-10-02
 links:
   part_of: [README.md]
   depends_on: [../13-reviewer-gate-split.md]
@@ -77,4 +77,4 @@ verified/unconfirmed + conclusion + notCovered. code-review workflow перех�
 | # | Title | Status | Blocked by |
 |---|---|---|---|
 | [01](01-ship-gate-confirm-run.md) | ship-гейт — confirmer-ран | archived | 13 (archived) |
-| [02](02-code-review-confirm-run.md) | code-review — переход на confirm-ран | draft | 01 (archived) |
+| [02](02-code-review-confirm-run.md) | code-review — переход на confirm-ран | archived | 01 (archived) |
