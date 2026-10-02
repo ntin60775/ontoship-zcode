@@ -2,8 +2,8 @@
 node_type: ticket
 title: architecture workflow — скан в фоне
 service: _platform
-status: draft
-updated: 2026-10-01
+status: archived
+updated: 2026-10-02
 links:
   part_of: [README.md]
 ---
