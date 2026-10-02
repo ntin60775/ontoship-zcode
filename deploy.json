@@ -40,6 +40,10 @@
       "to": ".zcode/skills/code-review"
     },
     {
+      "from": "skills/architecture",
+      "to": ".zcode/skills/architecture"
+    },
+    {
       "from": "defaults",
       "to": ".zcode/defaults"
     },
