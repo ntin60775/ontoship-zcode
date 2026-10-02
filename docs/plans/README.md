@@ -3,7 +3,7 @@ node_type: index
 title: Plans
 service: _platform
 status: active
-updated: 2026-10-02
+updated: 2026-10-03
 links:
   part_of: [../README.md]
   relates_to: [../ontology.md]

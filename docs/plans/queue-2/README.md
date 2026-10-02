@@ -3,7 +3,7 @@ node_type: plan
 title: Очередь 2 — доставка, паритет, переезд
 service: _platform
 status: active
-updated: 2026-10-01
+updated: 2026-10-03
 tags: [plan, queue-2, delivery, migration, parity]
 links:
   relates_to: [../README.md, ../../reference/commands.md, ../../README.md]
@@ -121,7 +121,7 @@ Split-brain нет: проект переезжает **полностью**, в
 | [05](05-onto-doc-workflow.md) | onto-doc workflow — fan-out кураторов + lint-гейт | **archived** (`2f81507`, релиз v0.5.6) | — |
 | [06](06-code-review-workflow.md) | code-review workflow — две оси параллельно | **archived** (`40358e8`, релиз v0.5.7) | — |
 | [07](07-architecture-workflow.md) | architecture workflow — скан в фоне | **archived** (`309a2af`, релиз v0.5.11) | — |
-| [08](08-handoff.md) | handoff — ReadSessionContext + `.scratch/` | draft | — |
+| [08](08-handoff.md) | handoff — ReadSessionContext + `.scratch/` | **archived** (`28f9e48`, релиз v0.5.12) | — |
 | [09](09-diagnose.md) | diagnose — репро-цикл на вопросах | draft | — |
 | [10](10-hygiene-runbook.md) | hygiene runbook — ночной lint+index+map | draft | 03 |
 | [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | draft | — |

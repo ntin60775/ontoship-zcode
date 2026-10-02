@@ -2,8 +2,8 @@
 node_type: ticket
 title: handoff — ReadSessionContext + .scratch/
 service: _platform
-status: draft
-updated: 2026-10-02
+status: archived
+updated: 2026-10-03
 links:
   part_of: [README.md]
 ---
@@ -118,4 +118,20 @@ qwen3.6-35b-a3b$high → confirmer GLM-5.3-Flash$high; 15 сырых наход�
 evidence: «find -delete GNU-only», «printf падает при неудачном mkdir»,
 «--rebuild extra игнорирует rebuild», «mtime-гонка», «strategy-поле в From»,
 «нужен `--` в find»).
+
+**Отгружено (2026-10-03).** Коммит `28f9e48` (worktree `ship/queue-2-08`),
+ff-мерж через dev в main, релиз `v0.5.12` (`bf687c2`), пин (`ef016db`),
+self-update (`0c1ba96`, deploy-check exit=0, gitmark 0.5.12). Dev-проверка —
+локальная ветка dev без MR (релизный цикл репо — worktree → гейты → main):
+80 passed + lint --strict чист. Prod-чекаут: деплой-контура у плагина нет —
+suite + живой прогон нового хука по реальному репо (один JSON со склейкой
+stale-индекса и анонса handoff). Живая пара сессий: A-сторона выполнена —
+демо-handoff этой сессии записан в `.scratch/handoff-sess_f0110120-*.md`
+по механике скилла (шаблон, From, evidence, не затирая предыдущих);
+B-сторона — следующая сессия оператора после self-update: хук анонсирует
+файл с ReadSessionContext(sess_f0110120-2539-4a0c-aa01-6ac5ea8fa5e4,
+strategy=handoff); headless-проба невозможна — прецедент 03 (честная
+деградация Q9, заложена в тикете). Стоп-пункт и оба never-skippable
+подтверждения (merge в main, деплой) закрыты одним ответом оператора
+«continue + merge и деплой».
 
