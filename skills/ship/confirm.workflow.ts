@@ -19,8 +19,11 @@ args:
 // (reviewer.workflow.ts) ends with raw findings; THIS run confirms every
 // finding with fresh eyes and merges the verdicts. Two runs instead of one
 // so the confirmer model is configured separately from the reviewer model —
-// the orchestrator (ship skill) resolves both roles, fail-closed. Read-only:
-// nobody here edits anything. Secret-looking strings are best-effort
+// the orchestrator (ship skill) resolves both roles, fail-closed. Confirmers
+// see the findings ALREADY redacted by the review run: a finding whose
+// evidence carried a secret confirms worse (tends unconfirmed) — the
+// deliberate trade against spreading secret-looking material across runs.
+// Read-only: nobody here edits anything. Secret-looking strings are best-effort
 // redacted on output.
 
 interface Finding {

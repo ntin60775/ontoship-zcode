@@ -21,8 +21,10 @@ The **least specific layer**: a user overrides these for all projects in
 - `reviewer` — /ship step 6, first run: independent read-only review of the
   ticket diff; ends with raw findings.
 - `confirmer` — /ship step 6, second run: confirms the reviewer's findings with
-  fresh eyes (read-only); deliberately cheaper than the reviewer — confirming
-  is a mechanical evidence check (operator decision, ticket 14).
+  fresh eyes (read-only) and merges the verdicts into one report; deliberately
+  a lighter configuration than the reviewer (`high` reasoning level vs the
+  reviewer's `max` on the author's host — if the level is missing there, the
+  gate stops, fail-closed). Operator decision, ticket 14.
 - `challenger` — grilling: red team over the draft decisions.
 
 These ids are the author's host plan (Z.AI individual coding plan). On another host

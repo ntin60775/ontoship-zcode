@@ -46,8 +46,11 @@ run, strictly sequential.
    return — the raw findings array, compact JSON>, ticket: "<the same ticket>"},
    subagent_model=<confirmer role$level>)` —
    it returns the verdicts (findings with verified/unconfirmed + conclusion +
-   notCovered). Fix every `verified` finding; refute only with evidence;
-   `unconfirmed` findings are reported to the operator, never dropped.
+   notCovered) — pass the findings array as-is, even when empty (the confirm
+   run reports the empty case honestly). If the review run errored or stopped,
+   there is nothing to confirm: stop the run and report the failure; never run
+   the confirm run on a failed review. Fix every `verified` finding; refute only
+   with evidence; `unconfirmed` findings are reported to the operator, never dropped.
 7. **Dev checks** — merge the worktree branch into `dev` (local branch when there is no
    remote; MR when there is) and run the full suite there. Red → fix in the worktree,
    do not merge onward.
@@ -61,7 +64,8 @@ run, strictly sequential.
 
 From the plan contract's `Constraints`, enforced verbatim:
 
-- `stop-before-commit` — after the review (step 6) stop with the uncommitted diff and
+- `stop-before-commit` — after the review (step 6: both gate runs done and the
+  verified findings addressed) stop with the uncommitted diff and
   wait for the operator's "continue". **Default when the contract names nothing.**
 - `stop-after-mr` — after step 7, stop for the operator's review.
 - `no-deploy` — skip the deploy in step 9.
