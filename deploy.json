@@ -44,6 +44,10 @@
       "to": ".zcode/skills/architecture"
     },
     {
+      "from": "skills/handoff",
+      "to": ".zcode/skills/handoff"
+    },
+    {
       "from": "defaults",
       "to": ".zcode/defaults"
     },

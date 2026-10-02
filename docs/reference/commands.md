@@ -3,7 +3,7 @@ node_type: reference
 title: Command registry
 service: _platform
 status: active
-updated: 2026-10-01
+updated: 2026-10-03
 links:
   part_of: [README.md]
 ---
@@ -24,6 +24,7 @@ between the markers by hand.
 <!-- BEGIN inventory:skills -->
 | Skill | What it does |
 |---|---|
+| `architecture` | Background architecture scan of a repo — a module/connection map cross-checked against the documented architecture (KB) for drift; drift findings confirmed independently by the shared ship confirm run. Runs by hand; the scan is a background workflow and never blocks the session. Use when the operator says "просканируй архитектуру", "architecture scan", "карта модулей", "найди дрейф с доками", or runs /architecture. |
 | `code-review` | Two-axis code review of an arbitrary diff (correctness; quality & dangerous places) — findings confirmed independently against code quotes by the shared ship confirm run, one merged report with verified/unconfirmed verdicts. Runs only by hand through the workflow engine: review on the reviewer-role model, confirmation on the confirmer-role model. Use when the operator says "поревьюй дифф", "code review", "ревью ветки", or runs /code-review. |
 | `doc` | Compose or update a knowledge-base document for a given topic following the OntoShip ontology (node_type, frontmatter, typed links, folder README index). Use when the user says "док", "задокументируй", "add a doc about X", "document X", or runs /doc. Searches first and edits the existing doc instead of duplicating. |
 | `grilling` | Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Ends with a plan contract (docs/plans/<slug>.md) approved via the native plan gate. Use when the user says "погрилл", "grill this", "прогони гриллинг", or runs /grilling. |
@@ -33,5 +34,5 @@ between the markers by hand.
 | `roles` | View and reassign the subagent model roles (reviewer, confirmer, challenger) across three layers — plugin default, user global, per-project. Use when the user runs /roles, says "поменяй модель ревьюера", "назначь модель для ролей", or asks which model reviews their ships. Shows the effective configuration with provenance and shadowing warnings. |
 | `ship` | Ship ONE ticket through the gated dev-flow — worktree → implement → tests → independent review on an explicitly assigned model → dev/prod checks → merge, one ticket per run, strictly sequential, launched only by hand by the operator. Use when the operator runs /ship with a plan folder, a ticket path, a file plan, or an ad-hoc what+why+done. Never starts itself and is never started by another skill. |
 | `to-tickets` | Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table. Use when the user says "разбей на тикеты" or runs /to-tickets. Runs only by hand; /ship consumes one ticket per run and is never started by this skill. |
-| `architecture` | Background architecture scan of a repo — a module/connection map cross-checked against the documented architecture (KB) for drift; drift findings confirmed independently by the shared ship confirm run. Runs by hand; the scan is a background workflow and never blocks the session. Use when the operator says "просканируй архитектуру", "architecture scan", "карта модулей", "найди дрейф с доками", or runs /architecture. |
+| `handoff` | Hand the session's context to the next one — write a per-session handoff file (.scratch/handoff-<id>.md with From, Task, Done, Decisions with evidence, Open, Next, Artifacts) without overwriting previous handoffs, and carry task-surviving facts into memory. Runs only when the operator says "передай смену", "handoff", or runs /handoff. Never starts itself. |
 <!-- END inventory:skills -->
