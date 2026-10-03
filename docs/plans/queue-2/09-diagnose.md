@@ -2,7 +2,7 @@
 node_type: ticket
 title: diagnose — репро-цикл на вопросах
 service: _platform
-status: active
+status: archived
 updated: 2026-10-03
 links:
   part_of: [README.md]
