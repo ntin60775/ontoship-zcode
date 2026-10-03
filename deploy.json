@@ -48,6 +48,10 @@
       "to": ".zcode/skills/handoff"
     },
     {
+      "from": "skills/diagnose",
+      "to": ".zcode/skills/diagnose"
+    },
+    {
       "from": "defaults",
       "to": ".zcode/defaults"
     },
