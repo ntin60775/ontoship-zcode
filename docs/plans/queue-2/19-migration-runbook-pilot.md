@@ -3,13 +3,17 @@ node_type: ticket
 title: migration runbook + пилотный переезд
 service: _platform
 status: draft
-updated: 2026-10-01
+updated: 2026-10-04
 links:
   part_of: [README.md]
   depends_on: [03-session-start-hook.md, 04-to-tickets-port.md]
 ---
 
-# 12: migration runbook + пилотный переезд
+# 19: migration runbook + пилотный переезд
+
+> Бывший тикет 12; перенумерован 2026-10-04 (решение оператора «migration —
+> последним»): NN-порядок = порядок шипа, голый `/ship docs/plans/queue-2/`
+> берёт первый не-архивный по NN.
 
 **What to build:** полный переезд одного проекта с omp на zcode — runbook и
 его первая проверка пилотом, как одна единица: runbook проверяем только

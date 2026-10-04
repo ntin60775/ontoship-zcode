@@ -125,13 +125,13 @@ Split-brain нет: проект переезжает **полностью**, в
 | [09](09-diagnose.md) | diagnose — репро-цикл на вопросах | **archived** (`3d9212b`, релиз v0.5.13) | — |
 | [10](10-hygiene-runbook.md) | hygiene runbook — ночной lint+index+map | **archived** (`c8d47df`, релиз v0.5.14) | 03 |
 | [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | **archived** (`ef28cbe`, без релиза — доки не вендорятся) | — |
-| [12](12-migration-runbook-pilot.md) | migration runbook + пилотный переезд | draft | 03, 04 |
 | [13](13-reviewer-gate-split.md) | Разбивка reviewer-гейта по файлам | **archived** (`e9964e3`, релиз v0.5.8) | 06 |
 | [14](14-confirmer-synth-roles/README.md) | Роль confirmer — подтверждающий ран и свод (контракт; разбит на 14/01–02) | draft | 13 |
 | [15](15-redact-coverage.md) | Полнота redact — матрица форматов и баланс fp/leak | draft | — |
 | [16](16-reviewer-gate-untracked.md) | Untracked-файлы диффа мимо reviewer-гейта | draft | — |
 | [17](17-workflow-abort-diagnostics.md) | Abort-сообщения workflow несут причину парсинга args | draft | — |
 | [18](18-inventory-stable-sort.md) | Стабильная сортировка inventory | draft | — |
+| [19](19-migration-runbook-pilot.md) | migration runbook + пилотный переезд (бывший 12) | draft | 03, 04 |
 
 Голова (01–04) размечена гриллингом 2026-09-30; хвост (05–12) — первый
 приёмочный прогон нативного to-tickets: пять Tail-срезов приведены к
@@ -152,4 +152,6 @@ FP на `auth`/`token`) — унаследованы от baseline 13 и соз�
 рана 09 — дыра reviewer-гейта на untracked-файлах (первый ран гейта увидел
 2 из 4 файлов диффа), глотание причины парсинга args в abort-сообщениях
 (диагноз: `.scratch/diagnose-wf-args/REPORT.md`) и I7-чурн от нестабильной
-сортировки inventory.
+сортировки inventory. Тикет 12→19 перенумерован (2026-10-04, решение
+оператора «migration — последним»): NN-порядок = порядок шипа, голый
+`/ship docs/plans/queue-2/` берёт первый не-архивный по NN — после 11 это 15.
