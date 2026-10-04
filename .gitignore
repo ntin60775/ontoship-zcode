@@ -3,6 +3,8 @@
 *-map.html
 # session-ephemeral (handoff, review reports)
 .scratch/
+# plan-gate artifacts — решения записываются в docs/plans/ (kb-curate), сами файлы не переносят ценности
+.zcode/plans/
 __pycache__/
 .pytest_cache/
 .zcode/.backup/
