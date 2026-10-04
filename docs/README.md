@@ -3,7 +3,7 @@ node_type: index
 title: Docs — master index
 service: _platform
 status: active
-updated: 2026-09-30
+updated: 2026-10-04
 links:
   documents: [../AGENTS.md]
   relates_to: [ontology.md, reference/README.md, services/README.md, ops/README.md, plans/README.md, reference/commands.md]
@@ -15,7 +15,7 @@ The knowledge base of the `ontoship-zcode` plugin itself — dogfooded: the KB t
 plugin ships is maintained by the plugin's own discipline (ontology, lint, index).
 
 - [ontology.md](ontology.md) — the knowledge model (types, properties, typed links, invariants).
-- [reference/](reference/README.md) — cross-cutting specs (command registry, roles).
+- [reference/](reference/README.md) — cross-cutting specs (command registry, roles, memory).
 - [services/](services/README.md) — per-component docs (the gitmark CLI engine).
 - [plans/](plans/README.md) — plan contracts and tickets (the dev-flow substrate).
 - [ops/](ops/README.md) — operational procedures (install, update, release cycle).
