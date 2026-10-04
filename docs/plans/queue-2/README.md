@@ -126,8 +126,8 @@ Split-brain нет: проект переезжает **полностью**, в
 | [10](10-hygiene-runbook.md) | hygiene runbook — ночной lint+index+map | **archived** (`c8d47df`, релиз v0.5.14) | 03 |
 | [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | **archived** (`ef28cbe`, без релиза — доки не вендорятся) | — |
 | [13](13-reviewer-gate-split.md) | Разбивка reviewer-гейта по файлам | **archived** (`e9964e3`, релиз v0.5.8) | 06 |
-| [14](14-confirmer-synth-roles/README.md) | Роль confirmer — подтверждающий ран и свод (контракт; разбит на 14/01–02) | draft | 13 |
-| [15](15-redact-coverage.md) | Полнота redact — матрица форматов и баланс fp/leak | draft | — |
+| [14](14-confirmer-synth-roles/README.md) | Роль confirmer — подтверждающий ран и свод (контракт; разбит на 14/01–02) | **archived** (`bcd920b`+`39e8a83`, релизы v0.5.9/v0.5.10) | 13 |
+| [15](15-redact-coverage.md) | Полнота redact — матрица форматов и баланс fp/leak | **archived** (`cbd9fc3`, релиз v0.5.15) | — |
 | [16](16-reviewer-gate-untracked.md) | Untracked-файлы диффа мимо reviewer-гейта | draft | — |
 | [17](17-workflow-abort-diagnostics.md) | Abort-сообщения workflow несут причину парсинга args | draft | — |
 | [18](18-inventory-stable-sort.md) | Стабильная сортировка inventory | draft | — |
