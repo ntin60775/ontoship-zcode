@@ -33,8 +33,10 @@ args:
 // with both. args.report="markdown" (code-review) switches the synthesizer
 // from the short gate digest to the full markdown report and publishes it as
 // the "review" artifact; the ship-gate digest path is untouched. Read-only:
-// nobody here edits anything. Secret-looking strings are best-effort
-// redacted on output.
+// nobody here edits anything. Findings are redacted on the way in and on
+// the way out (redact(), матрица queue-2/15); the synthesizer's own output
+// is not post-redacted — its input is already redacted, a secret never
+// reaches the model.
 
 interface Finding {
   /** Путь к файлу и строка: "src/a.py:42". */
@@ -58,21 +60,44 @@ interface Confirmation {
   note: string;
 }
 
-/** Цитаты в evidence — дословные строки диффа: на выходе best-effort редакция секретов.
- * Осознанные ограничения (не гарантия): разделитель только `:`/`=` (пробельный формат
- * не ловится — иначе маскировалась бы обычная проза), значения короче 4 символов не
- * редактируются, neutralize защищает только закрытие ограды <finding>, а не все теги. */
+/**
+ * Редакция секретов до отдачи оператору и до передачи находок в args
+ * следующего рана (конфирмеры и сводчик видят уже отредактированный вход).
+ * Матрица форматов (queue-2/15): PEM-блоки любого типа целиком — приватные
+ * ключи (включая PGP … BLOCK, цифры и не-ASCII в заголовке) и
+ * сертификаты/публичные ключи: тип в заголовке не проверяем, блок в цитате
+ * находки не нужен; пара BEGIN/END по типу не сверяется — маскируется от
+ * BEGIN до ближайшего END; креды user:pass@host; значения по словарю
+ * секретов (password, secret, token, auth…, jwt) с exclusion-листом
+ * не-секретных суффиксов (type, provider, url, name, hint, reset, count,
+ * expiry, ttl, realm, timeout, length, policy, complexity); JWT/JWE-формы
+ * (eyJ + 2–5 точечных сегментов, включая padding и raw base64 в сегментах) —
+ * всегда, одиночные eyJ-литералы — только при словарном контексте
+ * (state=eyJ… не секрет); bearer/basic-литералы — только с
+ * цифрой/=/_/- внутри, иначе маскировалась бы проза «bearer authentication»;
+ * vendor-литералы (sk-, ghp_, AKIA…). Порядок правил важен: eyJ-формы и
+ * bearer/basic — ДО key=value (иначе словарное правило съедает слово
+ * Bearer/Basic и оставляет значение открытым).
+ * Документированные пропуски — не гарантия: значения короче 4 символов;
+ * raw hex и raw base64 без ключевого слова рядом; query-креды с несловарным
+ * именем (?sig=…); bare-key auth/token с mode-значениями (auth = "oauth2"
+ * маскируется — трейд-офф против лжи-негатива); публичные ключи вне
+ * PEM-обёртки (ssh-rsa AAAA…).
+ * Выхлоп модельного сводчика не пост-редактируется: его вход уже отредактирован
+ * здесь, секрет до модели не доезжает; прямой redact отчёта давал бы FP на прозе.
+ */
 function redact(s: string): string {
   let t = String(s ?? "");
-  t = t.replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, "[REDACTED]");
-  t = t.replace(/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+:[^\s/@]+@/gi, "$1[REDACTED]@");
-  const key = "(?:[\\w.-]+[_-])?(?:password|passwd|secret|token|apikey|api[_-]?key|private[_-]?key|authorization|auth)(?![a-z])(?!_?(?:type|provider|url|name|hint|reset|count|expiry)[\\w.-]*[\"']?(?=\\s*[:=]))[\\w.-]*[\"']?";
+  t = t.replace(/-----BEGIN[^\n]*?-----[\s\S]*?-----END[^\n]*?-----/g, "[REDACTED]");
+  t = t.replace(/\b([a-z][a-z0-9+.-]*:\/\/)[^\s\/]+:[^\s\/]+@/gi, "$1[REDACTED]@");
+  t = t.replace(/\beyJ[A-Za-z0-9_+\/-]+(?:\.[A-Za-z0-9_+\/-]+){1,4}=*/g, "[REDACTED]");
+  t = t.replace(/\b(bearer|basic)\s+(?=[A-Za-z0-9+/=_-]*[0-9=/_-])[A-Za-z0-9+/=_-]{8,}/gi, "$1 [REDACTED]");
+  const key = "(?:[\\w.-]+[_-])?(?:password|passwd|secret|token|apikey|api[_-]?key|private[_-]?key|authorization|auth|jwt)(?![a-z])(?!_?(?:type|provider|url|name|hint|reset|count|expiry|ttl|realm|timeout|length|policy|complexity)[\\w.-]*[\"']?(?=\\s*[:=]))[\\w.-]*[\"']?";
   t = t.replace(new RegExp(`\\b(${key}\\s*[:=]\\s*)(")([^"]{4,})(")`, "gi"), '$1"[REDACTED]"');
   t = t.replace(new RegExp(`\\b(${key}\\s*[:=]\\s*)(')([^']{4,})(')`, "gi"), "$1'[REDACTED]'");
   t = t.replace(new RegExp(`\\b(${key}\\s*[:=]\\s*)(["']?)[^\\s"']{4,}`, "gi"), "$1$2[REDACTED]");
-  t = t.replace(/\b(bearer|basic)\s+(?=[A-Za-z0-9+/=_-]*[0-9=/_-])[A-Za-z0-9+/=_-]{8,}/gi, "$1 [REDACTED]");
   t = t.replace(
-    /\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,}|xox[a-z]-[A-Za-z0-9-]{8,}|y0_[A-Za-z0-9_-]{20,}|ya29\.[A-Za-z0-9_-]{8,}|EAACEdEose0c[A-Za-z0-9]+|eyJ[A-Za-z0-9_-]{10,})\b/g,
+    /\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,}|xox[a-z]-[A-Za-z0-9-]{8,}|y0_[A-Za-z0-9_-]{20,}|ya29\.[A-Za-z0-9_-]{8,}|EAACEdEose0c[A-Za-z0-9]+)\b/g,
     "[REDACTED]",
   );
   return t;

@@ -53,7 +53,9 @@ Read-only: nobody edits or commits anything.
    (artifact «review» — verified findings plus the «не подтверждено»
    section). `verified` findings were reproduced by independent confirmers on
    the confirmer model; `unconfirmed` ones need human eyes and are never
-   dropped. Secret-looking strings in output are best-effort redacted (common
-   token/key shapes — not a guarantee). Known cosmetic: the confirm run's
+   dropped. Secret-looking strings in findings are redacted before they leave the
+   run (формат-матрица queue-2/15; ограничения — в шапке redact, не
+   гарантия); выхлоп сводчика не пост-редактируется — его вход уже
+   отредактирован. Known cosmetic: the confirm run's
    report header says "Code-review" — the machinery is shared with the review
    gates by design; the content is the drift report.
