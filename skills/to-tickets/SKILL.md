@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table. Use when the user says "разбей на тикеты" or runs /to-tickets. Runs only by hand; /ship consumes one ticket per run and is never started by this skill.
+description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table, and embedded into the global execution order (docs/plans/README.md «Порядок выполнения»). Use when the user says "разбей на тикеты" or runs /to-tickets. Runs only by hand; /ship consumes one ticket per run and is never started by this skill.
 ---
 
 # /to-tickets — break a plan into tickets
@@ -154,7 +154,29 @@ if a prototype produced a snippet that encodes a decision more precisely than pr
 can (state machine, reducer, schema, type shape), inline it and note briefly that it
 came from a prototype. Trim to the decision-rich parts, not a working demo.
 
-### 5. Lint + reindex
+### 5. Embed into the execution order
+
+Publishing a plan is not the last word on sequencing: every `/to-tickets` run
+ends with the plan **embedded in the global execution order** — the
+«Порядок выполнения» section of `docs/plans/README.md`. Never leave the
+slotting to the operator and never assume the order is obvious: this section
+is the only place cross-plan order is written down.
+
+- Add (or update) the plan's numbered entry with the rationale for its
+  position: shared files with neighboring plans (one release-cycle churn),
+  cross-plan blockers, and «first/last» constraints declared in plans'
+  `Constraints`.
+- Reconcile both levels: the plan's internal order (its NN and blocked-by
+  edges) and its global position among the other plans. If a neighbor edits
+  the same files, say explicitly who goes first and why.
+- While editing the section, catch stale neighbor entries (shipped remains,
+  renumbered tickets) — an index that lies about the remainder is worse than
+  none.
+
+The index is a doc like any other: the order change is part of this run's
+commit, not a follow-up.
+
+### 6. Lint + reindex
 
 `gitmark.py lint` then `gitmark.py index`. Report the ticket list and **stop**. Do
 NOT launch `/ship` — the operator starts it by hand, one ticket at a time.
