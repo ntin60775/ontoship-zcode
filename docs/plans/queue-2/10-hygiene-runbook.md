@@ -7,7 +7,7 @@ updated: 2026-10-04
 links:
   part_of: [README.md]
   depends_on: [03-session-start-hook.md]
-  implemented_by: [../../scripts/hygiene.sh, ../../hooks/session-start.sh]
+  implemented_by: [../../../scripts/hygiene.sh, ../../../hooks/session-start.sh]
 ---
 
 # 10: hygiene runbook — ночной lint+index+map
