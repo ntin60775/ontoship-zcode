@@ -2,11 +2,12 @@
 node_type: ticket
 title: hygiene runbook — ночной lint+index+map
 service: _platform
-status: draft
-updated: 2026-10-01
+status: archived
+updated: 2026-10-04
 links:
   part_of: [README.md]
   depends_on: [03-session-start-hook.md]
+  implemented_by: [../../scripts/hygiene.sh, ../../hooks/session-start.sh]
 ---
 
 # 10: hygiene runbook — ночной lint+index+map
@@ -18,8 +19,8 @@ init не меняется (one-pass остаётся).
 
 **Blocked by:** 03 — sink ночных ERR читает SessionStart-хук.
 
-- [ ] runbook: команда ночной автоматизации (cron/off-peak), тихий запуск,
-      лог ночных ERR
-- [ ] `lint --strict` при проблемах даёт ненулевой exit в лог; хук находит лог
-      и сообщает о несвежести (03 отгружен)
-- [ ] `gitmark lint` + `pytest` зелёные
+- [x] runbook: команда ночной автоматизации (cron/off-peak), тихий запуск,
+      лог ночных ERR — `docs/ops/hygiene.md` + `scripts/hygiene.sh`
+- [x] `lint --strict` при проблемах даёт ненулевой exit в лог; хук находит лог
+      и сообщает о несвежести (анонс lint≠0 и index≠0; чужой/рукописный лог молчит)
+- [x] `gitmark lint` + `pytest` зелёные (93 passed)
