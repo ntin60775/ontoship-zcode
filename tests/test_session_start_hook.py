@@ -293,3 +293,120 @@ def test_handoff_and_stale_index_glue_into_one_json(tmp_path: Path):
     assert "gitmark.py index" in ctx
     assert "ReadSessionContext(sessionId=sess_old" in ctx
     assert p.stdout.count("\n") == 1
+
+
+# --- nightly hygiene (ticket 10): the hook consumes .gitmark/hygiene.log ---
+
+
+def write_hygiene_log(proj: Path, last_line: str) -> Path:
+    d = proj / ".gitmark"
+    d.mkdir(exist_ok=True)
+    f = d / "hygiene.log"
+    f.write_text("hygiene run in somewhere\n" + last_line + "\n", encoding="utf-8")
+    return f
+
+
+def fresh_indexed_project(tmp_path: Path) -> Path:
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / "docs" / "a.md", (0, 0))
+    return proj
+
+
+def test_failing_nightly_lint_is_announced(tmp_path: Path):
+    proj = fresh_indexed_project(tmp_path)
+    write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=1 index=0 map=0")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert "гигиен" in ctx
+    assert ".gitmark/hygiene.log" in ctx
+    assert "2026-10-04T03:00:00" in ctx
+    assert "lint --strict" in ctx
+
+
+def test_clean_nightly_lint_is_silent(tmp_path: Path):
+    proj = fresh_indexed_project(tmp_path)
+    write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=0 index=0 map=0")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    assert p.stdout == ""
+
+
+def test_nightly_index_failure_is_announced(tmp_path: Path):
+    """A transient index-rebuild failure on unchanged md is invisible to the
+    freshness check — nothing is newer than the index — so the hook must
+    announce index≠0 itself (gate 10)."""
+    proj = fresh_indexed_project(tmp_path)
+    write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=0 index=1 map=0")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert "индекс" in ctx
+    assert "gitmark.py index" in ctx
+
+
+def test_map_failure_is_not_announced(tmp_path: Path):
+    proj = fresh_indexed_project(tmp_path)
+    write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=0 index=0 map=3")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    assert p.stdout == ""
+
+
+def test_junk_tail_after_iso_stamp_is_silent(tmp_path: Path):
+    """The date token is an ISO stamp with at most a timezone tail: a log
+    line carrying arbitrary text after the stamp matches nothing (gate 10 —
+    the leaked-tail announcement was reproduced end-to-end)."""
+    proj = fresh_indexed_project(tmp_path)
+    write_hygiene_log(
+        proj, "HYGIENE 2026-10-04T03:00:00JUNK-КОНЕЦ-С-МУСОРОМ lint=1 index=0 map=0")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    assert p.stdout == ""
+
+
+def test_missing_hygiene_log_is_silent(tmp_path: Path):
+    proj = fresh_indexed_project(tmp_path)
+    p = run_hook(proj)
+    assert p.returncode == 0
+    assert p.stdout == ""
+
+
+def test_foreign_hygiene_log_is_silent(tmp_path: Path):
+    """The last line must be machine-shaped (scripts/hygiene.sh): a hand-edited
+    or foreign log whose last line does not parse says nothing."""
+    proj = fresh_indexed_project(tmp_path)
+    write_hygiene_log(proj, "HYGIENE someday lint=1 index=0 map=0")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    assert p.stdout == ""
+
+
+def test_nonzero_hygiene_date_is_part_of_the_message_not_a_command(tmp_path: Path):
+    """A lint rc with a leading zero stays decimal (no octal surprise), and the
+    date token rides as text — the hook never executes anything it read."""
+    proj = fresh_indexed_project(tmp_path)
+    write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=007 index=0 map=0")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None and "гигиен" in ctx
+
+
+def test_hygiene_stale_index_and_handoff_glue_into_one_json(tmp_path: Path):
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / ".gitmark" / "index.db", (0, 0))
+    write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=1 index=0 map=0")
+    write_handoff(proj, "handoff-sess_old.md", "From: sess_old\n")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert "gitmark.py index" in ctx
+    assert "гигиен" in ctx
+    assert "ReadSessionContext(sessionId=sess_old" in ctx
+    assert p.stdout.count("\n") == 1

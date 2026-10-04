@@ -14,8 +14,15 @@
 # the newest fresh (≤7 days) handoff file so the next session reads it and
 # continues; deep detail — ReadSessionContext on the previous session id
 # taken from the file's From line.
-# One-emit contract: index freshness, handoff announcement, or both — glued
-# into exactly one JSON on stdout (two JSONs broke the runner parser).
+# Nightly hygiene: scripts/hygiene.sh (cron/off-peak) writes
+# .gitmark/hygiene.log whose last line is
+#   HYGIENE <iso-date> lint=<rc> index=<rc> map=<rc>
+# a lint=<nonzero> or index=<nonzero> is announced here so nightly KB errors
+# do not vanish (a transient index-rebuild failure on unchanged md is NOT
+# caught by the freshness check — nothing is newer than the index; gate 10);
+# the map is cosmetic — the log and the script's exit code carry it.
+# Unparseable or missing log — silence. One-emit contract: index freshness,
+# hygiene, handoff announcement, or any mix — glued into exactly one JSON.
 set -uo pipefail
 
 root="${ZCODE_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$PWD}}"
@@ -89,6 +96,23 @@ else
       rebuild_quietly || add_part "$msg_fail"
     else
       add_part "$msg_stale"
+    fi
+  fi
+fi
+
+# Nightly hygiene (ticket 10): the last log line is machine-written by
+# scripts/hygiene.sh. The date token is an ISO stamp with at most a timezone
+# tail — the bare non-whitespace tail the first version allowed leaked
+# arbitrary log text into the announcement (gate 10, reproduced end-to-end),
+# and a hand-edited or foreign log must say nothing.
+hygiene_log=.gitmark/hygiene.log
+if [[ -f "$hygiene_log" ]]; then
+  last="$(tail -n 1 "$hygiene_log" 2>/dev/null)"
+  if [[ "$last" =~ ^HYGIENE\ ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:?[0-9]{2}|Z)?)\ lint=([0-9]+)\ index=([0-9]+)\ map=([0-9]+)$ ]]; then
+    if (( 10#${BASH_REMATCH[3]} != 0 )); then
+      add_part "KB: ночной гигиенический прогон от ${BASH_REMATCH[1]} нашёл ошибки lint --strict — разбери лог $hygiene_log и почини; после починки прогон перезапишет лог: bash .zcode/scripts/hygiene.sh (runbook: docs/ops/hygiene.md)"
+    elif (( 10#${BASH_REMATCH[4]} != 0 )); then
+      add_part "KB: ночной гигиенический прогон от ${BASH_REMATCH[1]} не смог перестроить индекс (index=${BASH_REMATCH[4]}) — запусти python3 .zcode/skills/kb-search/gitmark.py index и разберись; детали в логе $hygiene_log"
     fi
   fi
 fi
