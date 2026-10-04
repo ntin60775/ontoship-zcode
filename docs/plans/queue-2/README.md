@@ -124,7 +124,7 @@ Split-brain нет: проект переезжает **полностью**, в
 | [08](08-handoff.md) | handoff — ReadSessionContext + `.scratch/` | **archived** (`28f9e48`, релиз v0.5.12) | — |
 | [09](09-diagnose.md) | diagnose — репро-цикл на вопросах | **archived** (`3d9212b`, релиз v0.5.13) | — |
 | [10](10-hygiene-runbook.md) | hygiene runbook — ночной lint+index+map | **archived** (`c8d47df`, релиз v0.5.14) | 03 |
-| [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | draft | — |
+| [11](11-memory-template.md) | memory template — тонкий MEMORY.md-указатель | **archived** (`ef28cbe`, без релиза — доки не вендорятся) | — |
 | [12](12-migration-runbook-pilot.md) | migration runbook + пилотный переезд | draft | 03, 04 |
 | [13](13-reviewer-gate-split.md) | Разбивка reviewer-гейта по файлам | **archived** (`e9964e3`, релиз v0.5.8) | 06 |
 | [14](14-confirmer-synth-roles/README.md) | Роль confirmer — подтверждающий ран и свод (контракт; разбит на 14/01–02) | draft | 13 |
