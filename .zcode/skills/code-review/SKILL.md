@@ -48,6 +48,9 @@ launches `/code-review` once and gets the same merged report.
    field `report`.
    `verified` findings were reproduced by independent confirmers; `unconfirmed`
    ones need human eyes and are never dropped silently. Secret-looking strings
-   in quotes are best-effort redacted on output (common token/key shapes — not
-   a guarantee); the workflows themselves are read-only — they never edit or
+   in quotes are redacted before findings leave the run (формат-матрица
+   queue-2/15: PEM-блоки, user:pass@host, словарные key=value, bearer,
+   JWS/vendor-литералы; ограничения перечислены в шапке redact — не
+   гарантия); выхлоп сводчика не пост-редактируется — его вход уже
+   отредактирован; the workflows themselves are read-only — they never edit or
    commit.

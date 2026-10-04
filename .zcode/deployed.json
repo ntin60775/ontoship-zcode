@@ -2,8 +2,8 @@
   "plugins": {
     "ontoship": {
       "url": "git@github.com:ntin60775/ontoship-zcode.git",
-      "ref": "v0.5.14",
-      "deployed_at": "2026-10-04T12:23:46+0200",
+      "ref": "v0.5.15",
+      "deployed_at": "2026-10-04T19:31:36+0200",
       "manifest": "plugin",
       "mappings": [
         {
