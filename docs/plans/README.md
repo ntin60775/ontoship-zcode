@@ -3,7 +3,7 @@ node_type: index
 title: Plans
 service: _platform
 status: active
-updated: 2026-10-04
+updated: 2026-10-05
 links:
   part_of: [../README.md]
   relates_to: [../ontology.md]
@@ -24,11 +24,17 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
   методологии кросс-ревью в гейты ревью (папка, 3 тикета: intent осей /code-review,
   unverified-статус confirm-рана, инварианты слепого ревью в KB; из сверки с
   EvilFreelancer/crossreview 2026-10-04).
+- [gate-followups/](gate-followups/README.md) — фоллоу-апы ship-гейта из прогона
+  queue-2/16 (папка, 2 тикета: паритет код-ревью по untracked-файлам,
+  гигиена контекста гейта против qwen-400 на тяжёлых файлах).
 
 ## Порядок выполнения
 
-1. **queue-2** (остаток): 10 → 12; 11, 14, 15–18 — в любом месте после своих блокеров.
-2. **crossreview-adoption** — после закрытия queue-2: тикеты 15–17 правят те же
-   воркфлоу ревью (redact, untracked, abort-диагностика), один churn на релизный
-   цикл; внутри плана 01 и 02 независимы, 03 — после обоих.
-3. **kb-service-doc** — внутренний смоук, в любой момент.
+1. **queue-2** (остаток): 17, 18, 19-миграция последней.
+2. **gate-followups** — после queue-2, до crossreview-adoption: оба тикета
+   правят те же воркфлоу ревью, что crossreview (01–02), — один churn на
+   релизный цикл; внутри плана тикеты независимы.
+3. **crossreview-adoption** — после gate-followups: правки тех же файлов
+   ложатся на починенную базу (untracked-карта, гигиена asks); внутри плана
+   01 и 02 независимы, 03 — после обоих.
+4. **kb-service-doc** — внутренний смоук, в любой момент.
