@@ -3,7 +3,7 @@ node_type: plan
 title: Кросс-ревью — контрактные дельты в гейты ревью
 service: _platform
 status: draft
-updated: 2026-10-04
+updated: 2026-10-05
 tags: [plan, crossreview, review-gate, code-review, kb]
 links:
   relates_to: [../README.md, ../queue-2/README.md, ../../reference/README.md]
@@ -86,6 +86,6 @@ VERDICT-строки, второй раунд ревью дельта-диффа
 
 | # | Title | Status | Blocked by |
 |---|-------|--------|------------|
-| [01](01-review-intent.md) | Intent диффа в осях /code-review | draft | — |
+| [01](01-review-intent.md) | Intent диффа в осях /code-review | archived | — |
 | [02](02-confirm-unverified.md) | Confirm-ран: отказ проверки ≠ опровержение | draft | — |
 | [03](03-review-invariants.md) | Инварианты слепого ревью в KB | draft | 01, 02 |

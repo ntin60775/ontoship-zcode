@@ -141,6 +141,29 @@ for (const [rel, src] of HINT_FILES) {
     failed++;
   }
 }
+
+// Intent диффа в осях (crossreview-adoption/01): проводка только в копии
+// code-review — у источника-гейта вместо intent тикет, его проводку этот тест
+// не смотрит. Якоря построчные (урок гейта 16: includes по файлу не отличает
+// живой вызов от комментария). Замысел обязан доехать до каждой оси-задачи
+// (декларация args → парсинг → сигнатура → вызов → промпт), а пустой intent —
+// получить честную пометку самосогласованности в conclusion.
+const CR_REL = "skills/code-review/code-review.workflow.ts";
+const crSrc = extractParts(CR_REL).src;
+const INTENT_LINES = [
+  [/^  intent:\n    type: string$/m, "декларация args.intent в шапке zcode-workflow"],
+  [/^const intent = String\(args\.intent \?\? ""\)\.trim\(\);$/m, "парсинг args.intent"],
+  [/^function filePrompt\(axis: string, lens: string, f: FileEntry, intent: string\): string \{$/m, "сигнатура filePrompt с intent"],
+  [/^ +filePrompt\(t\.axis, t\.lens, t\.file, intent\),$/m, "аск оси-задачи получает intent"],
+  [/^ +`Корень чекаута: \$\{root\}\. Твой файл: \$\{f\.path\}\. \$\{diffHint\} \$\{intentBlock\}` \+$/m, "промпт оси несёт intentBlock"],
+  [/^ +: \["Ревью без замысла: intent не передан — проверена самосогласованность диффа, соответствие замыслу не оценивалось\."\]\),$/m, "честная пометка самосогласованности в conclusion"],
+];
+for (const [re, what] of INTENT_LINES) {
+  if (!re.test(crSrc)) {
+    console.error(`Структура ${CR_REL}: intent-проводка отвалилась — ${what} (crossreview-adoption/01)`);
+    failed++;
+  }
+}
 if (failed > 0) process.exit(1);
 
 let gateFns;

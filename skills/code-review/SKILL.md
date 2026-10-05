@@ -18,10 +18,16 @@ launches `/code-review` once and gets the same merged report.
    model.
 2. **Run the review** — `CreateWorkflow(path=<this SKILL
    dir>/code-review.workflow.ts, args={base: "<ref>", root: "<checkout dir>",
-   scope?: "<pathspec>"}, subagent_model=<reviewer role$level>)`. `root` is
+   scope?: "<pathspec>", intent?: "<1–3 sentences: what this diff is supposed
+   to do and what it must not touch — formulate it or take it from the plan
+   ticket>"}, subagent_model=<reviewer role$level>)`. `root` is
    what makes the review work in a worktree — point it at the checkout whose
    diff you mean; `base` is the ref the diff is measured from (`main`,
-   `HEAD~1`). The split is always per file — one axis agent per changed file,
+   `HEAD~1`). `intent` closes the asymmetry with the ship gate: every axis
+   prompt carries the diff's intent, the way the gate's reviewer sees the
+   ticket. Without `intent` the run does not fail — its conclusion honestly
+   labels the review a self-consistency review (замысел не передан); say so
+   in your report too. The split is always per file — one axis agent per changed file,
    each bounded by that file's diff (files over 2000 diff lines and diffs over
    20 files are skipped with an honest note) — so small-context models hold
    every ask. The run ends with raw findings serialized into the common gate
