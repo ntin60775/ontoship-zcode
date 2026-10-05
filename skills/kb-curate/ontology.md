@@ -160,7 +160,7 @@ them — and never launch `/ship`: the operator starts it by hand. Their own out
 - **I5.** Every `docs/**` folder has a `README.md` index.
 - **I6.** A `supersedes` target has `status: deprecated|archived`.
 - **I7.** The command registry is in sync: every command the engine discovers — the
-  project's `.omp/commands/*.md` and the package's `commands/*.md` — has `args:`/`drives:`
+  project's `.zcode/commands/*.md` and the package's `commands/*.md` — has `args:`/`drives:`
   frontmatter and a row in the generated summary table; every project command also has a
   `## /cmd` section in `docs/reference/commands.md`, and every such section names a known
   command (checked by `gitmark inventory --check`).
