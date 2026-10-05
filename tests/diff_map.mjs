@@ -91,16 +91,32 @@ for (const rel of COPIES) {
 }
 if (failed > 0) process.exit(1);
 
-// Структурная проверка проводки источника (queue-2/16).
+// Структурная проверка проводки источника (queue-2/16; гейт followups/01:
+// оба якоря — как у копии, иначе мутация живого вызова parseNumstat в
+// источнике проходит незамеченной).
 if (!/^const untrackedPaths = parseUntrackedStatus\(st\.stdout\);$/m.test(source.src)) {
   console.error("Структура: живой вызов parseUntrackedStatus(st.stdout) пропал (остался только в комментарии?)");
   process.exit(1);
 }
+if (!/^const allFiles: FileEntry\[\] = parseNumstat\(ns\.stdout\);$/m.test(source.src)) {
+  console.error("Структура: карта диффа источника строится не парсером parseNumstat");
+  process.exit(1);
+}
 
-// eslint-disable-next-line no-new-func -- функции извлечены из доверенного файла этого же репо
-const { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat } = new Function(
-  `${Object.values(source.js).join("\n")}\nreturn { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat };`,
-)();
+// Гейт followups/01: если регэкспы EXTRACT всё ещё матчатся, но собирают
+// битый JS (дрейф тела, обрыв по вложенному \n}), падать нужно с именем
+// источника и причиной, а не сырым SyntaxError.
+let gateFns;
+try {
+  // eslint-disable-next-line no-new-func -- функции извлечены из доверенного файла этого же репо
+  gateFns = new Function(
+    `${Object.values(source.js).join("\n")}\nreturn { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat };`,
+  )();
+} catch (e) {
+  console.error(`Извлечённые парсеры не собираются в JS (${SOURCE}): ${e instanceof Error ? e.message : String(e)} — проверь дрейф тел функций против регэкспов EXTRACT`);
+  process.exit(1);
+}
+const { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat } = gateFns;
 
 // [имя, fn, вход, ожидаемое значение (deep-equal)]
 const CASES = [
