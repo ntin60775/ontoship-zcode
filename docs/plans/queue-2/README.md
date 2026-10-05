@@ -130,7 +130,7 @@ Split-brain нет: проект переезжает **полностью**, в
 | [15](15-redact-coverage.md) | Полнота redact — матрица форматов и баланс fp/leak | **archived** (`cbd9fc3`, релиз v0.5.15) | — |
 | [16](16-reviewer-gate-untracked.md) | Untracked-файлы диффа мимо reviewer-гейта | **archived** (`0028c99`, релиз v0.5.16) | — |
 | [17](17-workflow-abort-diagnostics.md) | Abort-сообщения workflow несут причину парсинга args | **archived** (`797d1a0`, релиз v0.5.17) | — |
-| [18](18-inventory-stable-sort.md) | Стабильная сортировка inventory | draft | — |
+| [18](18-inventory-stable-sort.md) | Стабильная сортировка inventory | **archived** (`018648a`, релиз v0.5.18) | — |
 | [19](19-migration-runbook-pilot.md) | migration runbook + пилотный переезд (бывший 12) | draft | 03, 04 |
 
 Голова (01–04) размечена гриллингом 2026-09-30; хвост (05–12) — первый

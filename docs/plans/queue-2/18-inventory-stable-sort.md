@@ -2,8 +2,8 @@
 node_type: ticket
 title: Стабильная сортировка inventory
 service: _platform
-status: draft
-updated: 2026-10-03
+status: archived
+updated: 2026-10-05
 links:
   part_of: [README.md]
 ---
@@ -20,8 +20,34 @@ I7 «рассинхрон» на каждом self-update нового скил�
 
 **Blocked by:** None (can start immediately).
 
-- [ ] генерация из `skills/` и из `.zcode/` даёт побайтно одинаковый
+- [x] генерация из `skills/` и из `.zcode/` даёт побайтно одинаковый
       `docs/reference/commands.md`
-- [ ] тест в `tests/test_gitmark.py`: таблица отсортирована по имени навыка
+- [x] тест в `tests/test_gitmark.py`: таблица отсортирована по имени навыка
       независимо от порядка обхода каталога
-- [ ] `pytest` + `gitmark lint --strict` зелёные
+- [x] `pytest` + `gitmark lint --strict` зелёные
+
+**Shipping-note (2026-10-05).** Фича `018648a`, релиз v0.5.18 (релиз-коммит
+`2d0ae19`, тег v0.5.18, пин в marketplace.json `ad6bbab`, self-update
+`7477c85`). Сортировка по `(name, path)` после dedup в `_scan_commands`/
+`_scan_skills`: dev-инстанс больше не дописывает пакетный хвост в конец —
+репро на живом движке (tmp-проект с dev-only навыком `beta`) до фикса давал
+`alpha, mu, beta` + I7 после self-update, после фикса — `alpha, beta, mu`
+и пустой --check. Гейт: reviewer qwen3.6-35b-a3b$high — 2 сырых находки
+(2/2 файлов диффа); confirmer GLM-5.3-Flash$high — 2/2 verified, unconfirmed
+нет. Обе закрыты в том же диффе: (1) нестроковый `name` из frontmatter
+(YAML-список) ронял новую сортировку TypeError'ом — inventory/lint падали
+целиком (CLI exit 1, подтверждено конфирмером end-to-end); фикс — откат
+не-строкового имени к имени каталога (снимает класс проблемы, не только
+сравнение); (2) dedup шёл по имени каталога — два навыка с одинаковым
+`name` из frontmatter давали дубликат строки в реестре (воспроизведено до
+записи в commands.md); фикс — дедуп и по итоговому имени, project-wins
+сохранён. Тесты: сортировка независимо от корней скана, байт-равенство
+инкарнаций (до self-update и после), откат нестрокового имени, дедуп по
+итоговому имени — pytest 99, `lint --strict` rc=0, dev-чекауты зелёные,
+deploy-check зелёный. **Живое доказательство на контуре:** self-update
+v0.5.17 требовал пост-релизный коммит-синк `627cb16` (I7, 12 навыков);
+self-update v0.5.18 прошёл с чистым `inventory --check` вендорного инстанса
+без inventory-sync-коммита — чурн, на который был расчёт тикета, исчез.
+Отклонений от лупа нет; prod-контура как такового нет (прецедент
+08/15/16/17) — смоук на самом репо (deploy-check) и пост-апдейтная
+проверка вендорного инстанса.
