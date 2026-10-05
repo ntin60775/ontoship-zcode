@@ -129,7 +129,7 @@ Split-brain нет: проект переезжает **полностью**, в
 | [14](14-confirmer-synth-roles/README.md) | Роль confirmer — подтверждающий ран и свод (контракт; разбит на 14/01–02) | **archived** (`bcd920b`+`39e8a83`, релизы v0.5.9/v0.5.10) | 13 |
 | [15](15-redact-coverage.md) | Полнота redact — матрица форматов и баланс fp/leak | **archived** (`cbd9fc3`, релиз v0.5.15) | — |
 | [16](16-reviewer-gate-untracked.md) | Untracked-файлы диффа мимо reviewer-гейта | **archived** (`0028c99`, релиз v0.5.16) | — |
-| [17](17-workflow-abort-diagnostics.md) | Abort-сообщения workflow несут причину парсинга args | draft | — |
+| [17](17-workflow-abort-diagnostics.md) | Abort-сообщения workflow несут причину парсинга args | **archived** (`797d1a0`, релиз v0.5.17) | — |
 | [18](18-inventory-stable-sort.md) | Стабильная сортировка inventory | draft | — |
 | [19](19-migration-runbook-pilot.md) | migration runbook + пилотный переезд (бывший 12) | draft | 03, 04 |
 
