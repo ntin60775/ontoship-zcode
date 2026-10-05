@@ -31,7 +31,11 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
   релизы v0.5.19–v0.5.20).
 - [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) — формулировка I7
   называет пути движка zcode, а не omp (file plan; дрейф omp-порта из прогона
-  queue-2/18).
+  queue-2/18; отгружен 2026-10-05).
+- [gate-followups-2/](gate-followups-2/README.md) — хвосты ship-прогонов:
+  честность review-ранов и шаблон поставки (папка, 4 тикета: init-блок
+  короткими именами, контракт цитаты, лог нормализации severity, кэш
+  extractParts; собран из verified-находок прогонов 2026-10-05 и ADR ut-10).
 
 ## Порядок выполнения
 
@@ -40,6 +44,10 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
 2. **crossreview-adoption** — в работе: тикет 01 отгружен 2026-10-05 (релиз
    v0.5.21); следующий — 02 (confirm-ран: отказ проверки ≠ опровержение),
    03 — после обоих.
-3. **ontology-i7-zcode-paths** — в любой момент: одна формулировка в двух
-   синхронных копиях онтологии, файлов с соседними планами не разделяет;
-   вендорится — обычный релизный цикл.
+3. **gate-followups-2** — четыре хвоста ship-прогонов (init-блок короткими
+   именами, контракт цитаты, лог severity-нормализации, кэш extractParts);
+   тикеты независимы, идут после crossreview-adoption: файлы не пересекаются
+   (тот правит confirm-ран и KB-док, этот — review-воркфлоу, init, тесты),
+   порядок держит заявленную очередь релизных циклов.
+4. ~~ontology-i7-zcode-paths~~ — отгружен 2026-10-05 (merge `368c9a3`,
+   вендорится релизом v0.5.21).

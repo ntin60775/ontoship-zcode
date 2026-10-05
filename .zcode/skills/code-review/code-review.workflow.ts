@@ -13,6 +13,10 @@ args:
     type: string
     description: "Необязательный pathspec-фильтр путей (например docs/); пусто — весь дифф."
     required: false
+  intent:
+    type: string
+    description: "Необязательный замысел изменения, 1–3 предложения: что этот дифф должен делать и что не должен менять. Без него ревью честно называется ревью самосогласованности."
+    required: false
 */
 
 // code-review workflow (queue-2/06): operator-run review of an arbitrary diff.
@@ -40,6 +44,14 @@ args:
 // measured by wc -l, above the threshold the axis reviewer works from the
 // diff plus addressed ranged reads (the provider stop «слишком длинный
 // запрос» is invisible to the script; queue-2/15 and /16).
+// crossreview-adoption/01: optional args.intent — the diff's intent (what it
+// must do and must not touch) rides into every axis prompt, closing the
+// asymmetry where the confirm run sees args.ticket but the axes see nothing
+// (crossreview brief rule: without the intent a reviewer checks
+// self-consistency, not what was asked). An empty intent never fails the
+// run: the conclusion honestly labels it a self-consistency review. The
+// intent is the caller's fact about the change — no finding retold from
+// another run reaches agents here; reviewer blindness holds.
 
 interface AxisFinding {
   /** Путь и строка: "src/a.py:42". */
@@ -207,6 +219,12 @@ function abort(conclusion: string, why: string | string[]) {
 const base = String(args.base ?? "").trim();
 const root = String(args.root ?? "").replace(/\/+$/, "");
 const scope = String(args.scope ?? "").trim();
+// Замысел диффа (crossreview-adoption/01): факт вызывающего о том, что
+// изменение должно делать, — оси-ревьюеры получают его наравне с тикетом
+// ревьюера ship-гейта. Пустой intent прогон не валит: заключение честно
+// называет такое ревью ревью самосогласованности. Это вход вызывающего,
+// не пересказ находок другого рана — слепота ранов не задевается.
+const intent = String(args.intent ?? "").trim();
 if (!base || !root) {
   return abort("Нужны непустые args.base (реф диффа) и args.root (корень чекаута) — ревью не начато.", "всё — вход не передан");
 }
@@ -233,7 +251,7 @@ const axisSystem =
   "местом и дословной цитатой; при таком доказательстве, при котором находку " +
   "воспроизведёт посторонний. Находок нет — так и скажи, не выдумывай.";
 
-function filePrompt(axis: string, lens: string, f: FileEntry): string {
+function filePrompt(axis: string, lens: string, f: FileEntry, intent: string): string {
   // followups/01: untracked-файлу дифф-команда бесполезна (в git его ещё нет) —
   // ревьюер получает явное указание, что его дифф — весь файл (как в гейте 16).
   // followups/02: tracked-ветке контекст подсказывает contextHint (до порога —
@@ -241,8 +259,15 @@ function filePrompt(axis: string, lens: string, f: FileEntry): string {
   const diffHint = f.untracked
     ? `Это новый (untracked) файл: в git-диффе его ещё нет — весь его контент и есть добавленные строки; ревьюй файл целиком как добавленный код.`
     : `Его дифф: git -C ${shq(root)} diff ${shq(base)} -- ${shq(f.path)}. ${contextHint(fileLines.get(f.path) ?? -1)}`;
+  // crossreview-adoption/01: замысел диффа — контекст каждой оси-задачи, как
+  // тикет у ревьюера гейта; без него блок не пишется вовсе (не заглушка).
+  const intentBlock = intent
+    ? `Замысел изменения (от оркестратора): ${intent}. Сверяй дифф с замыслом: ` +
+      `делает ли он заявленное и не задевает ли то, что менять не собирался; ` +
+      `находки мимо замысла не отбрасывай. `
+    : "";
   return (
-    `Корень чекаута: ${root}. Твой файл: ${f.path}. ${diffHint} ` +
+    `Корень чекаута: ${root}. Твой файл: ${f.path}. ${diffHint} ${intentBlock}` +
     `Ты ось «${axis}»: ${lens} Находки — только существенное, ` +
     `не более ${MAX_FINDINGS} на файл; каждая строго в форме {where: "путь:строка", quote: ` +
     `дословная строка-цитата из кода, claim: одно предложение что не так (не как чинить), ` +
@@ -375,12 +400,17 @@ if (files.length === 0) {
       ...(untrackedSkipped.length > 0
         ? [`новые (untracked) файлы не вошли в ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}`]
         : []),
+      // crossreview-adoption/01 (verified-находка гейта): переданный замысел
+      // здесь до осей не доезжает — ревью не состоялось, и умолчание о нём
+      // ложно; без intent ноты нет (abort и так говорит «ревьюить нечего»).
+      ...(intent ? ["замысел (intent) получен, но до осей не доехал — ревью не состоялось"] : []),
     ],
   );
 }
 
 phase("Две оси ревьюят файлы параллельно");
 log(`Задач: ${axesDefs.length} оси × ${files.length} файлов, каждая в своём контексте`);
+log(intent ? "Замысел диффа передан каждой оси-задаче" : "Intent не передан — оси ревьюят самосогласованность диффа");
 let droppedEmpty = 0;
 type FileReview = { axis: string; file: string; findings: AxisFinding[]; summary: string; failed: string };
 const reviews: FileReview[] = await Promise.all(
@@ -390,7 +420,7 @@ const reviews: FileReview[] = await Promise.all(
     let r: AxisResult;
     try {
       r = await agent(`axis-${t.key}-f${i}`, { system: axisSystem }).ask<AxisResult>(
-        filePrompt(t.axis, t.lens, t.file),
+        filePrompt(t.axis, t.lens, t.file, intent),
       );
     } catch (e) {
       // Отказ на одном файле не хоронит остальные (pattern: challenger.workflow.ts).
@@ -460,6 +490,11 @@ const coverage =
   (untrackedSkipped.length > 0 ? `; новые файлы вне ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}` : "") +
   (failedReviews.length > 0 ? `; сбои файлов: ${failedReviews.join("; ")}` : "");
 const conclusion = [
+  // crossreview-adoption/01: ревью без замысла честно называется ревью
+  // самосогласованности — прогон валиден, но его предел назван по имени.
+  ...(intent
+    ? []
+    : ["Ревью без замысла: intent не передан — проверена самосогласованность диффа, соответствие замыслу не оценивалось."]),
   rawFindings.length === 0 && failedReviews.length === 0
     ? `Находок нет (${coverage}), ни одна ось не нашла существенного.`
     : failedReviews.length === reviews.length
@@ -483,6 +518,7 @@ return {
   findings: rawFindings,
   notCovered: [
     "стиль и архитектура — не входят в этот гейт",
+    ...(intent ? [] : ["соответствие диффа замыслу — intent не передан, осям замысел не виден"]),
     "бинарные файлы диффа — не ревьюются" + (untrackedBinary.length > 0 ? `: ${untrackedBinary.join(", ")}` : ""),
     ...(untrackedSkipped.length > 0
       ? [`новые (untracked) файлы не вошли в ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}`]
