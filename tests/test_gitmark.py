@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -172,6 +173,87 @@ def test_inventory_idempotent(repo: Path):
     r = gm.cmd_inventory(repo)
     assert r["changed"] == []
     assert (repo / "docs" / "reference" / "commands.md").read_text(encoding="utf-8") == before
+
+
+def test_inventory_sorted_by_name_regardless_of_scan_roots(repo: Path, monkeypatch):
+    """Тикет 18: порядок строк не зависит от корней скана — пакетный хвост
+    (dev-only навык) встаёт по имени, а не в конец таблицы."""
+    for n in ("alpha", "mu"):
+        d = repo / ".zcode" / "skills" / n
+        d.mkdir(parents=True)
+        (d / "SKILL.md").write_text(
+            f"---\nname: {n}\ndescription: D {n}.\n---\n\nBody.\n", encoding="utf-8")
+    beta = repo / "skills" / "beta"  # dev-only: в .zcode/skills ещё не вендорен
+    beta.mkdir(parents=True)
+    (beta / "SKILL.md").write_text(
+        "---\nname: beta\ndescription: D beta.\n---\n\nBody.\n", encoding="utf-8")
+    # dev-инстанс: пакет = корень репо, beta приходит пакетным сканом после проектного
+    monkeypatch.setattr(gm, "PKG_ROOT", repo)
+    names = [s["name"] for s in gm._scan_skills(repo)]
+    assert names == ["alpha", "beta", "mu", "test-skill"]
+
+
+def test_inventory_identical_across_incarnations(repo: Path, monkeypatch):
+    """Тикет 18: dev-инстанс (пакет = корень репо) и вендорный (пакет = .zcode)
+    дают побайтно одинаковый docs/reference/commands.md — I7 не должен вспыхивать
+    на каждом self-update только из-за порядка обхода."""
+    (repo / ".zcode" / "skills" / "alpha").mkdir(parents=True)
+    (repo / ".zcode" / "skills" / "alpha" / "SKILL.md").write_text(
+        "---\nname: alpha\ndescription: D alpha.\n---\n\nBody.\n", encoding="utf-8")
+    (repo / "skills" / "beta").mkdir(parents=True)
+    (repo / "skills" / "beta" / "SKILL.md").write_text(
+        "---\nname: beta\ndescription: D beta.\n---\n\nBody.\n", encoding="utf-8")
+    (repo / "commands").mkdir()
+    (repo / "commands" / "zbar.md").write_text(COMMAND, encoding="utf-8")
+    reg = repo / "docs" / "reference" / "commands.md"
+    # после self-update zbar станет проектной командой — секция нужна сразу
+    # (I7: секции требуют проектные команды, вендорный инстанс — проект)
+    with reg.open("a", encoding="utf-8") as f:
+        f.write("\n## `/zbar` — package command\n\n- **Definition:** `commands/zbar.md`\n")
+
+    # dev-инстанс до self-update: beta/zbar видны только пакетным сканом
+    monkeypatch.setattr(gm, "PKG_ROOT", repo)
+    gm.cmd_inventory(repo)
+    dev_text = reg.read_text(encoding="utf-8")
+    assert _between(dev_text, "skills") == "\n".join([
+        "| Skill | What it does |", "|---|---|",
+        "| `alpha` | D alpha. |", "| `beta` | D beta. |",
+        "| `test-skill` | A skill for the registry tests. |"])
+    assert _between(dev_text, "commands") == "\n".join([
+        "| Command | What it does | Args | Drives |", "|---|---|---|---|",
+        "| `/foo` | Test command for the registry. | <topic> | test skill |",
+        "| `/zbar` | Test command for the registry. | <topic> | test skill |"])
+
+    # self-update: пакетное вендорится в .zcode, вендорный инстанс сканирует его же
+    shutil.copytree(repo / "skills" / "beta", repo / ".zcode" / "skills" / "beta")
+    shutil.copy2(repo / "commands" / "zbar.md", repo / ".zcode" / "commands" / "zbar.md")
+    monkeypatch.setattr(gm, "PKG_ROOT", repo / ".zcode")
+    gm.cmd_inventory(repo)
+    vendored_text = reg.read_text(encoding="utf-8")
+    assert vendored_text == dev_text
+    assert gm.cmd_inventory(repo, check=True)["issues"] == []
+
+
+def test_inventory_tolerates_nonstring_skill_name(repo: Path, monkeypatch):
+    """Находка ревью 18/1: list-name во frontmatter ломал sorted() TypeError'ом
+    (inventory/lint падали целиком); теперь имя откатывается к имени каталога."""
+    monkeypatch.setattr(gm, "PKG_ROOT", repo / "pkg-absent")  # только проектный корень
+    d = repo / ".zcode" / "skills" / "broken"
+    d.mkdir(parents=True)
+    (d / "SKILL.md").write_text(
+        "---\nname: [a, b]\ndescription: Broken name.\n---\n\nBody.\n", encoding="utf-8")
+    assert [s["name"] for s in gm._scan_skills(repo)] == ["broken", "test-skill"]
+
+
+def test_inventory_dedups_by_frontmatter_name(repo: Path, monkeypatch):
+    """Находка ревью 18/2: dedup шёл по имени каталога и пропускал два навыка
+    с одним name из frontmatter — дубликат строки в реестре."""
+    monkeypatch.setattr(gm, "PKG_ROOT", repo / "pkg-absent")  # только проектный корень
+    for d in ("a", "b"):
+        (repo / ".zcode" / "skills" / d).mkdir(parents=True)
+        (repo / ".zcode" / "skills" / d / "SKILL.md").write_text(
+            "---\nname: twin\ndescription: Twin skill.\n---\n\nBody.\n", encoding="utf-8")
+    assert [s["name"] for s in gm._scan_skills(repo)] == ["test-skill", "twin"]
 
 
 # ── inventory --check: поимка рассинхрона ──────────────────────────
