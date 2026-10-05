@@ -2,7 +2,7 @@
 node_type: plan
 title: Фоллоу-апы ship-гейта — паритет код-ревью и устойчивость к стопам
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-05
 tags: [plan, gate-followups, workflows, parity]
 links:
@@ -62,4 +62,4 @@ abort-диагностика args (queue-2/17), порты 1c/unica.
 | # | Title | Status | Blocked by |
 |---|---|---|---|
 | [01](01-code-review-untracked.md) | Код-ревью видит untracked-файлы диффа | archived | — |
-| [02](02-gate-context-hygiene.md) | Гейт проходит тяжёлые файлы без провайдер-стопа | draft | — |
+| [02](02-gate-context-hygiene.md) | Гейт проходит тяжёлые файлы без провайдер-стопа | archived | — |
