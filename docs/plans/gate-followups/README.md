@@ -61,5 +61,5 @@ abort-диагностика args (queue-2/17), порты 1c/unica.
 
 | # | Title | Status | Blocked by |
 |---|---|---|---|
-| [01](01-code-review-untracked.md) | Код-ревью видит untracked-файлы диффа | draft | — |
+| [01](01-code-review-untracked.md) | Код-ревью видит untracked-файлы диффа | archived | — |
 | [02](02-gate-context-hygiene.md) | Гейт проходит тяжёлые файлы без провайдер-стопа | draft | — |
