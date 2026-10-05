@@ -16,10 +16,10 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
 `/ship` executes one ticket — or one file plan as a single slice — per hand-launched run.
 
 - [kb-service-doc.md](kb-service-doc.md) — задокументировать сервис kb-search в KB
-  (file plan; внутренний смоук девфлоу).
+  (file plan, архив; внутренний смоук девфлоу).
 - [queue-2/](queue-2/README.md) — очередь 2: доставка (install, deploy-check, хук),
   порт to-tickets, размеченный хвост срезов и подготовленный переезд с omp
-  (папка, 18 тикетов 01–19; 14 разбит на 14/01–02; 01–18 отгружены).
+  (папка, 18 тикетов 01–19; отгружена целиком 2026-10-05, пилот миграции — ut-10).
 - [crossreview-adoption/](crossreview-adoption/README.md) — контрактные дельты из
   методологии кросс-ревью в гейты ревью (папка, 3 тикета: intent осей /code-review,
   unverified-статус confirm-рана, инварианты слепого ревью в KB; из сверки с
@@ -33,14 +33,12 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
 
 ## Порядок выполнения
 
-1. **queue-2** (остаток): 19-миграция последняя.
-2. **gate-followups** — после queue-2, до crossreview-adoption: оба тикета
-   правят те же воркфлоу ревью, что crossreview (01–02), — один churn на
-   релизный цикл; внутри плана тикеты независимы.
-3. **crossreview-adoption** — после gate-followups: правки тех же файлов
+1. **gate-followups** — до crossreview-adoption: оба тикета правят те же
+   воркфлоу ревью, что crossreview (01–02), — один churn на релизный цикл;
+   внутри плана тикеты независимы.
+2. **crossreview-adoption** — после gate-followups: правки тех же файлов
    ложатся на починенную базу (untracked-карта, гигиена asks); внутри плана
    01 и 02 независимы, 03 — после обоих.
-4. **kb-service-doc** — внутренний смоук, в любой момент.
-5. **ontology-i7-zcode-paths** — в любой момент: одна формулировка в двух
-   синхронных копиях онтологии, файлов с соседними планами не разделяет,
-   migration-пилот 19 не блокирует; вендорится — обычный релизный цикл.
+3. **ontology-i7-zcode-paths** — в любой момент: одна формулировка в двух
+   синхронных копиях онтологии, файлов с соседними планами не разделяет;
+   вендорится — обычный релизный цикл.
