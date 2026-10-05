@@ -798,7 +798,10 @@ def _scan_commands(root: Path) -> list:
             out.append({"name": p.stem, "description": fm.get("description", ""),
                         "args": fm.get("args", ""), "drives": fm.get("drives", ""),
                         "path": _rel(p, root), "src": src})
-    return out
+    # Порядок строк реестра не должен зависеть от корней скана: dev-инстанс
+    # (пакет = корень репо) и вендорный (пакет = .zcode) обязаны давать побайтно
+    # одинаковые таблицы, иначе I7-чурн на каждом self-update.
+    return sorted(out, key=lambda c: (c["name"], c["path"]))
 
 
 def _scan_skills(root: Path) -> list:
@@ -811,12 +814,18 @@ def _scan_skills(root: Path) -> list:
         for p in sorted(d.glob("*/SKILL.md")):
             if p.parent.name in seen:
                 continue
-            seen.add(p.parent.name)
             fm = parse_frontmatter(p.read_text("utf-8", errors="replace")) or {}
-            out.append({"name": fm.get("name", p.parent.name),
+            name = fm.get("name")
+            if not isinstance(name, str):  # битый/списковый name — откат к имени каталога
+                name = p.parent.name
+            if name in seen:  # дедуп и по итоговому имени: без него — дубликат строки реестра
+                continue
+            seen.add(p.parent.name)
+            seen.add(name)
+            out.append({"name": name,
                         "description": fm.get("description", ""),
                         "path": _rel(p, root), "src": src})
-    return out
+    return sorted(out, key=lambda s: (s["name"], s["path"]))
 
 
 def _commands_table(commands: list) -> str:
