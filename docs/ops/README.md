@@ -3,7 +3,7 @@ node_type: index
 title: Ops
 service: _platform
 status: active
-updated: 2026-10-04
+updated: 2026-10-05
 links:
   part_of: [../README.md]
 ---
@@ -20,3 +20,6 @@ Operational procedures for the plugin itself.
   регистрация в `.zcode/config.json` (данные проекта), поведение, проверка.
 - [hygiene.md](hygiene.md) — ночная гигиена KB: lint+index+map по расписанию,
   лог ночных ERR, потребление SessionStart-хуком.
+- [migration-omp-to-zcode.md](migration-omp-to-zcode.md) — полный переезд
+  проекта с omp на zcode: оба канала omp-установки, аудит payload
+  (keep/drop/replace), снятие, установка, верификация; omp остаётся фоллбэком.
