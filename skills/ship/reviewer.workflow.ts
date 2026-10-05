@@ -30,7 +30,13 @@ args:
 // `git diff <base>` sees tracked history only, so a brand-new uncommitted
 // file fell out of the review entirely (ticket 09 first run reviewed 2 of 4
 // files). The conclusion names every file that got into review and every
-// named skip.
+// named skip. gate-followups/02: context hygiene in the ask — a heavy file
+// is no longer offered to the reviewer as a whole-file read (the provider
+// stop «слишком длинный запрос» is invisible to the script: the facade stops
+// the run outside it, queue-2/15 and /16). File size is measured by wc -l;
+// up to the threshold the file may be read whole, above it the material is
+// the diff plus addressed ranged reads. contextHint() is a byte-identical
+// copy in code-review.workflow.ts — tests/diff_map.mjs fails on desync.
 
 interface Finding {
   /** Путь к файлу и строка: "src/a.py:42". */
@@ -108,6 +114,25 @@ function parseNoIndexNumstat(out: string): { added: number; binary: boolean } | 
   if (!m) return null;
   if (m[1] === "-" || m[2] === "-") return { added: 0, binary: true };
   return { added: Number(m[1]), binary: false };
+}
+
+/**
+ * Гигиена контекста аска ревьюера (followups/02): провайдер-стоп «слишком
+ * длинный запрос» скрипту не виден — ран останавливает фасад вне скрипта
+ * (queue-2/15 и /16), поэтому переполнение не порождается самим аском.
+ * До порога контекст набирается чтением файла целиком (точнее ревью),
+ * выше — материал это дифф и адресные чтения диапазонов вокруг изменённых
+ * строк. fileLines < 0 (wc не измерился) считается тяжёлым — фейл-сейф
+ * в гигиену; качество не падает: дифф остаётся основным материалом.
+ * Функция живёт байт-в-байт копией в code-review.workflow.ts; матрица
+ * tests/diff_map.mjs ловит рассинхрон и возврат безусловного «читай
+ * файл целиком».
+ */
+function contextHint(fileLines: number): string {
+  const wholeFileLines = 300;
+  return fileLines >= 0 && fileLines <= wholeFileLines
+    ? "Файл небольшой: для контекста читай его целиком в корне чекаута."
+    : `Файл тяжёлый (порог гигиены ${wholeFileLines} строк${fileLines < 0 ? "; размер не измерился" : `; в файле ${fileLines}`}): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира.`;
 }
 
 /**
@@ -251,6 +276,30 @@ const untrackedBinary = untrackedSkipped.filter((x) => x.reason === "бинар�
 for (const x of untrackedMeasured) {
   if (x.entry) allFiles.push(x.entry);
 }
+// followups/02: размер файла для гигиены контекста — wc -l батчами (как
+// измерение untracked выше). untracked уже измерен numstat'ом: его «весь
+// файл» и есть дифф, потолок задан MAX_DIFF_LINES. Не измерился — -1,
+// contextHint считает такой файл тяжёлым (фейл-сейф в гигиену).
+const fileLines = new Map<string, number>();
+for (const f of allFiles) {
+  if (f.untracked) fileLines.set(f.path, f.diffLines);
+}
+const trackedPaths = allFiles.filter((f) => !f.untracked).map((f) => f.path);
+for (let i = 0; i < trackedPaths.length; i += MEASURE_BATCH) {
+  const batch = await Promise.all(
+    trackedPaths.slice(i, i + MEASURE_BATCH).map(async (p) => {
+      try {
+        const w = await world.run("wc", ["-l", `${root}/${p}`]);
+        if (w.exitCode !== 0) return [p, -1] as const;
+        const n = Number.parseInt(w.stdout.trim(), 10);
+        return [p, Number.isNaN(n) ? -1 : n] as const;
+      } catch {
+        return [p, -1] as const;
+      }
+    }),
+  );
+  for (const [p, n] of batch) fileLines.set(p, n);
+}
 const oversize = allFiles.filter((f) => f.diffLines > MAX_DIFF_LINES);
 const sizeOk = allFiles.filter((f) => f.diffLines <= MAX_DIFF_LINES);
 const overflowFiles = sizeOk.slice(MAX_FILES).map((f) => f.path);
@@ -290,10 +339,9 @@ const results: { review: FileReview; truncated: number }[] = await Promise.all(
     try {
       const diffHint = f.untracked
         ? `Это новый (untracked) файл: в git-диффе его ещё нет — весь его контент и есть добавленные строки; ревьюй файл целиком как добавленный код.`
-        : `Его дифф: git -C ${q(root)} diff ${q(base)} -- ${q(f.path)}.`;
+        : `Его дифф: git -C ${q(root)} diff ${q(base)} -- ${q(f.path)}. ${contextHint(fileLines.get(f.path) ?? -1)}`;
       r = await agent(`reviewer-f${i}`, { system: reviewerRules }).ask<FileReview>(
         `Корень чекаута: ${root}. Твой файл: ${f.path}. ${diffHint} ` +
-          `Нужен контекст — читай файл целиком в ${root}. ` +
           `Чужие файлы диффа не открывай: твой материал — только твой файл и его дифф; ` +
           `межфайловую проблему формулируй по следам в своём диффе — проверять будет конфирмер.\n` +
           `Тикет: ${ticket}\n\nНайди логические и security-баги до попадания в прод: сломанные ` +

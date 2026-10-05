@@ -35,6 +35,11 @@ args:
 // are byte-identical copies of the gate's (tests/diff_map.mjs fails on
 // desync), a new file's reviewer is told its diff is the whole file, and the
 // conclusion names every file that got into review and every named skip.
+// gate-followups/02: context hygiene — contextHint() (byte-identical copy of
+// the gate's) replaces the unconditional whole-file read: file size is
+// measured by wc -l, above the threshold the axis reviewer works from the
+// diff plus addressed ranged reads (the provider stop «слишком длинный
+// запрос» is invisible to the script; queue-2/15 and /16).
 
 interface AxisFinding {
   /** Путь и строка: "src/a.py:42". */
@@ -127,6 +132,25 @@ function parseNoIndexNumstat(out: string): { added: number; binary: boolean } | 
 }
 
 /**
+ * Гигиена контекста аска ревьюера (followups/02): провайдер-стоп «слишком
+ * длинный запрос» скрипту не виден — ран останавливает фасад вне скрипта
+ * (queue-2/15 и /16), поэтому переполнение не порождается самим аском.
+ * До порога контекст набирается чтением файла целиком (точнее ревью),
+ * выше — материал это дифф и адресные чтения диапазонов вокруг изменённых
+ * строк. fileLines < 0 (wc не измерился) считается тяжёлым — фейл-сейф
+ * в гигиену; качество не падает: дифф остаётся основным материалом.
+ * Функция живёт байт-в-байт копией в code-review.workflow.ts; матрица
+ * tests/diff_map.mjs ловит рассинхрон и возврат безусловного «читай
+ * файл целиком».
+ */
+function contextHint(fileLines: number): string {
+  const wholeFileLines = 300;
+  return fileLines >= 0 && fileLines <= wholeFileLines
+    ? "Файл небольшой: для контекста читай его целиком в корне чекаута."
+    : `Файл тяжёлый (порог гигиены ${wholeFileLines} строк${fileLines < 0 ? "; размер не измерился" : `; в файле ${fileLines}`}): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира.`;
+}
+
+/**
  * Редакция секретов до отдачи оператору и до передачи находок в args
  * следующего рана (конфирмеры и сводчик видят уже отредактированный вход).
  * Матрица форматов (queue-2/15): PEM-блоки любого типа целиком — приватные
@@ -212,12 +236,14 @@ const axisSystem =
 function filePrompt(axis: string, lens: string, f: FileEntry): string {
   // followups/01: untracked-файлу дифф-команда бесполезна (в git его ещё нет) —
   // ревьюер получает явное указание, что его дифф — весь файл (как в гейте 16).
+  // followups/02: tracked-ветке контекст подсказывает contextHint (до порога —
+  // файл целиком, выше — дифф и адресные чтения).
   const diffHint = f.untracked
     ? `Это новый (untracked) файл: в git-диффе его ещё нет — весь его контент и есть добавленные строки; ревьюй файл целиком как добавленный код.`
-    : `Посмотри его дифф сам: git -C ${shq(root)} diff ${shq(base)} -- ${shq(f.path)}.`;
+    : `Его дифф: git -C ${shq(root)} diff ${shq(base)} -- ${shq(f.path)}. ${contextHint(fileLines.get(f.path) ?? -1)}`;
   return (
     `Корень чекаута: ${root}. Твой файл: ${f.path}. ${diffHint} ` +
-    `Нужен контекст — читай файл целиком в ${root}. Ты ось «${axis}»: ${lens} Находки — только существенное, ` +
+    `Ты ось «${axis}»: ${lens} Находки — только существенное, ` +
     `не более ${MAX_FINDINGS} на файл; каждая строго в форме {where: "путь:строка", quote: ` +
     `дословная строка-цитата из кода, claim: одно предложение что не так (не как чинить), ` +
     `severity: high|medium|low}. Цитата обязательна: по ней независимый конфирмер ` +
@@ -304,6 +330,30 @@ const untrackedSkipped = untrackedMeasured.filter((x) => x.entry === null);
 const untrackedBinary = untrackedSkipped.filter((x) => x.reason === "бинарный").map((x) => x.path);
 for (const x of untrackedMeasured) {
   if (x.entry) allFiles.push(x.entry);
+}
+// followups/02: размер файла для гигиены контекста — wc -l батчами (как
+// измерение untracked выше). untracked уже измерен numstat'ом: его «весь
+// файл» и есть дифф, потолок задан MAX_DIFF_LINES. Не измерился — -1,
+// contextHint считает такой файл тяжёлым (фейл-сейф в гигиену).
+const fileLines = new Map<string, number>();
+for (const f of allFiles) {
+  if (f.untracked) fileLines.set(f.path, f.diffLines);
+}
+const trackedPaths = allFiles.filter((f) => !f.untracked).map((f) => f.path);
+for (let i = 0; i < trackedPaths.length; i += MEASURE_BATCH) {
+  const batch = await Promise.all(
+    trackedPaths.slice(i, i + MEASURE_BATCH).map(async (p) => {
+      try {
+        const w = await world.run("wc", ["-l", `${root}/${p}`]);
+        if (w.exitCode !== 0) return [p, -1] as const;
+        const n = Number.parseInt(w.stdout.trim(), 10);
+        return [p, Number.isNaN(n) ? -1 : n] as const;
+      } catch {
+        return [p, -1] as const;
+      }
+    }),
+  );
+  for (const [p, n] of batch) fileLines.set(p, n);
 }
 const oversize = allFiles.filter((f) => f.diffLines > MAX_DIFF_LINES);
 const sizeOk = allFiles.filter((f) => f.diffLines <= MAX_DIFF_LINES);

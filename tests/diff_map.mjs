@@ -42,6 +42,13 @@ const EXTRACT = [
     "function parseNoIndexNumstat(out) {",
     [],
   ],
+  [
+    "contextHint",
+    /function contextHint\(fileLines: number\): string \{[\s\S]*?\n\}/,
+    "function contextHint(fileLines: number): string {",
+    "function contextHint(fileLines) {",
+    [],
+  ],
 ];
 
 // raw — тело как в файле (для сверки идентичности копий), js — сигнатуры
@@ -106,17 +113,47 @@ if (!/^const allFiles: FileEntry\[\] = parseNumstat\(ns\.stdout\);$/m.test(sourc
 // Гейт followups/01: если регэкспы EXTRACT всё ещё матчатся, но собирают
 // битый JS (дрейф тела, обрыв по вложенному \n}), падать нужно с именем
 // источника и причиной, а не сырым SyntaxError.
+// Гигиена контекста (followups/02): проводка contextHint в аске и wc-замер —
+// в источнике и копии, построчными якорями (урок гейта 16). Негативный якорь:
+// безусловного приглашения «Нужен контекст — читай файл целиком» в аске быть
+// не должно — переполнение порождается самим аском, а ветки пишет только
+// contextHint.
+const HINT_WIRING = {
+  "skills/ship/reviewer.workflow.ts":
+    /^\s*: `Его дифф: git -C \$\{q\(root\)\} diff \$\{q\(base\)\} -- \$\{q\(f\.path\)\}\. \$\{contextHint\(fileLines\.get\(f\.path\) \?\? -1\)\}`;$/m,
+  "skills/code-review/code-review.workflow.ts":
+    /^\s*: `Его дифф: git -C \$\{shq\(root\)\} diff \$\{shq\(base\)\} -- \$\{shq\(f\.path\)\}\. \$\{contextHint\(fileLines\.get\(f\.path\) \?\? -1\)\}`;$/m,
+};
+const WC_WIRING =
+  /^        const w = await world\.run\("wc", \["-l", `\$\{root\}\/\$\{p\}`\]\);$/m;
+const HINT_FILES = [[SOURCE, source.src], ...COPIES.map((rel) => [rel, extractParts(rel).src])];
+for (const [rel, src] of HINT_FILES) {
+  if (!HINT_WIRING[rel].test(src)) {
+    console.error(`Структура ${rel}: аск диффа не подсказывает contextHint(fileLines.get(f.path) ?? -1) — гигиена контекста (followups/02) отвалилась`);
+    failed++;
+  }
+  if (!WC_WIRING.test(src)) {
+    console.error(`Структура ${rel}: замер wc -l пропал — contextHint работает вслепую`);
+    failed++;
+  }
+  if (src.includes("Нужен контекст — читай файл целиком")) {
+    console.error(`Структура ${rel}: в аске снова безусловное «Нужен контекст — читай файл целиком» — регресс followups/02`);
+    failed++;
+  }
+}
+if (failed > 0) process.exit(1);
+
 let gateFns;
 try {
   // eslint-disable-next-line no-new-func -- функции извлечены из доверенного файла этого же репо
   gateFns = new Function(
-    `${Object.values(source.js).join("\n")}\nreturn { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat };`,
+    `${Object.values(source.js).join("\n")}\nreturn { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat, contextHint };`,
   )();
 } catch (e) {
   console.error(`Извлечённые парсеры не собираются в JS (${SOURCE}): ${e instanceof Error ? e.message : String(e)} — проверь дрейф тел функций против регэкспов EXTRACT`);
   process.exit(1);
 }
-const { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat } = gateFns;
+const { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat, contextHint } = gateFns;
 
 // [имя, fn, вход, ожидаемое значение (deep-equal)]
 const CASES = [
@@ -157,6 +194,12 @@ const CASES = [
   ["no-index: ошибка git — не распарсилось", parseNoIndexNumstat, "error: Could not access 'nope.txt'\n", null],
   ["no-index: числа без третьего поля — не распарсилось", parseNoIndexNumstat, "2\t0\n", null],
   ["no-index: берёт первую непустую строку", parseNoIndexNumstat, "\n1\t0\t/dev/null => x.py\n", { added: 1, binary: false }],
+  ["contextHint: малый файл — читай целиком", contextHint, 100, "Файл небольшой: для контекста читай его целиком в корне чекаута."],
+  ["contextHint: пустой файл — читай целиком", contextHint, 0, "Файл небольшой: для контекста читай его целиком в корне чекаута."],
+  ["contextHint: ровно порог — читай целиком", contextHint, 300, "Файл небольшой: для контекста читай его целиком в корне чекаута."],
+  ["contextHint: за порогом — адресные чтения", contextHint, 301, "Файл тяжёлый (порог гигиены 300 строк; в файле 301): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира."],
+  ["contextHint: сильно тяжёлый — адресные чтения", contextHint, 5000, "Файл тяжёлый (порог гигиены 300 строк; в файле 5000): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира."],
+  ["contextHint: не измерился — тяжёлый (фейл-сейф в гигиену)", contextHint, -1, "Файл тяжёлый (порог гигиены 300 строк; размер не измерился): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира."],
 ];
 
 for (const [name, fn, input, expected] of CASES) {
