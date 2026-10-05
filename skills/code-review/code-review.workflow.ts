@@ -29,7 +29,12 @@ args:
 // nobody edits anything. A refusal of one file or one axis never kills the
 // run. Diff text is untrusted: it reaches agents only inside delimited data
 // blocks; secrets are redacted (redact(), матрица queue-2/15) before
-// findings leave the run.
+// findings leave the run. gate-followups/01: the file map is numstat PLUS
+// untracked files from git status — the same defect class the ship gate fixed
+// in queue-2/16 (untracked fell out of the review silently). The map parsers
+// are byte-identical copies of the gate's (tests/diff_map.mjs fails on
+// desync), a new file's reviewer is told its diff is the whole file, and the
+// conclusion names every file that got into review and every named skip.
 
 interface AxisFinding {
   /** Путь и строка: "src/a.py:42". */
@@ -67,6 +72,59 @@ const MAX_FINDINGS = 8;
 const MAX_FILES = 20;
 /** Строк диффа на один файл — больше файл пропускается: окно агента обязано вмещать файл целиком. */
 const MAX_DIFF_LINES = 2000;
+
+/** Запись карты диффа: untracked=true — новый файл, его «дифф» — весь контент. */
+type FileEntry = { path: string; diffLines: number; untracked: boolean };
+
+/** Строки `git diff --numstat <base>` → карта текстовых файлов. Бинарные строки ("-") пропускаются — они не ревьюятся; rename «old => new» берётся новым путём. */
+function parseNumstat(out: string): FileEntry[] {
+  const files: FileEntry[] = [];
+  for (const line of out.split("\n")) {
+    const m = /^(\d+|-)\t(\d+|-)\t(.+)$/.exec(line.trim());
+    if (!m) continue;
+    if (m[1] === "-" || m[2] === "-") continue; // binary
+    // Rename-запись numstat «old => new» ревьюется по новому пути (хвост после
+    // последнего « => »; разделитель внутри имени git закавычивает, так что
+    // вне кавычек он однозначен).
+    const sep = m[3].lastIndexOf(" => ");
+    const path = sep === -1 ? m[3] : m[3].slice(sep + 4);
+    files.push({ path, diffLines: Number(m[1]) + Number(m[2]), untracked: false });
+  }
+  return files;
+}
+
+/**
+ * Выхлоп `git status --porcelain=v1 -z --untracked-files=all` → пути
+ * untracked-файлов (записи `??`). Тикет 16: `git diff <base>` видит только
+ * tracked-историю — новый незакоммиченный файл в numstat не попадает (первый
+ * ран тикета 09 отревьюил 2 из 4 файлов). -z даёт записи без кавычек через
+ * NUL; intent-to-add (`git add -N`) идёт записью ` A`, а не `??`, — в numstat
+ * он уже есть, двойного счёта нет; директории раскрыты флагом -uall.
+ */
+function parseUntrackedStatus(out: string): string[] {
+  return out
+    .split("\0")
+    .filter((r) => r.startsWith("?? "))
+    .map((r) => r.slice(3))
+    .filter((p) => p !== "");
+}
+
+/**
+ * Выхлоп `git diff --no-index --numstat -- /dev/null <path>` → размер нового
+ * файла в строках диффа (весь файл = added). Третье поле в этом режиме —
+ * `/dev/null => <path>`, поэтому парсятся только первые два. `-` — бинарный.
+ * null — вывод не распарсился. Exit-код НЕ различает «есть различия» и «файл
+ * не читается» (оба дают 1, проверено на git 2.51) — решает наличие вывода,
+ * код возврата вызывающий трактует сам.
+ */
+function parseNoIndexNumstat(out: string): { added: number; binary: boolean } | null {
+  const line = out.split("\n").find((l) => l.trim() !== "");
+  if (!line) return null;
+  const m = /^(\d+|-)\t(\d+|-)\t/.exec(line.trim());
+  if (!m) return null;
+  if (m[1] === "-" || m[2] === "-") return { added: 0, binary: true };
+  return { added: Number(m[1]), binary: false };
+}
 
 /**
  * Редакция секретов до отдачи оператору и до передачи находок в args
@@ -113,12 +171,12 @@ function redact(s: string): string {
 /** Значения оператора идут в шелл-команды агентов — в безопасных одинарных кавычках. */
 const shq = (s: string) => `'${String(s ?? "").replace(/'/g, `'\\''`)}'`;
 
-function abort(conclusion: string, why: string) {
+function abort(conclusion: string, why: string | string[]) {
   return {
     conclusion,
     axes: [] as { axis: string; filesReviewed: number; failedFiles: string[] }[],
     findings: [] as Finding[],
-    notCovered: [why],
+    notCovered: Array.isArray(why) ? why : [why],
   };
 }
 
@@ -149,12 +207,15 @@ const axisSystem =
   "таком доказательстве, при котором находку воспроизведёт посторонний. Находок нет — так " +
   "и скажи, не выдумывай.";
 
-function filePrompt(axis: string, lens: string, path: string): string {
-  const diffCmd = `git -C ${shq(root)} diff ${shq(base)} -- ${shq(path)}`;
+function filePrompt(axis: string, lens: string, f: FileEntry): string {
+  // followups/01: untracked-файлу дифф-команда бесполезна (в git его ещё нет) —
+  // ревьюер получает явное указание, что его дифф — весь файл (как в гейте 16).
+  const diffHint = f.untracked
+    ? `Это новый (untracked) файл: в git-диффе его ещё нет — весь его контент и есть добавленные строки; ревьюй файл целиком как добавленный код.`
+    : `Посмотри его дифф сам: git -C ${shq(root)} diff ${shq(base)} -- ${shq(f.path)}.`;
   return (
-    `Корень чекаута: ${root}. Твой файл: ${path}. Посмотри его дифф сам: ${diffCmd} ` +
-    `(незакоммиченные новые файлы видны там же, как intent-to-add). Нужен контекст — ` +
-    `читай файл целиком в ${root}. Ты ось «${axis}»: ${lens} Находки — только существенное, ` +
+    `Корень чекаута: ${root}. Твой файл: ${f.path}. ${diffHint} ` +
+    `Нужен контекст — читай файл целиком в ${root}. Ты ось «${axis}»: ${lens} Находки — только существенное, ` +
     `не более ${MAX_FINDINGS} на файл; каждая строго в форме {where: "путь:строка", quote: ` +
     `дословная строка-цитата из кода, claim: одно предложение что не так (не как чинить), ` +
     `severity: high|medium|low}. Цитата обязательна: по ней независимый конфирмер ` +
@@ -167,31 +228,95 @@ function filePrompt(axis: string, lens: string, path: string): string {
 }
 
 phase("Список изменённых файлов");
-// world.run — fixed argv без шелла: pathspec применяется механически.
-const ns = await world.run("git", ["-C", root, "diff", "--numstat", base, ...(scope ? ["--", scope] : [])]);
+let ns;
+try {
+  // world.run — fixed argv без шелла: pathspec применяется механически.
+  // core.quotepath=false: не-ASCII пути приходят сырым UTF-8, а не C-escape в
+  // кавычках (гейт 16; контракт скопированного parseNumstat).
+  ns = await world.run("git", ["-C", root, "-c", "core.quotepath=false", "diff", "--numstat", base, ...(scope ? ["--", scope] : [])]);
+} catch (e) {
+  return abort(`git diff --numstat не исполним в ${root}: ${String(e)}.`, "всё — git недоступен");
+}
 if (ns.exitCode !== 0) {
   return abort(`Дифф не читается: git diff --numstat упал (exit ${ns.exitCode}).`, `git:\n${redact((ns.stdout + "\n" + ns.stderr).trim())}`);
 }
-type FileEntry = { path: string; diffLines: number };
-const allFiles: FileEntry[] = [];
-for (const line of ns.stdout.split("\n")) {
-  const m = /^(\d+|-)\t(\d+|-)\t(.+)$/.exec(line.trim());
-  if (!m) continue;
-  if (m[1] === "-" || m[2] === "-") continue; // binary — агенту не отревьюить
-  allFiles.push({ path: m[3], diffLines: Number(m[1]) + Number(m[2]) });
+const allFiles: FileEntry[] = parseNumstat(ns.stdout);
+
+// followups/01: карта диффа неполна без untracked — git diff видит только
+// tracked-историю, и новый незакоммиченный файл выпадал из код-ревью молча
+// (тот же класс дефекта, что гейт чинил в queue-2/16). Статус читается из
+// того же root тем же world.run: фасадный git.status() смотрит в workspace
+// рана, а не в проверяемый чекаут. -z отдаёт пути без кавычек в любой локали
+// (проверено) — quotepath тут не нужен. Сбой статуса фейл-клозед: без него
+// полноту карты обещать нельзя.
+let st;
+try {
+  st = await world.run("git", ["-C", root, "status", "--porcelain=v1", "-z", "--untracked-files=all", ...(scope ? ["--", scope] : [])]);
+} catch (e) {
+  return abort(`git status не исполним в ${root}: ${String(e)} — полноту карты диффа гарантировать нельзя, ревью не начато.`, "всё — git status недоступен");
 }
-log(`Изменённых текстовых файлов: ${allFiles.length}${scope ? ` (scope «${scope}» применён pathspec'ом)` : ""}`);
+if (st.exitCode !== 0) {
+  return abort(`Статус не читается: git status упал (exit ${st.exitCode}) в ${root} — полноту карты диффа гарантировать нельзя, ревью не начато.`, `git:\n${redact((st.stdout + "\n" + st.stderr).trim())}`);
+}
+const untrackedPaths = parseUntrackedStatus(st.stdout);
+log(`Изменённых текстовых файлов: ${allFiles.length}, новых (untracked): ${untrackedPaths.length}${scope ? ` (scope «${scope}» применён pathspec'ом)` : ""}`);
+
+// Размер нового файла меряется тем же numstat-семафором: no-index против
+// /dev/null — весь файл считается добавленными строками. Файл, который не
+// измерился, не пропускается молча: попадает в именованный список ниже.
+// Потолок параллелизма (гейт 16): тысячи untracked не должны порождать
+// тысячи одновременных git-процессов — мержим пакетами.
+const MEASURE_BATCH = 8;
+const untrackedMeasured: { path: string; entry: FileEntry | null; reason: string }[] = [];
+for (let i = 0; i < untrackedPaths.length; i += MEASURE_BATCH) {
+  const batch = await Promise.all(
+    untrackedPaths.slice(i, i + MEASURE_BATCH).map(async (p) => {
+      let d;
+      try {
+        d = await world.run("git", ["-C", root, "-c", "core.quotepath=false", "diff", "--no-index", "--numstat", "--", "/dev/null", p]);
+      } catch (e) {
+        return { path: p, entry: null, reason: `git не исполним: ${String(e)}` };
+      }
+      const parsed = parseNoIndexNumstat(d.stdout);
+      if (parsed === null) {
+        // Диагностика git не выбрасывается (гейт 16): «Could not access» из
+        // stderr — единственный след причины; через redact, как в фейл-клозед
+        // ветках выше.
+        const diag = redact((d.stdout + "\n" + d.stderr).trim());
+        return { path: p, entry: null, reason: `размер не измерился (exit ${d.exitCode})${diag ? `: ${diag}` : ""}` };
+      }
+      if (parsed.binary) return { path: p, entry: null, reason: "бинарный" };
+      return { path: p, entry: { path: p, diffLines: parsed.added, untracked: true }, reason: "" };
+    }),
+  );
+  untrackedMeasured.push(...batch);
+}
+const untrackedSkipped = untrackedMeasured.filter((x) => x.entry === null);
+const untrackedBinary = untrackedSkipped.filter((x) => x.reason === "бинарный").map((x) => x.path);
+for (const x of untrackedMeasured) {
+  if (x.entry) allFiles.push(x.entry);
+}
 const oversize = allFiles.filter((f) => f.diffLines > MAX_DIFF_LINES);
-const files = allFiles
-  .filter((f) => f.diffLines <= MAX_DIFF_LINES)
-  .slice(0, MAX_FILES);
-const overflowCount = Math.max(0, allFiles.filter((f) => f.diffLines <= MAX_DIFF_LINES).length - MAX_FILES);
+const sizeOk = allFiles.filter((f) => f.diffLines <= MAX_DIFF_LINES);
+const overflowFiles = sizeOk.slice(MAX_FILES).map((f) => f.path);
+const files = sizeOk.slice(0, MAX_FILES);
+const overflowCount = overflowFiles.length;
 if (files.length === 0) {
+  // Гейт 16: именованные пропуски не теряются и в раннем возврате — дифф из
+  // одного untracked-бинарника не имеет права выглядеть «пустым» без имён.
   return abort(
     allFiles.length === 0
-      ? `Дифф от ${base} пуст (текстовых изменений нет${scope ? ` под «${scope}»` : ""}) — ревьюить нечего.`
+      ? untrackedSkipped.length > 0
+        ? `Текстовых изменений от ${base} нет; вне карты (бинарные/неизмеренные новые): ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")} — ревьюить нечего.`
+        : `Дифф от ${base} пуст (текстовых изменений нет${scope ? ` под «${scope}»` : ""}) — ревьюить нечего.`
       : `Изменения есть (${allFiles.length} текстовых файлов), но ни один не проходит потолки (${MAX_DIFF_LINES} строк диффа на файл) — ревью не начато.`,
-    allFiles.length === 0 ? "дифф пуст" : `файлы сверх потолка: ${oversize.map((f) => f.path).join(", ")}`,
+    [
+      ...(allFiles.length === 0 && untrackedSkipped.length === 0 ? ["дифф пуст"] : []),
+      ...(allFiles.length === 0 ? [] : [`файлы сверх потолка: ${oversize.map((f) => f.path).join(", ")}`]),
+      ...(untrackedSkipped.length > 0
+        ? [`новые (untracked) файлы не вошли в ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}`]
+        : []),
+    ],
   );
 }
 
@@ -206,7 +331,7 @@ const reviews: FileReview[] = await Promise.all(
     let r: AxisResult;
     try {
       r = await agent(`axis-${t.key}-f${i}`, { system: axisSystem }).ask<AxisResult>(
-        filePrompt(t.axis, t.lens, t.file.path),
+        filePrompt(t.axis, t.lens, t.file),
       );
     } catch (e) {
       // Отказ на одном файле не хоронит остальные (pattern: challenger.workflow.ts).
@@ -264,11 +389,17 @@ const bothAxes = new Set(
 ).size;
 const oneAxis =
   new Set(reviews.filter((r) => !r.failed).map((r) => r.file)).size - bothAxes;
+// followups/01: покрытие называет файлы — и попавшие в ревью, и все
+// именованные пропуски (как в гейте 16); прогон с частичным покрытием не
+// выглядит полным.
+const reviewedFiles = [...new Set(reviews.filter((r) => !r.failed).map((r) => r.file))];
 const coverage =
-  `отревьюено обеими осями: ${bothAxes}` +
-  (oneAxis > 0 ? `, только одной осью: ${oneAxis}` : "") +
-  (oversize.length > 0 ? `; пропущены (дифф > ${MAX_DIFF_LINES} строк): ${oversize.length}` : "") +
-  (overflowCount > 0 ? `; пропущены сверх лимита ${MAX_FILES} файлов: ${overflowCount}` : "");
+  `в ревью попали (${reviewedFiles.length}/${files.length}): ${files.map((f) => f.path).join(", ")}` +
+  (bothAxes > 0 || oneAxis > 0 ? `; обеими осями: ${bothAxes}, только одной: ${oneAxis}` : "") +
+  (oversize.length > 0 ? `; пропущены (дифф > ${MAX_DIFF_LINES} строк): ${oversize.map((f) => f.path).join(", ")}` : "") +
+  (overflowCount > 0 ? `; пропущено файлов сверх лимита ${MAX_FILES}: ${overflowFiles.join(", ")}` : "") +
+  (untrackedSkipped.length > 0 ? `; новые файлы вне ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}` : "") +
+  (failedReviews.length > 0 ? `; сбои файлов: ${failedReviews.join("; ")}` : "");
 const conclusion = [
   rawFindings.length === 0 && failedReviews.length === 0
     ? `Находок нет (${coverage}), ни одна ось не нашла существенного.`
@@ -293,7 +424,11 @@ return {
   findings: rawFindings,
   notCovered: [
     "стиль и архитектура — не входят в этот гейт",
-    "бинарные файлы диффа — не ревьюются",
-    ...(scope ? [`scope «${scope}» применён pathspec'ом в команде диффа (argv), пост-фильтрации находок нет`] : []),
+    "бинарные файлы диффа — не ревьюются" + (untrackedBinary.length > 0 ? `: ${untrackedBinary.join(", ")}` : ""),
+    ...(untrackedSkipped.length > 0
+      ? [`новые (untracked) файлы не вошли в ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}`]
+      : []),
+    ...(overflowFiles.length > 0 ? [`файлы пропущены сверх лимита ${MAX_FILES}: ${overflowFiles.join(", ")}`] : []),
+    ...(scope ? [`scope «${scope}» применён pathspec'ом в командах диффа и статуса (argv), пост-фильтрации находок нет`] : []),
   ],
 };
