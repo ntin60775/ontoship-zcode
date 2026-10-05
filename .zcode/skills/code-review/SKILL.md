@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Two-axis code review of an arbitrary diff (correctness; quality & dangerous places) — findings confirmed independently against code quotes by the shared ship confirm run, one merged report with verified/unconfirmed verdicts. Runs only by hand through the workflow engine: review on the reviewer-role model, confirmation on the confirmer-role model. Use when the operator says "поревьюй дифф", "code review", "ревью ветки", or runs /code-review.
+description: Two-axis code review of an arbitrary diff (correctness; quality & dangerous places) — findings confirmed independently against code quotes by the shared ship confirm run, one merged report with verified/unconfirmed/unverified verdicts. Runs only by hand through the workflow engine: review on the reviewer-role model, confirmation on the confirmer-role model. Use when the operator says "поревьюй дифф", "code review", "ревью ветки", or runs /code-review.
 ---
 
 # /code-review — two-axis review of a diff
@@ -53,7 +53,10 @@ launches `/code-review` once and gets the same merged report.
    publishing it fails, the same report rides in the confirm run's return
    field `report`.
    `verified` findings were reproduced by independent confirmers; `unconfirmed`
-   ones need human eyes and are never dropped silently. Secret-looking strings
+   ones need human eyes and are never dropped silently. `unverified` ones are
+   findings whose check never happened — the confirmer did not respond even
+   after one retry; report them as a failed check (проверка не состоялась),
+   not as a refutation, and never drop them silently either. Secret-looking strings
    in quotes are redacted before findings leave the run (формат-матрица
    queue-2/15: PEM-блоки, user:pass@host, словарные key=value, bearer,
    JWS/vendor-литералы; ограничения перечислены в шапке redact — не

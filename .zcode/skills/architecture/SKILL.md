@@ -51,9 +51,11 @@ Read-only: nobody edits or commits anything.
    run's `map` return field — the conclusion names the fallback); the
    confirm run publishes the merged drift report
    (artifact «review» — verified findings plus the «не подтверждено»
-   section). `verified` findings were reproduced by independent confirmers on
-   the confirmer model; `unconfirmed` ones need human eyes and are never
-   dropped. Secret-looking strings in findings are redacted before they leave the
+   and «не проверено» sections). `verified` findings were reproduced by
+   independent confirmers on the confirmer model; `unconfirmed` ones need
+   human eyes and are never dropped; `unverified` ones are a check that did
+   not happen (the confirmer failed after one retry) — reported as a failed
+   check, not a refutation, never dropped. Secret-looking strings in findings are redacted before they leave the
    run (формат-матрица queue-2/15; ограничения — в шапке redact, не
    гарантия); выхлоп сводчика не пост-редактируется — его вход уже
    отредактирован. Known cosmetic: the confirm run's

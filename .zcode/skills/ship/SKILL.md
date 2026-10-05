@@ -45,12 +45,16 @@ run, strictly sequential.
    "<the same worktree>", findings: <the `findings` field of the review run's
    return — the raw findings array, compact JSON>, ticket: "<the same ticket>"},
    subagent_model=<confirmer role$level>)` —
-   it returns the verdicts (findings with verified/unconfirmed + conclusion +
-   notCovered) — pass the findings array as-is, even when empty (the confirm
+   it returns the verdicts (findings with verified/unconfirmed/unverified +
+   conclusion + notCovered) — pass the findings array as-is, even when empty (the confirm
    run reports the empty case honestly). If the review run errored or stopped,
    there is nothing to confirm: stop the run and report the failure; never run
    the confirm run on a failed review. Fix every `verified` finding; refute only
    with evidence; `unconfirmed` findings are reported to the operator, never dropped.
+   `unverified` findings are a failed check, not a refutation — the confirmer
+   did not answer even after one retry (a failed ask is retried exactly once,
+   no cause sniffing; queue-2/17 owns cause classification); report them to
+   the operator next to `unconfirmed`, never dropped.
 7. **Dev checks** — merge the worktree branch into `dev` (local branch when there is no
    remote; MR when there is) and run the full suite there. Red → fix in the worktree,
    do not merge onward.
