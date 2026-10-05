@@ -23,8 +23,8 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
 - [crossreview-adoption/](crossreview-adoption/README.md) — контрактные дельты из
   методологии кросс-ревью в гейты ревью (папка, 3 тикета: intent осей /code-review,
   unverified-статус confirm-рана, инварианты слепого ревью в KB; из сверки с
-  EvilFreelancer/crossreview 2026-10-04; тикет 01 отгружен 2026-10-05, релиз
-  v0.5.21).
+  EvilFreelancer/crossreview 2026-10-04; тикеты 01–02 отгружены — 2026-10-05
+  релиз v0.5.21 и 2026-10-06 релиз v0.5.22).
 - [gate-followups/](gate-followups/README.md) — фоллоу-апы ship-гейта из прогона
   queue-2/16 (папка, 2 тикета: паритет код-ревью по untracked-файлам,
   гигиена контекста гейта против qwen-400; отгружена целиком 2026-10-05,
@@ -41,9 +41,10 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
 
 1. ~~gate-followups~~ — отгружен целиком 2026-10-05 (релизы v0.5.19–v0.5.20);
    правки тех же файлов легли до crossreview-adoption, как и планировалось.
-2. **crossreview-adoption** — в работе: тикет 01 отгружен 2026-10-05 (релиз
-   v0.5.21); следующий — 02 (confirm-ран: отказ проверки ≠ опровержение),
-   03 — после обоих.
+2. **crossreview-adoption** — в работе: 01 отгружен 2026-10-05 (релиз
+   v0.5.21), 02 отгружен 2026-10-06 (релиз v0.5.22, три исхода confirm-рана);
+   остался 03 — инварианты слепого ревью в KB, фиксирует конечное состояние
+   обеих дельт.
 3. **gate-followups-2** — четыре хвоста ship-прогонов (init-блок короткими
    именами, контракт цитаты, лог severity-нормализации, кэш extractParts);
    тикеты независимы, идут после crossreview-adoption: файлы не пересекаются
