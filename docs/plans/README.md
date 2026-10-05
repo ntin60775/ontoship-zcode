@@ -26,17 +26,17 @@ written by `grilling`; `/to-tickets` promotes it to a folder with tickets.
   EvilFreelancer/crossreview 2026-10-04).
 - [gate-followups/](gate-followups/README.md) — фоллоу-апы ship-гейта из прогона
   queue-2/16 (папка, 2 тикета: паритет код-ревью по untracked-файлам,
-  гигиена контекста гейта против qwen-400 на тяжёлых файлах).
+  гигиена контекста гейта против qwen-400; отгружена целиком 2026-10-05,
+  релизы v0.5.19–v0.5.20).
 - [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) — формулировка I7
   называет пути движка zcode, а не omp (file plan; дрейф omp-порта из прогона
   queue-2/18).
 
 ## Порядок выполнения
 
-1. **gate-followups** — до crossreview-adoption: оба тикета правят те же
-   воркфлоу ревью, что crossreview (01–02), — один churn на релизный цикл;
-   внутри плана тикеты независимы.
-2. **crossreview-adoption** — после gate-followups: правки тех же файлов
+1. ~~gate-followups~~ — отгружен целиком 2026-10-05 (релизы v0.5.19–v0.5.20);
+   правки тех же файлов легли до crossreview-adoption, как и планировалось.
+2. **crossreview-adoption** — следующий по порядку: правки тех же файлов
    ложатся на починенную базу (untracked-карта, гигиена asks); внутри плана
    01 и 02 независимы, 03 — после обоих.
 3. **ontology-i7-zcode-paths** — в любой момент: одна формулировка в двух
