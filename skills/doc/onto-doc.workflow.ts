@@ -48,15 +48,42 @@ function abort(conclusion: string, why: string) {
     notCovered: [why],
   };
 }
-let parsed: unknown = args.plan;
-if (typeof parsed === "string") {
+const planRaw = args.plan;
+let parsed: unknown = planRaw;
+if (typeof planRaw === "string") {
   try {
-    parsed = JSON.parse(parsed);
-  } catch {
-    return abort("План правок (args.plan) не распарсился как JSON-массив — прогон не начат.", "всё — план не распарсился");
+    parsed = JSON.parse(planRaw);
+  } catch (e) {
+    // Same contract as challenger: the abort must carry the parser's message,
+    // the received length and the TAIL of the string — truncation (no closing
+    // `]}`) and broken syntax (error with a position) are told apart at a glance.
+    const msg = e instanceof Error ? e.message : String(e);
+    const head = planRaw.length > 80 ? `${planRaw.slice(0, 80)}…` : "";
+    const tail = planRaw.length > 80 ? `…${planRaw.slice(-80)}` : planRaw;
+    const detail =
+      `JSON.parse: ${msg}; получено ${planRaw.length} симв.` +
+      (head ? `, голова: "${head}", хвост: "${tail}"` : `, строка: "${tail}"`);
+    return abort(
+      `План правок (args.plan) не распарсился как JSON-массив — прогон не начат. ${detail}`,
+      `всё — args.plan не распарсился (${msg}; длина ${planRaw.length})`,
+    );
   }
 }
-const pieces: Piece[] = Array.isArray(parsed) ? (parsed as Piece[]) : [];
+if (!Array.isArray(parsed)) {
+  // Same caller-bug contract as the catch above: a non-array plan (null,
+  // object, number, or a non-string args.plan) must abort naming args.plan —
+  // not silently become an empty plan whose abort blames args.task.
+  const kind = parsed === null ? "null" : typeof parsed;
+  const text =
+    typeof planRaw === "string"
+      ? (JSON.stringify(parsed) ?? String(parsed)).slice(0, 80)
+      : String(planRaw).slice(0, 80);
+  return abort(
+    `args.plan — не массив кусков (${kind}: ${text}) — прогон не начат.`,
+    `всё — args.plan не массив (${kind}: ${text})`,
+  );
+}
+const pieces: Piece[] = parsed as Piece[];
 const malformed = pieces.filter(
   (p) =>
     typeof p !== "object" ||

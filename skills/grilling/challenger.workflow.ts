@@ -43,22 +43,41 @@ interface Objection {
 // depending on the host — accept both. Unparsable input fails LOUD (an errored run
 // is what stops the grilling pass); an explicitly empty array is a benign no-op.
 let decisions: Decision[] = [];
-let unparsable = false;
+let unparsable = "";
 const raw = args.decisions;
 if (Array.isArray(raw)) {
   decisions = raw as Decision[];
 } else if (typeof raw === "string") {
   try {
-    decisions = JSON.parse(raw) as Decision[];
-  } catch {
-    unparsable = true;
+    const parsed: unknown = JSON.parse(raw);
+    // A string that parses to a non-array (null, object, number…) is the same
+    // caller bug as broken syntax — abort with the value, not a bare TypeError.
+    if (!Array.isArray(parsed)) {
+      const text = JSON.stringify(parsed) ?? String(parsed);
+      const kind = parsed === null ? "null" : typeof parsed;
+      unparsable = `JSON распарсился, но это не массив (${kind}: ${text.slice(0, 80)})`;
+    } else {
+      decisions = parsed as Decision[];
+    }
+  } catch (e) {
+    // The abort must carry the parser's own message plus length and TAIL of the
+    // string: a truncated payload (no closing `]}`) and broken syntax (error with
+    // a position) are told apart at a glance — both look identical from the head.
+    const msg = e instanceof Error ? e.message : String(e);
+    const head = raw.length > 80 ? `${raw.slice(0, 80)}…` : "";
+    const tail = raw.length > 80 ? `…${raw.slice(-80)}` : raw;
+    unparsable =
+      `JSON.parse: ${msg}; получено ${raw.length} симв.` +
+      (head ? `, голова: "${head}", хвост: "${tail}"` : `, строка: "${tail}"`);
   }
-} else if (raw !== undefined && raw !== null) {
-  unparsable = true;
+} else if (raw !== undefined) {
+  // null is loud on purpose: a required arg must not silently become an empty
+  // draft — that benign no-op is only for an explicitly passed empty array.
+  unparsable = `не строка и не массив (${raw === null ? "null" : typeof raw}: ${String(raw).slice(0, 80)})`;
 }
 if (unparsable) {
   throw new Error(
-    `args.decisions не распарсились (${typeof raw}: ${String(raw).slice(0, 80)}…) — ` +
+    `args.decisions не распарсились (${unparsable}) — ` +
       "красная команда не запускалась, гриллинг обязан остановиться на этом.",
   );
 }
