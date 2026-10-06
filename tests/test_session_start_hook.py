@@ -1,9 +1,11 @@
 """Tests for hooks/session-start.sh: stale-index notice at session start over
 the engine's whole markdown corpus (git ls-files, like gitmark indexes it),
 silence when fresh or outside a KB project, quiet --rebuild; plus the session
-continuity half (ticket 08): the .session-id marker written from the hook's
-own environment, the fresh-handoff announcement with the ReadSessionContext
-hint, and the one-emit contract (exactly one JSON on stdout, however much
+continuity half (ticket 08): the .session-id marker written from the hook's own
+environment, the handoff announcement with the ReadSessionContext hint — the
+rolling snapshot handoff-current.md announced by its explicit name whatever
+its age (handoff-snapshot/02), the fresh legacy fallback when the snapshot is
+absent — and the one-emit contract (exactly one JSON on stdout, however much
 there is to say). The hook is exercised end-to-end (subprocess, bash) against
 the real engine in a fake KB project; mtimes are pinned with os.utime, so no
 sleeps."""
@@ -293,6 +295,69 @@ def test_handoff_and_stale_index_glue_into_one_json(tmp_path: Path):
     assert "gitmark.py index" in ctx
     assert "ReadSessionContext(sessionId=sess_old" in ctx
     assert p.stdout.count("\n") == 1
+
+
+# --- the rolling snapshot (handoff-snapshot/02): explicit name, no TTL ---
+
+
+def test_current_snapshot_announced_regardless_of_age(tmp_path: Path):
+    """The rolling snapshot is announced by its explicit name whatever its
+    mtime: an old snapshot means no work happened — announcing it is even
+    more important. Legacy files go silent after 7 days; the snapshot must
+    not."""
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / "docs" / "a.md", (0, 0))
+    f = write_handoff(proj, "handoff-current.md",
+                      "# Handoff\n\nupdated: 2026-09-16\n"
+                      "From: sess_old (2026-09-16), commit abc1234\n\n## Task\n- x\n")
+    old = time.time() - 20 * 86_400
+    os.utime(f, (old, old))
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert "handoff-current.md" in ctx
+    assert "слепок состояния проекта" in ctx
+    assert "ReadSessionContext(sessionId=sess_old, strategy=handoff)" in ctx
+
+
+def test_current_snapshot_supersedes_fresh_legacy_handoff(tmp_path: Path):
+    """The explicit-name branch runs before the legacy fallback: the glob
+    handoff-*.md also matches handoff-current.md (observed live), so a
+    newest-by-mtime pick alone would race the snapshot — the snapshot wins
+    even when a legacy file is newer."""
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / "docs" / "a.md", (0, 0))
+    snap = write_handoff(proj, "handoff-current.md", "From: sess_cur\n")
+    legacy = write_handoff(proj, "handoff-sess_new.md", "From: sess_new\n")
+    now = time.time()
+    os.utime(snap, (now - 5000, now - 5000))
+    os.utime(legacy, (now - 60, now - 60))
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert "handoff-current.md" in ctx
+    assert "handoff-sess_new.md" not in ctx
+    assert "ReadSessionContext(sessionId=sess_cur, strategy=handoff)" in ctx
+
+
+def test_current_snapshot_without_session_id_degrades(tmp_path: Path):
+    """Same honest degradation as the legacy fallback: an unrecognized From:
+    in the snapshot still announces it, without the ReadSessionContext hint."""
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / "docs" / "a.md", (0, 0))
+    write_handoff(proj, "handoff-current.md", "From: unknown (2026-10-06)\n")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert "handoff-current.md" in ctx
+    assert "ReadSessionContext(sessionId=" not in ctx
+    assert "не распознан" in ctx
 
 
 # --- nightly hygiene (ticket 10): the hook consumes .gitmark/hygiene.log ---
