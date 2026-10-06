@@ -196,6 +196,9 @@ def test_extra_positional_arg_ignored(tmp_path: Path):
 
 
 def write_handoff(proj: Path, name: str, body: str) -> Path:
+    # Static names only: Path.joinpath would happily walk out of .scratch on a
+    # "../" name, and every caller here passes literals (gate 02, verified).
+    assert "/" not in name and ".." not in name
     scratch = proj / ".scratch"
     scratch.mkdir(exist_ok=True)
     f = scratch / name
@@ -230,18 +233,53 @@ def test_session_id_marker_not_written_for_dirty_value(tmp_path: Path):
     assert not (proj / ".scratch").exists()
 
 
-def test_fresh_handoff_is_announced(tmp_path: Path):
+def test_legacy_handoff_within_ttl_is_announced(tmp_path: Path):
     proj = make_kb_project(tmp_path)
     build_index(proj)
     os.utime(proj / "docs" / "a.md", (0, 0))
-    write_handoff(proj, "handoff-sess_old.md",
-                  "# Handoff\n\nFrom: sess_old (2026-10-03)\n\n## Done\n- x\n")
+    f = write_handoff(proj, "handoff-sess_old.md",
+                      "# Handoff\n\nFrom: sess_old (2026-10-03)\n\n## Done\n- x\n")
+    # Inside the TTL but far from "just created": a mutant with a broken TTL
+    # (seconds instead of 7 days) must fail here, not pass on file creation.
+    age = time.time() - 6 * 86_400
+    os.utime(f, (age, age))
     p = run_hook(proj)
     assert p.returncode == 0
     ctx = ctx_of(p)
     assert ctx is not None
     assert "handoff-sess_old.md" in ctx
     assert "ReadSessionContext(sessionId=sess_old, strategy=handoff)" in ctx
+
+
+def test_legacy_ttl_boundary_exact_is_silent(tmp_path: Path):
+    """The TTL is strict (<, not <=): a file at exactly now - 604800 s belongs
+    to the skill's cleanup, not to the announcement. Deterministic even with
+    the hook's own clock read racing ahead of ours — the measured age only
+    grows past the boundary."""
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / "docs" / "a.md", (0, 0))
+    f = write_handoff(proj, "handoff-sess_edge.md", "From: sess_edge\n")
+    edge = time.time() - 604_800
+    os.utime(f, (edge, edge))
+    p = run_hook(proj)
+    assert p.returncode == 0
+    assert p.stdout == ""
+
+
+def test_legacy_ttl_just_inside_is_announced(tmp_path: Path):
+    """The other side of the strict boundary: a minute inside the TTL is
+    still announced."""
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / "docs" / "a.md", (0, 0))
+    f = write_handoff(proj, "handoff-sess_edge.md", "From: sess_edge\n")
+    inside = time.time() - (604_800 - 60)
+    os.utime(f, (inside, inside))
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None and "handoff-sess_edge.md" in ctx
 
 
 def test_stale_handoff_is_silent(tmp_path: Path):
@@ -351,6 +389,23 @@ def test_current_snapshot_without_session_id_degrades(tmp_path: Path):
     build_index(proj)
     os.utime(proj / "docs" / "a.md", (0, 0))
     write_handoff(proj, "handoff-current.md", "From: unknown (2026-10-06)\n")
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert "handoff-current.md" in ctx
+    assert "ReadSessionContext(sessionId=" not in ctx
+    assert "не распознан" in ctx
+
+
+def test_from_with_at_degrades_like_unknown(tmp_path: Path):
+    """@ is outside the session-id class (the env-marker filter writes no such
+    id): a From: like sess_user@example.com must land in the same honest
+    degradation as a garbage From:."""
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / "docs" / "a.md", (0, 0))
+    write_handoff(proj, "handoff-current.md", "From: sess_user@example.com\n")
     p = run_hook(proj)
     assert p.returncode == 0
     ctx = ctx_of(p)
