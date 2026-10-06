@@ -39,8 +39,13 @@ run, strictly sequential.
    own model). Then run the gate as two CreateWorkflows:
    `CreateWorkflow(path=reviewer.workflow.ts next to this SKILL.md, args={ticket:
    "<what + acceptance criteria + touched files>", base: "<merge-base ref>",
-   root: "<the worktree created in step 3>"}, subagent_model=<reviewer role$level>)`
-   — it ends with raw findings;
+   root: "<the worktree created in step 3>", reviewerModel: "<reviewer role model,
+   API id from its zcode card>"})`
+   — it ends with raw findings; the lens substrate is direct neuraldeep API calls
+   made by the workflow itself (gate-followups-2/07): `reviewerModel` is the bare
+   API id of the reviewer-role model (its zcode card, e.g. "qwen3.6-unlim-xl");
+   credentials and baseUrl come from the provider card in zcode, nothing else
+   is configured on the machine;
    `CreateWorkflow(path=confirm.workflow.ts next to this SKILL.md, args={root:
    "<the same worktree>", findings: <the `findings` field of the review run's
    return — the raw findings array, compact JSON>, ticket: "<the same ticket>"},
