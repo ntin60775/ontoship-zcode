@@ -39,8 +39,8 @@ there is no `--force` and no overwrite mode.
 
 4. **Report and hand over** — list what changed (file created / block appended / block
    updated / nothing to do), then tell the user the next step is building the KB:
-   `/ontoship:doc <topic>` per area (with a local/workspace install: `/doc`) — search
-   first, never duplicate; the block points at `docs/README.md`.
+   `/doc <topic>` per area — search first, never duplicate; the block points at
+   `docs/README.md`.
 
 ## The block (verbatim)
 
@@ -48,12 +48,10 @@ there is no `--force` and no overwrite mode.
 <!-- BEGIN ontoship -->
 ## Knowledge base (OntoShip)
 
-Skill names below use the plugin prefix; with a workspace install use the short form (`/kb-search`, …).
-
 - Entry point: [`docs/README.md`](docs/README.md) — the KB master index.
-- Search before answering about this project: `/ontoship:kb-search <query>`.
-- New or updated docs: `/ontoship:doc` — search first, never duplicate.
-- Code changes go through `/ontoship:ship`: one ticket (or one file plan) per run, launched by hand.
+- Search before answering about this project: `/kb-search <query>`.
+- New or updated docs: `/doc` — search first, never duplicate.
+- Code changes go through `/ship`: one ticket (or one file plan) per run, launched by hand.
 - The KB is markdown + git; `.gitmark/`, `*-map.html` and `.scratch/` are derived or ephemeral — never committed.
 <!-- END ontoship -->
 ```
