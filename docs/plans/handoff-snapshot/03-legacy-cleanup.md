@@ -2,7 +2,7 @@
 node_type: ticket
 title: Зачистка legacy-хэндоффов
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-06
 links:
   part_of: [README.md]
@@ -22,8 +22,8 @@ links:
 **Blocked by:** 02 (пока анонс не переключён, удаление legacy оставит смену без
 слепка вообще без анонса).
 
-- [ ] `handoff-sess_*.md` удалены (список целей зафиксирован в отчёте; удаление
+- [x] `handoff-sess_*.md` удалены (список целей зафиксирован в отчёте; удаление
       по абсолютным путям)
-- [ ] после зачистки анонс хука указывает на `handoff-current.md` (headless-проба
+- [x] после зачистки анонс хука указывает на `handoff-current.md` (headless-проба
       старта сессии или эквивалентная живая проверка)
-- [ ] `gitmark lint` + `pytest` зелёные
+- [x] `gitmark lint` + `pytest` зелёные

@@ -2,7 +2,7 @@
 node_type: plan
 title: Хэндофф — единый катящийся слепок состояния
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-06
 tags: [plan, handoff, session-start, ship, kb]
 links:
@@ -86,4 +86,4 @@ improvisацией. Ожидание оператора, зафиксирова�
 |---|-------|--------|------------|
 | [01](01-rolling-snapshot.md) | Единый катящийся слепок — регенерат из /handoff + автозапись на закрытии тикета | archived | — |
 | [02](02-hook-announce.md) | Хук: анонс слепка без TTL + миграционный фолбэк | archived | 01 |
-| [03](03-legacy-cleanup.md) | Зачистка legacy-хэндоффов | draft | 02 |
+| [03](03-legacy-cleanup.md) | Зачистка legacy-хэндоффов | archived | 02 |
