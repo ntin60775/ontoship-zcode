@@ -59,9 +59,16 @@ const EXTRACT = [
 ];
 
 // raw — тело как в файле (для сверки идентичности копий), js — сигнатуры
-// сняты (для исполнения кейсов).
+// сняты (для исполнения кейсов). Извлечение кэшируется по пути
+// (gate-followups-2/04): каждый файл читается с диска один раз за прогон,
+// все потребители — сверка копий, HINT_FILES, intent-якоря — один объект.
+const EXTRACTED = new Map();
+let reads = 0;
 function extractParts(rel) {
+  const cached = EXTRACTED.get(rel);
+  if (cached) return cached;
   const src = readFileSync(join(ROOT, rel), "utf8");
+  reads += 1;
   const raw = {};
   const js = {};
   for (const [name, re, tsSig, jsSig, extra] of EXTRACT) {
@@ -74,7 +81,9 @@ function extractParts(rel) {
     }
     js[name] = body;
   }
-  return { src, raw, js };
+  const parts = { src, raw, js };
+  EXTRACTED.set(rel, parts);
+  return parts;
 }
 
 const source = extractParts(SOURCE);
@@ -299,5 +308,11 @@ for (const [name, fn, input, expected] of CASES) {
     failed++;
   }
 }
-console.log(`парсеров: ${EXTRACT.length}, копий: ${COPIES.length}, кейсов: ${CASES.length}, упало: ${failed}`);
+// Проба одноразовости (gate-followups-2/04): чтений с диска ровно по одному
+// на извлечённый файл — возврат к тройному извлечению одной копии падает здесь.
+if (reads !== EXTRACTED.size) {
+  console.error(`Проба чтений: readFileSync вызван ${reads} раз при ${EXTRACTED.size} извлечённых файлах — извлечение перестало быть одноразовым (gate-followups-2/04)`);
+  failed++;
+}
+console.log(`парсеров: ${EXTRACT.length}, копий: ${COPIES.length}, файлов: ${EXTRACTED.size}, чтений: ${reads}, кейсов: ${CASES.length}, упало: ${failed}`);
 process.exit(failed === 0 ? 0 : 1);
