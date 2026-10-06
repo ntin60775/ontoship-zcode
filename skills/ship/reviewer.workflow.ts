@@ -1,5 +1,5 @@
 /* zcode-workflow
-description: Независимый ревью диффа тикета — первый ран шага 6 девфлоу /ship. Разбивка по файлам (один ревьюер на файл диффа); на выходе сырые находки для confirm-рана (confirm.workflow.ts).
+description: Независимый ревью диффа тикета — первый ран шага 6 девфлоу /ship. Разбивка по узким линзам-специалистам (ростер logic, security, shell, concurrency, tests, docs; линза без релевантных файлов не стартует); на выходе сырые находки для confirm-рана (confirm.workflow.ts).
 args:
   ticket:
     type: string
@@ -15,28 +15,37 @@ args:
     required: false
 */
 
-// Independent review gate (/ship step 6, first of two runs), ticket 13: the
-// reviewer is ALWAYS split per file — one agent per changed file, each
-// reading only its file's diff — so no single context depends on the total
-// diff size (operator decision 2026-10-01: «разбивка всегда»; observed
-// ContextLimit of a whole-diff reviewer on qwen-fp8, ticket 06 run 4).
-// Ticket 14/01: this run ENDS with raw findings; confirming them is the
-// second run (confirm.workflow.ts) on its own `confirmer` role, so the
-// confirmer model is configured separately. Read-only: nobody here edits
-// anything. Findings and git output pass redact() (матрица queue-2/15)
-// before they leave the run; the confirm run gets already-redacted findings
-// and its synthesizer's output is not post-redacted (input already is).
-// Ticket 16: the file map is numstat PLUS untracked files from git status —
-// `git diff <base>` sees tracked history only, so a brand-new uncommitted
-// file fell out of the review entirely (ticket 09 first run reviewed 2 of 4
-// files). The conclusion names every file that got into review and every
-// named skip. gate-followups/02: context hygiene in the ask — a heavy file
-// is no longer offered to the reviewer as a whole-file read (the provider
-// stop «слишком длинный запрос» is invisible to the script: the facade stops
-// the run outside it, queue-2/15 and /16). File size is measured by wc -l;
-// up to the threshold the file may be read whole, above it the material is
-// the diff plus addressed ranged reads. contextHint() is a byte-identical
-// copy in code-review.workflow.ts — tests/diff_map.mjs fails on desync.
+// Independent review gate (/ship step 6, first of two runs). Ticket 13: the
+// review is always SPLIT, so no single context depends on the total diff size
+// (operator decision 2026-10-01: «разбивка всегда»; observed ContextLimit of a
+// whole-diff reviewer on qwen-fp8, ticket 06 run 4). Ticket 14/01: this run
+// ENDS with raw findings; confirming them is the second run
+// (confirm.workflow.ts) on its own `confirmer` role, so the confirmer model is
+// configured separately. Read-only: nobody here edits anything. Findings and
+// git output pass redact() (матрица queue-2/15) before they leave the run; the
+// confirm run gets already-redacted findings and its synthesizer's output is
+// not post-redacted (input already is). Ticket 16: the file map is numstat
+// PLUS untracked files from git status — `git diff <base>` sees tracked
+// history only, so a brand-new uncommitted file fell out of the review
+// entirely (ticket 09 first run reviewed 2 of 4 files). The conclusion names
+// every file that got into review and every named skip.
+// gate-followups/02: context hygiene in the ask — a heavy file is no longer
+// offered to the reviewer as a whole-file read (the provider stop «слишком
+// длинный запрос» is invisible to the script: the facade stops the run
+// outside it, queue-2/15 and /16). File size is measured by wc -l; up to the
+// threshold the file may be read whole, above it the material is the diff
+// plus addressed ranged reads. contextHint() is a byte-identical copy in
+// code-review.workflow.ts — tests/diff_map.mjs fails on desync.
+// gate-followups-2/07 (решение оператора 2026-10-06): ось разбиения — не
+// «один файл диффа на ревьюера» (фундаментальная ошибка: в гейт-прогоне
+// handoff-snapshot/02 ревьюер файла дошёл до 139k входа при тарифном потолке
+// 138336 — материал аска маленький, раздувание создали обходы репозитория
+// поверх своего файла; запрет объёмных команд в персоне, 68367ea,
+// симптоматичен), а ростер узких линз-специалистов: у линзы свой вопрос,
+// свой тип файлов и контракт материала — дифф и адресные чтения, целиком
+// только малые файлы. Линза без релевантных файлов не стартует — fan-out
+// соразмерен диффу; карта покрытия называет пары файл×линза. Форма находки
+// и confirm-ран не меняются.
 
 interface Finding {
   /** Путь к файлу и строка: "src/a.py:42". */
@@ -65,6 +74,45 @@ const MAX_DIFF_LINES = 2000;
 
 /** Запись карты диффа: untracked=true — новый файл, его «дифф» — весь контент. */
 type FileEntry = { path: string; diffLines: number; untracked: boolean };
+
+// BEGIN LENSES — tests/test_lens_routing.py extracts the array verbatim and
+// pins the routing matrix on real paths; predicates stay plain JS on purpose.
+// Ростер узких линз (gate-followups-2/07): у каждой — свой вопрос и свой тип
+// файлов; «логические и security-баги в одном флаконе» на файл целиком —
+// прежняя ось, признанная ошибкой. Порядок в ростере = порядок в coverage.
+const LENSES: { id: string; focus: string; appliesTo: (path: string) => boolean }[] = [
+  {
+    id: "logic",
+    focus: "ломанные инварианты и граничные условия (пустое, нулевое, отрицательное, единственный элемент, последняя итерация), потерянные и проглоченные ошибки, неверные коды возврата и exit-коды, незакрытые ресурсы, неверный порядок операций",
+    appliesTo: (p) => !p.endsWith(".md"),
+  },
+  {
+    id: "security",
+    focus: "недоверенный ввод без проверки (данные диффа, вывод git, аргументы), инъекции в shell-команды, пути и регэкспы, секреты в выводе и логах",
+    appliesTo: (p) => !p.endsWith(".md") && !/(^|\/)tests?\//.test(p),
+  },
+  {
+    id: "shell",
+    focus: "кавычки и подстановки в shell, разворачивание слов и globs, семантика set -euo pipefail: проглоченные коды возврата через пайп, ранний выход, неинициализированные переменные",
+    appliesTo: (p) => p.endsWith(".sh"),
+  },
+  {
+    id: "concurrency",
+    focus: "гонки и порядок операций, атомарность записи (temp+rename против записи на месте), чистка временных файлов при отказе, одновременный доступ к одному пути",
+    appliesTo: (p) => p.endsWith(".sh") || /(^|\/)(scripts|hooks)\//.test(p),
+  },
+  {
+    id: "tests",
+    focus: "тест против критериев тикета: проверяет ли кейс заявленное поведение, есть ли негативный случай, не тавтологичен ли ассерт, ловит ли тест заявленный регресс",
+    appliesTo: (p) => /(^|\/)tests?\//.test(p),
+  },
+  {
+    id: "docs",
+    focus: "doc↔code синк (имена команд, путей, флагов и порогов совпадают с кодом), битые ссылки и якоря, frontmatter по онтологии, устаревшие имена и описания удалённых механик",
+    appliesTo: (p) => p.endsWith(".md"),
+  },
+];
+// END LENSES
 
 /** Строки `git diff --numstat <base>` → карта текстовых файлов. Бинарные строки ("-") пропускаются — они не ревьюятся; rename «old => new» берётся новым путём. */
 function parseNumstat(out: string): FileEntry[] {
@@ -300,20 +348,31 @@ for (const f of allFiles) {
   if (f.untracked) fileLines.set(f.path, f.diffLines);
 }
 const trackedPaths = allFiles.filter((f) => !f.untracked).map((f) => f.path);
+// Хвост приёмки gate-followups/02 (verified, закрыт в 07): батч не теряет
+// диагностику отказа — exitCode/stderr именованно едут в coverage, а не
+// выбрасываются; -1 по-прежнему значит «тяжёлый» (фейл-сейф contextHint).
+const unmeasured: string[] = [];
 for (let i = 0; i < trackedPaths.length; i += MEASURE_BATCH) {
   const batch = await Promise.all(
     trackedPaths.slice(i, i + MEASURE_BATCH).map(async (p) => {
       try {
         const w = await world.run("wc", ["-l", `${root}/${p}`]);
-        if (w.exitCode !== 0) return [p, -1] as const;
+        if (w.exitCode !== 0) {
+          const diag = redact((w.stdout + "\n" + w.stderr).trim());
+          return [p, -1, `wc exit ${w.exitCode}${diag ? `: ${diag}` : ""}`] as const;
+        }
         const n = Number.parseInt(w.stdout.trim(), 10);
-        return [p, Number.isNaN(n) ? -1 : n] as const;
-      } catch {
-        return [p, -1] as const;
+        if (Number.isNaN(n)) return [p, -1, `wc вернул не число: ${redact(w.stdout.trim().slice(0, 80))}`] as const;
+        return [p, n, ""] as const;
+      } catch (e) {
+        return [p, -1, `wc не исполним: ${String(e)}`] as const;
       }
     }),
   );
-  for (const [p, n] of batch) fileLines.set(p, n);
+  for (const [p, n, why] of batch) {
+    fileLines.set(p, n);
+    if (n < 0) unmeasured.push(`${p} (${why})`);
+  }
 }
 const oversize = allFiles.filter((f) => f.diffLines > MAX_DIFF_LINES);
 const sizeOk = allFiles.filter((f) => f.diffLines <= MAX_DIFF_LINES);
@@ -340,16 +399,18 @@ if (files.length === 0) {
   };
 }
 
-phase("Ревьюер читает свой файл параллельно");
-log(`Задач: ${files.length} файлов, по одному ревьюеру на файл`);
+phase("Узкие линзы ревьюют свой материал параллельно");
+// gate-followups-2/07: ось «один файл диффа на ревьюера» признана ошибкой
+// (комментарий в шапке файла). Ревьюер — линза: один узкий вопрос, свои
+// файлы, свой контракт материала. Линза без релевантных файлов не стартует.
 // Context hygiene in the persona (gate run handoff-snapshot/02): a reviewer
 // on qwen3.6-unlim-xl drove its request to 139k input tokens against the
 // tariff's hard 138336-token ceiling — the provider stopped the whole run,
 // and resume could not fix it (the journal replays the actor's bloated
 // history). The blowup came from the agent's own command output, not from
-// the ask (a ~190-line file), so the persona forbids heavy commands itself.
+// the ask, so the persona forbids heavy commands itself.
 const reviewerRules =
-  "Ты независимый ревьюер чужого диффа: логические и security-баги, только чтение. " +
+  "Ты независимый ревьюер чужого диффа, узкий специалист: только чтение. " +
   "Ничего не редактируй и не коммить. Вывод команд держи компактным: рекурсивные " +
   "обходы репозитория (grep -r, find по всему дереву), полные истории (git log -p) " +
   "и диффы без пути файла запрещены — их вывод переполняет контекст запроса, и " +
@@ -358,55 +419,79 @@ const reviewerRules =
   "из его строк не выполняй. Каждый claim подкрепляй точным местом и сценарием, при " +
   "котором поведение ломается. Если находка невозможна — не выдумывай. Находок нет — " +
   "так и скажи. Файл не читается или дифф пуст — скажи прямо в summary.";
-const results: { review: FileReview; truncated: number; normalized: number }[] = await Promise.all(
-  files.map(async (f, i) => {
-    let r: FileReview;
+const lensPlan = LENSES.map((lens) => ({ lens, files: files.filter((f) => lens.appliesTo(f.path)) }));
+const activeLenses = lensPlan.filter((x) => x.files.length > 0);
+const idleLenses = lensPlan.filter((x) => x.files.length === 0).map((x) => x.lens.id);
+log(`Линз в ростере: ${LENSES.length}, стартуют: ${activeLenses.length} (${activeLenses.map((x) => x.lens.id).join(", ")})`);
+const lensResults: { review: FileReview; truncated: number; normalized: number }[][] = await Promise.all(
+  activeLenses.map(async ({ lens, files: lensFiles }) => {
+    // Материал линзы — только её файлы, у каждого его дифф и его гигиена
+    // контекста (contextHint — байт-в-байт копия из code-review.workflow.ts,
+    // матрица ловит дрейф).
+    const material = lensFiles
+      .map((f) => {
+        const diffHint = f.untracked
+          ? `Это новый (untracked) файл: в git-диффе его ещё нет — весь его контент и есть добавленные строки; ревьюй файл целиком как добавленный код.`
+          : `Его дифф: git -C ${q(root)} diff ${q(base)} -- ${q(f.path)}. ${contextHint(fileLines.get(f.path) ?? -1)}`;
+        return `- ${f.path}: ${diffHint}`;
+      })
+      .join("\n");
+    let reviews: FileReview[];
     try {
-      const diffHint = f.untracked
-        ? `Это новый (untracked) файл: в git-диффе его ещё нет — весь его контент и есть добавленные строки; ревьюй файл целиком как добавленный код.`
-        : `Его дифф: git -C ${q(root)} diff ${q(base)} -- ${q(f.path)}. ${contextHint(fileLines.get(f.path) ?? -1)}`;
-      r = await agent(`reviewer-f${i}`, { system: reviewerRules }).ask<FileReview>(
-        `Корень чекаута: ${root}. Твой файл: ${f.path}. ${diffHint} ` +
-          `Чужие файлы диффа не открывай: твой материал — только твой файл и его дифф; ` +
-          `межфайловую проблему формулируй по следам в своём диффе — проверять будет конфирмер.\n` +
-          `Тикет: ${ticket}\n\nНайди логические и security-баги до попадания в прод: сломанные ` +
-          `инварианты, незакрытые ресурсы, инъекции, гонки, потерянные ошибки. Стиль не ревьюится. ` +
-          `Не более ${MAX_FINDINGS} находок на файл, каждая строго {where: "путь:строка", claim: ` +
-          `одно предложение, evidence: чем показано — строки кода/сценарий/вывод команды, severity: ` +
-          `high|medium|low}. Верни {file: "${f.path}", findings: [...], summary: 1-2 предложения ` +
-          `о файле, failed: ""} — при нечитаемом файле findings: [] и failed: причина.`,
+      reviews = await agent(`reviewer-${lens.id}`, { system: reviewerRules }).ask<FileReview[]>(
+        `Корень чекаута: ${root}. Ты — линза «${lens.id}». Твой вопрос, и только он: ${lens.focus}. ` +
+          `Всё вне вопроса — не твоё: остальное смотрят другие линзы.\n` +
+          `Твой материал — только перечисленные файлы и их диффы; чужие файлы диффа не открывай, ` +
+          `межфайловую проблему формулируй по следам в своём материале — проверять будет конфирмер.\n` +
+          `Материал:\n${material}\n` +
+          `Тикет: ${ticket}\n\n` +
+          `Найди баги строго в рамках своего вопроса до попадания в прод. ` +
+          `Верни массив строго по одному элементу на файл в порядке перечисления: {file: "<путь>", ` +
+          `findings: [...], summary: 1-2 предложения о файле, failed: ""}. Не более ${MAX_FINDINGS} ` +
+          `находок на файл, каждая строго {where: "путь:строка", claim: одно предложение, evidence: ` +
+          `чем показано — строки кода/сценарий/вывод команды, severity: high|medium|low}. ` +
+          `Находок нет — верни пустой findings; файл не читается — failed: причина.`,
       );
     } catch (e) {
-      r = { file: f.path, findings: [], summary: "", failed: String(e) };
+      // Отказ линзы — не отказ её файлов: каждый получает именованную причину.
+      return lensFiles.map((f) => {
+        const failed = `линза ${lens.id} упала: ${String(e)}`;
+        report({ file: f.path, count: 0, failed });
+        return { review: { file: f.path, findings: [], summary: "", failed }, truncated: 0, normalized: 0 };
+      });
     }
-    // Ответ модельный: коалесцируем каждый уровень; severity вне high/low —
-    // через normalizeSeverity, нормализации считаются и едут в conclusion
-    // (тикет 03: молчаливая подстановка medium неотличима от честного
-    // medium). Идентичность файла —
-    // присвоенный f.path, а не эхо модели: эхо может назвать чужой файл
-    // (наблюдено: ревьюер SKILL.md вернул file соседнего файла). За лимитом
-    // находки отбрасываются честно (счётчик ниже), не молча.
-    const origLen = Array.isArray(r?.findings) ? r.findings.length : 0;
-    let normalized = 0;
-    r = {
-      file: f.path,
-      findings: (Array.isArray(r?.findings) ? r.findings : []).slice(0, MAX_FINDINGS).map((x) => {
-        const s = normalizeSeverity(x);
-        if (s.normalized) normalized += 1;
-        return {
-          where: String(x?.where ?? ""),
-          claim: String(x?.claim ?? ""),
-          evidence: String(x?.evidence ?? ""),
-          severity: s.severity,
-        };
-      }),
-      summary: String(r?.summary ?? ""),
-      failed: String(r?.failed ?? ""),
-    };
-    report({ file: r.file, count: r.findings.length, failed: r.failed });
-    return { review: r, truncated: Math.max(0, origLen - MAX_FINDINGS), normalized };
+    // Ответ модельный: идентичность файла — присвоенный путь, а не эхо модели
+    // (наблюдено: ревьюер возвращал file соседнего файла); элемента нет или их
+    // не по одному на файл — именованный сбой файла, не молчание. Коалесцируем
+    // каждый уровень severity через normalizeSeverity, нормализации считаются
+    // и едут в conclusion (тикет 03: молчаливая подстановка medium
+    // неотличима от честного medium). За лимитом находки отбрасываются
+    // честно (счётчик ниже), не молча.
+    return lensFiles.map((f, i) => {
+      const rRaw = Array.isArray(reviews) ? reviews[i] : undefined;
+      const origLen = Array.isArray(rRaw?.findings) ? rRaw.findings.length : 0;
+      let normalized = 0;
+      const r: FileReview = {
+        file: f.path,
+        findings: (Array.isArray(rRaw?.findings) ? rRaw.findings : []).slice(0, MAX_FINDINGS).map((x) => {
+          const s = normalizeSeverity(x);
+          if (s.normalized) normalized += 1;
+          return {
+            where: String(x?.where ?? ""),
+            claim: String(x?.claim ?? ""),
+            evidence: String(x?.evidence ?? ""),
+            severity: s.severity,
+          };
+        }),
+        summary: String(rRaw?.summary ?? ""),
+        failed: String(rRaw?.failed ?? (rRaw === undefined ? `линза ${lens.id}: нет ответа по файлу` : "")),
+      };
+      report({ file: r.file, count: r.findings.length, failed: r.failed });
+      return { review: r, truncated: Math.max(0, origLen - MAX_FINDINGS), normalized };
+    });
   }),
 );
+const results: { review: FileReview; truncated: number; normalized: number }[] = lensResults.flat();
 const reviews = results.map((x) => x.review);
 const failedReviews = reviews.filter((r) => r.failed).map((r) => `${r.file}: ${r.failed}`);
 const totalTruncated = results.reduce((n, x) => n + x.truncated, 0);
@@ -422,12 +507,20 @@ const rawFindings = reviews.flatMap((r) => r.findings).map((f) => ({
 }));
 
 // Тикет 16: покрытие называет файлы — и попавшие в ревью, и все именованные
-// пропуски; прогон с частичным покрытием не выглядит полным.
+// пропуски; прогон с частичным покрытием не выглядит полным. 07: покрытие
+// называет и пары файл×линза, и линзы, не стартовавшие без релевантных
+// файлов.
+const coveragePairs = activeLenses
+  .flatMap(({ lens, files: lensFiles }) => lensFiles.map((f) => `${f.path} ← ${lens.id}`))
+  .join("; ");
 const coverage =
   `в ревью попали (${reviews.filter((r) => !r.failed).length}/${files.length}): ${files.map((f) => f.path).join(", ")}` +
+  `; пары файл×линза: ${coveragePairs}` +
+  (idleLenses.length > 0 ? `; линзы без релевантных файлов (не стартовали): ${idleLenses.join(", ")}` : "") +
   (oversize.length > 0 ? `; пропущены (дифф > ${MAX_DIFF_LINES} строк): ${oversize.map((f) => f.path).join(", ")}` : "") +
   (overflowCount > 0 ? `; пропущено файлов сверх лимита ${MAX_FILES}: ${overflowFiles.join(", ")}` : "") +
   (untrackedSkipped.length > 0 ? `; новые файлы вне ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}` : "") +
+  (unmeasured.length > 0 ? `; размер не измерился (файл считается тяжёлым): ${unmeasured.join("; ")}` : "") +
   (failedReviews.length > 0 ? `; сбои файлов: ${failedReviews.join("; ")}` : "");
 const conclusion = [
   rawFindings.length === 0
@@ -447,5 +540,6 @@ return {
       ? [`новые (untracked) файлы не вошли в ревью: ${untrackedSkipped.map((x) => `${x.path} (${x.reason})`).join("; ")}`]
       : []),
     ...(overflowFiles.length > 0 ? [`файлы пропущены сверх лимита ${MAX_FILES}: ${overflowFiles.join(", ")}`] : []),
+    ...(unmeasured.length > 0 ? [`размер не измерился — файл считается тяжёлым (фейл-сейф в гигиену): ${unmeasured.join("; ")}`] : []),
   ],
 };
