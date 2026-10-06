@@ -3,7 +3,7 @@ node_type: runbook
 title: Install ontoship into a project (marketplace runner)
 service: _platform
 status: active
-updated: 2026-09-30
+updated: 2026-10-06
 tags: [runbook, install, deploy, marketplace, update]
 links:
   documents: [../../deploy.json]
@@ -38,12 +38,15 @@ plugin defaults do not fit the host.
 
 ## Release cycle (plugin maintainers)
 
-1. Land changes in `ontoship-zcode` (worktree → gates → review → main).
-2. Bump `version` in `package.json`, tag (`v0.5.N`), **push** (operator confirms).
-3. Bump the pin in `sot-zcode-marketplace/marketplace.json` (`ref` + display
-   `version`), commit, push.
-4. `update ontoship <target>` in every deployed project. Rollback = revert the pin
-   (git history of the project restores data; the runner does not roll back refs).
+The branch model, the ticket loop, the tag rules and the deploy tail live in
+[git-flow.md](git-flow.md) — deliveries straight from `dev` are a normal,
+formalized process there (`vB.B.B-dev.N` tags). Runner-specific rules:
+
+- Bump the pin (`ref` + display `version`) in
+  `sot-zcode-marketplace/marketplace.json`, commit, push — the validator
+  cross-checks `version` against the pin tag for semver refs.
+- `update ontoship <target>` in every deployed project. Rollback = revert the pin
+  (git history of the project restores data; the runner does not roll back refs).
 
 ## Policy in one screen
 
@@ -54,6 +57,6 @@ plugin defaults do not fit the host.
   not committed.
 - `on_drift: fail` — locally edited vendored files block `update` (list, fix or
   remove, then retry).
-- **Dev cycle is release-cadence** (no dev pin): changes are proven by
-  pytest + probe runs, then land as a tag; the vendored copy always equals the
-  last release, not the working tree.
+- **The vendored copy equals the last pinned ref**, normally the release tag.
+  A pinned `dev` tag (`vB.B.B-dev.N`) is equally normal — the formalized
+  delivery-from-dev process lives in [git-flow.md](git-flow.md).

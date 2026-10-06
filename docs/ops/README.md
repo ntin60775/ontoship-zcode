@@ -3,7 +3,7 @@ node_type: index
 title: Ops
 service: _platform
 status: active
-updated: 2026-10-05
+updated: 2026-10-06
 links:
   part_of: [../README.md]
 ---
@@ -12,6 +12,8 @@ links:
 
 Operational procedures for the plugin itself.
 
+- [git-flow.md](git-flow.md) — git-флоу соло-режима без MR: ветки, цикл
+  тикета, релиз из main, доставка из dev (`vB.B.B-dev.N`), отступления-константы.
 - [install.md](install.md) — установка/обновление плагина раннером маркетплейса,
   релизный цикл, политика `.zcode/`.
 - [deploy-check.md](deploy-check.md) — проверка вендоренной раскладки одной

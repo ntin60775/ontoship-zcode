@@ -11,9 +11,12 @@
 #   --rebuild — rebuild the index quietly; no output on success.
 # Session continuity: write .scratch/.session-id from the hook's own
 # ZCODE_SESSION_ID (no variable — write nothing, say nothing), and announce
-# the newest fresh (≤7 days) handoff file so the next session reads it and
-# continues; deep detail — ReadSessionContext on the previous session id
-# taken from the file's From line.
+# the rolling snapshot .scratch/handoff-current.md by its explicit name
+# whenever it exists, regardless of age — an old snapshot means no work
+# happened, so announcing it is even more important; without the snapshot —
+# the newest fresh (≤7 days) legacy handoff-*.md, until the old files are
+# cleaned (handoff-snapshot/03). Deep detail — ReadSessionContext on the
+# session id taken from the file's From line.
 # Nightly hygiene: scripts/hygiene.sh (cron/off-peak) writes
 # .gitmark/hygiene.log whose last line is
 #   HYGIENE <iso-date> lint=<rc> index=<rc> map=<rc>
@@ -117,25 +120,44 @@ if [[ -f "$hygiene_log" ]]; then
   fi
 fi
 
-# Handoff announcement: newest handoff file by mtime, only while fresh (≤7
-# days). The hook never deletes stale handoffs — cleanup is the skill's job.
-newest=""
-for f in "$scratch"/handoff-*.md; do
-  [[ -f "$f" ]] || continue
-  [[ -z "$newest" || "$f" -nt "$newest" ]] && newest="$f"
-done
-if [[ -n "$newest" ]]; then
-  now="$(date +%s)"
-  mt="$(stat -c %Y "$newest" 2>/dev/null)" || mt=0
-  # < ttl, not <=: at exactly 7 days the file belongs to the skill's cleanup,
-  # not to the announcement.
-  if (( now - mt < handoff_ttl )); then
-    from="$(sed -n 's/^From:[[:space:]]*//p' "$newest" | head -1 | tr -d '\r' | cut -d' ' -f1)"
-    if [[ "$from" =~ ^sess_[A-Za-z0-9._-]+$ ]]; then
-      add_part "Handoff: свежий handoff прошлой сессии — $newest. Прочти его и продолжи работу; детали, которых в файле нет, — ReadSessionContext(sessionId=$from, strategy=handoff)."
-    else
-      add_part "Handoff: свежий handoff прошлой сессии — $newest. Прочти его и продолжи работу; id прошлой сессии из файла не распознан — для ReadSessionContext возьми id у оператора (#sess_*)."
+# Handoff announcement. The rolling snapshot .scratch/handoff-current.md —
+# the one file /handoff and /ship rewrite in full on every write — is
+# announced by its explicit name whenever it exists, regardless of age: an
+# old snapshot means no work happened, and it is announced all the more. The
+# legacy glob handoff-*.md also matches that name (it announced the snapshot
+# live, with this TTL ticking), so the explicit check comes first — the
+# snapshot is never stale by design. Without the snapshot — migration
+# fallback (ticket 03 cleans the old files): newest legacy handoff-*.md by
+# mtime, only while fresh (≤7 days). The hook never deletes handoffs —
+# cleanup is the skill's job.
+handoff=""
+label=""
+if [[ -f "$scratch/handoff-current.md" ]]; then
+  handoff="$scratch/handoff-current.md"
+  label="слепок состояния проекта"
+else
+  newest=""
+  for f in "$scratch"/handoff-*.md; do
+    [[ -f "$f" ]] || continue
+    [[ -z "$newest" || "$f" -nt "$newest" ]] && newest="$f"
+  done
+  if [[ -n "$newest" ]]; then
+    now="$(date +%s)"
+    mt="$(stat -c %Y "$newest" 2>/dev/null)" || mt=0
+    # < ttl, not <=: at exactly 7 days the file belongs to the skill's cleanup,
+    # not to the announcement.
+    if (( now - mt < handoff_ttl )); then
+      handoff="$newest"
+      label="свежий handoff прошлой сессии"
     fi
+  fi
+fi
+if [[ -n "$handoff" ]]; then
+  from="$(sed -n 's/^From:[[:space:]]*//p' "$handoff" | head -1 | tr -d '\r' | cut -d' ' -f1)"
+  if [[ "$from" =~ ^sess_[A-Za-z0-9._-]+$ ]]; then
+    add_part "Handoff: $label — $handoff. Прочти его и продолжи работу; детали, которых в файле нет, — ReadSessionContext(sessionId=$from, strategy=handoff)."
+  else
+    add_part "Handoff: $label — $handoff. Прочти его и продолжи работу; id прошлой сессии из файла не распознан — для ReadSessionContext возьми id у оператора (#sess_*)."
   fi
 fi
 
