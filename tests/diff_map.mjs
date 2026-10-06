@@ -49,6 +49,13 @@ const EXTRACT = [
     "function contextHint(fileLines) {",
     [],
   ],
+  [
+    "normalizeSeverity",
+    /function normalizeSeverity\(x: \{ severity\?: unknown \} \| null \| undefined\): \{ severity: "high" \| "medium" \| "low"; normalized: boolean \} \{[\s\S]*?\n\}/,
+    'function normalizeSeverity(x: { severity?: unknown } | null | undefined): { severity: "high" | "medium" | "low"; normalized: boolean } {',
+    "function normalizeSeverity(x) {",
+    [],
+  ],
 ];
 
 // raw — тело как в файле (для сверки идентичности копий), js — сигнатуры
@@ -164,19 +171,67 @@ for (const [re, what] of INTENT_LINES) {
     failed++;
   }
 }
+
+// Счётчик нормализаций severity (gate-followups-2/03): функция — в EXTRACT и
+// копиях (сверка выше), проводка — построчными якорями здесь: инкремент в
+// коалесации, reduce/пункт conclusion в источнике; let/log/conclusion в
+// копии. При нуле пунктов и лога нет — вывод не мусорит (тернарники в якорях).
+const SEV_WIRING = {
+  [SOURCE]: [
+    [/^\s*const s = normalizeSeverity\(x\);$/m, "коалесация идёт через normalizeSeverity"],
+    [/^\s*if \(s\.normalized\) normalized \+= 1;$/m, "инкремент счётчика нормализаций"],
+    [/^const totalNormalized = results\.reduce\(\(n, x\) => n \+ x\.normalized, 0\);$/m, "сумма по всем находкам прогона"],
+    [/^  \.\.\.\(totalNormalized > 0 \? \[`severity вне high\/low нормализовано в medium: \$\{totalNormalized\}`\] : \[\]\),$/m, "conclusion называет число при N>0 и молчит при N=0"],
+  ],
+  [CR_REL]: [
+    [/^let normalizedSeverity = 0;$/m, "счётчик нормализаций рядом с droppedEmpty"],
+    [/^\s*const s = normalizeSeverity\(x\);$/m, "коалесация идёт через normalizeSeverity"],
+    [/^\s*if \(s\.normalized\) normalizedSeverity \+= 1;$/m, "инкремент счётчика нормализаций"],
+    [/^\s*log\(`Severity вне high\/low нормализовано в medium: \$\{normalizedSeverity\}`\);$/m, "лог при N>0"],
+    [/^  \.\.\.\(normalizedSeverity > 0$/m, "conclusion называет число при N>0"],
+    [/^    \? \[`severity вне high\/low нормализовано в medium: \$\{normalizedSeverity\}`\]$/m, "формулировка нормализации в conclusion"],
+  ],
+};
+for (const [rel, src] of [[SOURCE, source.src], [CR_REL, crSrc]]) {
+  for (const [re, what] of SEV_WIRING[rel]) {
+    if (!re.test(src)) {
+      console.error(`Структура ${rel}: счётчик нормализаций severity отвалился — ${what} (gate-followups-2/03)`);
+      failed++;
+    }
+  }
+}
+
+// Негатив-проба якоря (gate-followups-2/03): стёртый из живого текста
+// инкремент обязан ронять якорь — иначе якорь матчит не то (комментарий,
+// чужую строку) и зелёный при исчезнувшем счётчике ложный.
+for (const [rel, src, anchor] of [
+  [SOURCE, source.src, /^\s*if \(s\.normalized\) normalized \+= 1;$/m],
+  [CR_REL, crSrc, /^\s*if \(s\.normalized\) normalizedSeverity \+= 1;$/m],
+]) {
+  const hit = src.match(anchor);
+  if (!hit) {
+    console.error(`Негатив-проба ${rel}: якорь инкремента не сматчился — проба не состоялась`);
+    failed++;
+    continue;
+  }
+  if (anchor.test(src.replace(hit[0], ""))) {
+    console.error(`Негатив-проба ${rel}: якорь инкремента нечувствителен — сматчился и после стирания строки (проверь границы ^…$)`);
+    failed++;
+  }
+}
 if (failed > 0) process.exit(1);
 
 let gateFns;
 try {
   // eslint-disable-next-line no-new-func -- функции извлечены из доверенного файла этого же репо
   gateFns = new Function(
-    `${Object.values(source.js).join("\n")}\nreturn { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat, contextHint };`,
+    `${Object.values(source.js).join("\n")}\nreturn { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat, contextHint, normalizeSeverity };`,
   )();
 } catch (e) {
   console.error(`Извлечённые парсеры не собираются в JS (${SOURCE}): ${e instanceof Error ? e.message : String(e)} — проверь дрейф тел функций против регэкспов EXTRACT`);
   process.exit(1);
 }
-const { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat, contextHint } = gateFns;
+const { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat, contextHint, normalizeSeverity } = gateFns;
 
 // [имя, fn, вход, ожидаемое значение (deep-equal)]
 const CASES = [
@@ -223,6 +278,18 @@ const CASES = [
   ["contextHint: за порогом — адресные чтения", contextHint, 301, "Файл тяжёлый (порог гигиены 300 строк; в файле 301): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира."],
   ["contextHint: сильно тяжёлый — адресные чтения", contextHint, 5000, "Файл тяжёлый (порог гигиены 300 строк; в файле 5000): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира."],
   ["contextHint: не измерился — тяжёлый (фейл-сейф в гигиену)", contextHint, -1, "Файл тяжёлый (порог гигиены 300 строк; размер не измерился): файл целиком не читай — переполнит контекст, и запрос упадёт у провайдера. Материал — дифф и адресные чтения: диапазоны вокруг изменённых строк из @@-заголовков диффа (read с offset/limit или sed -n 'A,Bp'), при необходимости короткий верх файла для ориентира."],
+  // normalizeSeverity (gate-followups-2/03): известные уровни насквозь и без
+  // пометки; всё прочее, включая отсутствующее, — medium с пометкой. Кейс
+  // «critical → normalized: true» — негатив-проба уровня функции: если
+  // функция перестала сообщать факт подмены, матрица падает здесь.
+  ["severity: high проходит насквозь", normalizeSeverity, { severity: "high" }, { severity: "high", normalized: false }],
+  ["severity: low проходит насквозь", normalizeSeverity, { severity: "low" }, { severity: "low", normalized: false }],
+  ["severity: честный medium без пометки (счётчик не мусорит)", normalizeSeverity, { severity: "medium" }, { severity: "medium", normalized: false }],
+  ["severity: junk-строка подменяется с пометкой", normalizeSeverity, { severity: "critical" }, { severity: "medium", normalized: true }],
+  ["severity: регистр не high/low/medium — подмена", normalizeSeverity, { severity: "HIGH" }, { severity: "medium", normalized: true }],
+  ["severity: нет поля — подмена", normalizeSeverity, {}, { severity: "medium", normalized: true }],
+  ["severity: объект отсутствует — подмена", normalizeSeverity, null, { severity: "medium", normalized: true }],
+  ["severity: undefined — подмена", normalizeSeverity, undefined, { severity: "medium", normalized: true }],
 ];
 
 for (const [name, fn, input, expected] of CASES) {
