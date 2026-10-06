@@ -19,6 +19,7 @@ package.json                the package manifest (gitmark version reads it)
 skills/
   kb-search/                the gitmark CLI engine (gitmark.py) + SKILL.md
 docs/                       the knowledge base itself (this is the KB)
+docs/ops/git-flow.md        the git flow: solo, no MR; deliveries from dev are normal
 tests/                      engine tests (pytest, zcode layout)
 scripts/deploy-check.sh     one-command validation of the vendored layout
 hooks/session-start.sh      KB index freshness notice at session start
