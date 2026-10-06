@@ -163,6 +163,21 @@ function contextHint(fileLines: number): string {
 }
 
 /**
+ * Коалесация severity (gate-followups-2/03): известные уровни (high/medium/
+ * low) проходят насквозь; всё остальное, включая отсутствующее, подменяется
+ * medium с пометкой normalized — прогон называет число таких подмен, а не
+ * молчит (оператор отличает «сказали medium» от «сказали ерунду, подставили
+ * medium»; честный medium счётчиком не мусорит). Функция живёт байт-в-байт
+ * копией в ../ship/reviewer.workflow.ts; матрица tests/diff_map.mjs ловит
+ * рассинхрон.
+ */
+function normalizeSeverity(x: { severity?: unknown } | null | undefined): { severity: "high" | "medium" | "low"; normalized: boolean } {
+  const raw = x?.severity;
+  if (raw === "high" || raw === "low" || raw === "medium") return { severity: raw, normalized: false };
+  return { severity: "medium", normalized: true };
+}
+
+/**
  * Редакция секретов до отдачи оператору и до передачи находок в args
  * следующего рана (конфирмеры и сводчик видят уже отредактированный вход).
  * Матрица форматов (queue-2/15): PEM-блоки любого типа целиком — приватные
@@ -417,6 +432,7 @@ phase("Две оси ревьюят файлы параллельно");
 log(`Задач: ${axesDefs.length} оси × ${files.length} файлов, каждая в своём контексте`);
 log(intent ? "Замысел диффа передан каждой оси-задаче" : "Intent не передан — оси ревьюят самосогласованность диффа");
 let droppedEmpty = 0;
+let normalizedSeverity = 0;
 type FileReview = { axis: string; file: string; findings: AxisFinding[]; summary: string; failed: string };
 const reviews: FileReview[] = await Promise.all(
   axesDefs.flatMap(({ key, axis, lens }) =>
@@ -431,13 +447,20 @@ const reviews: FileReview[] = await Promise.all(
       // Отказ на одном файле не хоронит остальные (pattern: challenger.workflow.ts).
       r = { findings: [], summary: "", failed: String(e) };
     }
-    // Ответ модельный: каждое поле коалесцируем, элементы findings тоже.
-    const coalesced = (Array.isArray(r?.findings) ? r.findings : []).map((x) => ({
-      where: String(x?.where ?? ""),
-      quote: String(x?.quote ?? ""),
-      claim: String(x?.claim ?? ""),
-      severity: x?.severity === "high" || x?.severity === "low" ? x.severity : ("medium" as const),
-    }));
+    // Ответ модельный: каждое поле коалесцируем, элементы findings тоже;
+    // severity вне high/low — через normalizeSeverity, нормализации
+    // считаются и едут в conclusion (тикет 03: молчаливая подстановка
+    // medium неотличима от честного medium).
+    const coalesced = (Array.isArray(r?.findings) ? r.findings : []).map((x) => {
+      const s = normalizeSeverity(x);
+      if (s.normalized) normalizedSeverity += 1;
+      return {
+        where: String(x?.where ?? ""),
+        quote: String(x?.quote ?? ""),
+        claim: String(x?.claim ?? ""),
+        severity: s.severity,
+      };
+    });
     // Пустая оболочка (ни where, ни quote, ни claim) — не находка: конфирмеру
     // не по чему воспроизводить. Отбрасываем, считаем честно (conclusion ниже).
     const keptFindings = coalesced.filter((x) => x.where || x.quote || x.claim);
@@ -455,6 +478,9 @@ const reviews: FileReview[] = await Promise.all(
 );
 if (droppedEmpty > 0) {
   log(`Пустых оболочек-находок (ни where, ни quote, ни claim) отброшено: ${droppedEmpty}`);
+}
+if (normalizedSeverity > 0) {
+  log(`Severity вне high/low нормализовано в medium: ${normalizedSeverity}`);
 }
 const failedReviews = reviews.filter((r) => r.failed).map((r) => `${r.axis} · ${r.file}: ${r.failed}`);
 const totalTruncated = reviews.reduce((n, r) => n + Math.max(0, r.findings.length - MAX_FINDINGS), 0);
@@ -510,6 +536,9 @@ const conclusion = [
     : []),
   ...(droppedEmpty > 0
     ? [`пустых оболочек-находок (ни where, ни quote, ни claim) отброшено: ${droppedEmpty}`]
+    : []),
+  ...(normalizedSeverity > 0
+    ? [`severity вне high/low нормализовано в medium: ${normalizedSeverity}`]
     : []),
 ].join("; ");
 
