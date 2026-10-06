@@ -62,7 +62,15 @@ run, strictly sequential.
    the plan's `Constraints` say so or no contour exists (say which).
 9. **Ship** — merge to `main` and deploy per the plan's deploy procedure; mark the
    ticket `status: archived` (`updated: today`, via `kb-curate`); a plan folder whose
-   tickets are all archived becomes `status: archived`.
+   tickets are all archived becomes `status: archived`. Then auto-write the rolling
+   snapshot `.scratch/handoff-current.md` per the handoff skill — the same fixed file
+   `/handoff` writes, full regenerate, provenance stamps from the handoff skill's own
+   sources (the `.session-id` marker and the current commit) — from the run's facts:
+   the ticket, the release tag and short hashes of the landed commits (feature, dev
+   merge, main merge, release), the plan's Open, concrete Next. A shift that ended on
+   a closed ticket still hands the next session a current snapshot; this write is
+   part of shipping, not an optional extra, and is independent of the deploy
+   procedure.
 
 ## Stop-points and confirmations
 
@@ -72,7 +80,8 @@ From the plan contract's `Constraints`, enforced verbatim:
   verified findings addressed) stop with the uncommitted diff and
   wait for the operator's "continue". **Default when the contract names nothing.**
 - `stop-after-mr` — after step 7, stop for the operator's review.
-- `no-deploy` — skip the deploy in step 9.
+- `no-deploy` — skip the deploy in step 9; the rolling-snapshot write still
+  happens (it is not part of the deploy).
 
 **Never skippable, with or without a Constraints block:** before merging to `main`
 (step 9) and before any deploy, ask the operator — one `AskUserQuestion` each, showing
