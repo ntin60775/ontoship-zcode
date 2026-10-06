@@ -97,7 +97,7 @@ gate-followups). Файловых коллизий с crossreview-adoption/02–
 | # | Title | Status | Blocked by |
 |---|-------|--------|------------|
 | [01](01-init-block-short-names.md) | Init-блок называет команды короткими именами | archived | — |
-| [02](02-quote-contract-sync.md) | Контракт цитаты: промпт синхронен коду | draft | — |
+| [02](02-quote-contract-sync.md) | Контракт цитаты: промпт синхронен коду | archived | — |
 | [03](03-severity-normalize-log.md) | Нормализация severity не молчит | draft | — |
 | [04](04-extract-parts-once.md) | Матрица диффа читает файл один раз | draft | — |
 | [05](05-init-creates-registry.md) | Init создаёт реестр команд | draft | — |
