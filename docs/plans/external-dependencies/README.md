@@ -45,9 +45,8 @@ coddy, команды скиллов пересматриваются под з�
 
 ## Scope
 
-- `skills/roles/roles.py` + `skills/roles/SKILL.md` — чтение/правка
-  `~/.coddy/config.yaml` (только список models).
-- `skills/ship/reviewer.workflow.ts` — fail-closed диагностика субстрата.
+- `skills/ship/reviewer.workflow.ts` — fail-closed диагностика субстрата
+  (карточка провайдера/ключ/модель в zcode).
 - `skills/ship/SKILL.md` — пересмотр команд шага 6 под зависимость.
 - `skills/contour/SKILL.md` (новый) — поставляемые уроки механики
   zcode-workflow/хуков: потребитель не собирает грабли, найденные прогонами
@@ -87,7 +86,7 @@ roles/install/гейт-диагностику, 02 — только новый д
 
 | # | Title | Status | Blocked by |
 |---|-------|--------|------------|
-| [01](01-roles-manages-coddy.md) | Roles правит конфиг coddy; команды под зависимость | draft | — |
+| [01](01-zcode-credentials-contour.md) | Контур моделей/кредов замкнут на zcode; гейт fail-closed по субстрату | draft | — |
 | [02](02-dependencies-inventory.md) | Инвентаризация внешних зависимостей и контур обновления | draft | — |
 | [03](03-contour-lessons-skill.md) | Поставляемые уроки контура — скилл skills/contour | draft | — |
-| [04](04-lens-config-autotune.md) | Автоподстройка субстрата линз под модель роли (обсуждение) | draft | [01](01-roles-manages-coddy.md) |
+| [04](04-lens-config-autotune.md) | Автоподстройка субстрата линз под модель роли (обсуждение) | draft | [01](01-zcode-credentials-contour.md) |
