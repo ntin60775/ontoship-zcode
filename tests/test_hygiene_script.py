@@ -8,6 +8,7 @@ import os
 import subprocess
 from pathlib import Path
 
+from test_init_registry import seed_registry
 from test_session_start_hook import build_index, make_kb_project
 
 REPO = Path(__file__).resolve().parent.parent
@@ -16,22 +17,12 @@ SCRIPT = REPO / "scripts" / "hygiene.sh"
 
 def make_strict_clean_kb(tmp_path: Path) -> Path:
     """A fixture KB that passes `lint --strict`: the vendored engine makes I7
-    expect the command registry — create the marker skeleton and let
-    `gitmark inventory` fill it (the same thing the init skill does)."""
+    expect the command registry — seed it exactly the way the init skill does:
+    the skeleton extracted from skills/init/SKILL.md, then `gitmark inventory`
+    (the contract is pinned by tests/test_init_registry.py)."""
     proj = make_kb_project(tmp_path)
     build_index(proj)
-    ref = proj / "docs" / "reference"
-    ref.mkdir()
-    (ref / "commands.md").write_text(
-        "---\nnode_type: reference\ntitle: Command registry\n"
-        "service: _platform\nstatus: active\nupdated: 2026-10-04\n---\n\n"
-        "# Commands\n\n"
-        "<!-- BEGIN inventory:commands -->\n<!-- END inventory:commands -->\n\n"
-        "<!-- BEGIN inventory:skills -->\n<!-- END inventory:skills -->\n",
-        encoding="utf-8")
-    subprocess.run(
-        ["python3", str(proj / ".zcode" / "skills" / "kb-search" / "gitmark.py"),
-         "inventory"], cwd=proj, capture_output=True, text=True, check=True)
+    seed_registry(proj)
     return proj
 
 
