@@ -99,7 +99,7 @@ gate-followups). Файловых коллизий с crossreview-adoption/02–
 | [01](01-init-block-short-names.md) | Init-блок называет команды короткими именами | archived | — |
 | [02](02-quote-contract-sync.md) | Контракт цитаты: промпт синхронен коду | archived | — |
 | [03](03-severity-normalize-log.md) | Нормализация severity не молчит | archived | — |
-| [04](04-extract-parts-once.md) | Матрица диффа читает файл один раз | draft | — |
+| [04](04-extract-parts-once.md) | Матрица диффа читает файл один раз | archived | — |
 | [05](05-init-creates-registry.md) | Init создаёт реестр команд | draft | — |
 | [06](06-ship-step7-local-merge.md) | Шаг 7 скилла /ship синхронен формализованному git-флоу | draft | — |
 | [07](07-lens-reviewer-topology.md) | Гейт-ревью — узкие специализированные ревьюеры | draft | — |
