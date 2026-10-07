@@ -106,9 +106,13 @@ def test_inventory_is_a_fixed_point(tmp_path):
     seed_registry(proj)
     reg = proj / "docs" / "reference" / "commands.md"
     before = reg.read_text(encoding="utf-8")
-    subprocess.run(
+    # check=True прятал причину за CalledProcessError (verified гейта 05) —
+    # тот же именованный ассерт, что в seed_registry
+    r = subprocess.run(
         ["python3", str(proj / ".zcode" / "skills" / "kb-search" / "gitmark.py"),
-         "inventory"], cwd=proj, capture_output=True, text=True, check=True)
+         "inventory"], cwd=proj, capture_output=True, text=True)
+    assert r.returncode == 0, (
+        f"повторный inventory упал: exit {r.returncode}, stderr: {r.stderr.strip()[:300]}")
     assert reg.read_text(encoding="utf-8") == before, \
         "повторный inventory переписал таблицы — зафиксированная точка потеряна"
 
