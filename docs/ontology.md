@@ -3,7 +3,7 @@ node_type: reference
 title: GitMark ontology — a knowledge model over code
 service: _platform
 status: active
-updated: 2026-09-30
+updated: 2026-10-08
 tags: [ontology, palantir, node-type, links, frontmatter]
 links:
   relates_to: [README.md, reference/commands.md]
@@ -177,7 +177,12 @@ them — and never launch `/ship`: the operator starts it by hand. Their own out
   project's `.zcode/commands/*.md` and the package's `commands/*.md` — has `args:`/`drives:`
   frontmatter and a row in the generated summary table; every project command also has a
   `## /cmd` section in `docs/reference/commands.md`, and every such section names a known
-  command (checked by `gitmark inventory --check`).
+  command (checked by `gitmark inventory --check`). The same generated-table contract covers
+  the plans registry: the `plans` table in `docs/plans/README.md` is the single carrier of
+  plan statuses and ticket counters, regenerated from the carriers' frontmatter. The plans
+  target is optional: without `docs/plans/README.md` it stays silent (the missing folder
+  index is I5's finding); a README that exists but lacks the marker pair is an ERR —
+  exit 2 on regeneration, exit 1 on `--check`.
 - **I8.** The knowledge model has not drifted: `docs/ontology.md` and the package copy
   `skills/kb-curate/ontology.md` agree from the first `## ` heading onward (the title and the
   header notes may differ). ERR in the package's own repo, WARN in a consumer.
@@ -185,6 +190,11 @@ them — and never launch `/ship`: the operator starts it by hand. Their own out
   each document (except the folder's `README.md` and the schemas themselves) declares a
   `node_type` listed by a folder schema, carries every `required` field, and keeps `values`
   fields within the listed set. Reported by file and field; card prose is not constrained.
+- **I10.** The index chain holds: every `docs/**` subfolder's `README.md` is reachable by a
+  body link from its parent's `README.md`, starting at `docs/README.md`. Body semantics only:
+  frontmatter `links:` and links inside code fences do not count; a link to the subfolder
+  itself or to its `README.md` both cover it — `#anchors` are not links and never cover.
+  A subfolder without a `README.md` is I5's finding, not I10's.
 
 ## Why this, not a wiki/Notion
 

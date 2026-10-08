@@ -29,8 +29,8 @@ python3 <this-skill-dir>/gitmark.py search "<query>"     # bm25 + trigram(substr
 python3 <this-skill-dir>/gitmark.py map -o docs-map.html # self-contained HTML: tree + rendered md + radial graph
 python3 <this-skill-dir>/gitmark.py serve -p 8799        # local http server to view the map
 python3 <this-skill-dir>/gitmark.py stat                 # files/chunks/links/index state
-python3 <this-skill-dir>/gitmark.py lint [paths…]        # ontology check (frontmatter/links/README/broken links/registry I7)
-python3 <this-skill-dir>/gitmark.py inventory            # regenerate the skill/command registry tables (docs/reference/commands.md)
+python3 <this-skill-dir>/gitmark.py lint [paths…]        # ontology check (frontmatter/links/README/broken links/registries I7, index chain I10)
+python3 <this-skill-dir>/gitmark.py inventory            # regenerate the registry tables (commands/skills → docs/reference/commands.md, plans → docs/plans/README.md)
 python3 <this-skill-dir>/gitmark.py inventory --check    # exit 1 on registry desync (same as lint I7)
 python3 <this-skill-dir>/gitmark.py version              # package version from its manifest
 ```

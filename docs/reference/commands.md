@@ -3,7 +3,7 @@ node_type: reference
 title: Command registry
 service: _platform
 status: active
-updated: 2026-10-03
+updated: 2026-10-08
 links:
   part_of: [README.md]
 ---
@@ -11,7 +11,8 @@ links:
 # Commands
 
 The single registry, generated from the payload frontmatter by
-`gitmark inventory` and checked by `gitmark lint` (I7). Do not edit the tables
+`gitmark inventory` and checked by `gitmark lint` (I7). The same target set
+covers the plans registry (`docs/plans/README.md`). Do not edit the tables
 between the markers by hand.
 
 ## Summary
