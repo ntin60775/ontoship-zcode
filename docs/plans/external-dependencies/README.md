@@ -50,7 +50,8 @@ zcode — карточка провайдера в `~/.zcode/v2/provider_config.
 ## Scope
 
 - `skills/ship/reviewer.workflow.ts` — fail-closed диагностика субстрата
-  (карточка провайдера/ключ/модель в zcode).
+  (карточка провайдера/ключ/модель в zcode) и профиль субстрата per-модель —
+  карта `LENS_PROFILES` (тикет 04).
 - `skills/ship/SKILL.md` — пересмотр команд шага 6 под зависимость.
 - `skills/contour/SKILL.md` (новый) — поставляемые уроки механики
   zcode-workflow/хуков: потребитель не собирает грабли, найденные прогонами
@@ -100,4 +101,4 @@ gate-followups-2 (05–07) и crossreview-adoption/03 нет: 01 правит
 | [01](01-zcode-credentials-contour.md) | Контур моделей/кредов замкнут на zcode; гейт fail-closed по субстрату | archived | — |
 | [02](02-dependencies-inventory.md) | Инвентаризация внешних зависимостей и контур обновления | archived | — |
 | [03](03-contour-lessons-skill.md) | Поставляемые уроки контура — скилл skills/contour | archived | — |
-| [04](04-lens-config-autotune.md) | Автоподстройка субстрата линз под модель роли (обсуждение) | draft | [01](01-zcode-credentials-contour.md) |
+| [04](04-lens-config-autotune.md) | Профиль субстрата линз per-модель — карта LENS_PROFILES | draft | [01](01-zcode-credentials-contour.md) |

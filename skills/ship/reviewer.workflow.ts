@@ -1,5 +1,5 @@
 /* zcode-workflow
-description: Независимый ревью диффа тикета — первый ран шага 6 девфлоу /ship. Разбивка по узким линзам-специалистам (ростер logic, security, shell, concurrency, tests, docs; линза без релевантных файлов не стартует); субстрат линз — прямые вызовы API neuraldeep из воркфлоу (модель и креды — из карточки провайдера zcode, агентность не нужна). На выходе сырые находки для confirm-рана (confirm.workflow.ts).
+description: Независимый ревью диффа тикета — первый ран шага 6 девфлоу /ship. Разбивка по узким линзам-специалистам (ростер logic, security, shell, concurrency, tests, docs; линза без релевантных файлов не стартует); субстрат линз — прямые вызовы API neuraldeep из воркфлоу (модель и креды — из карточки провайдера zcode, тарифные потолки — профиль модели из карты LENS_PROFILES, агентность не нужна). На выходе сырые находки для confirm-рана (confirm.workflow.ts).
 args:
   ticket:
     type: string
@@ -73,12 +73,59 @@ interface FileReview {
   failed: string;
 }
 
+// BEGIN LENS PROFILE — tests/test_reviewer_substrate.py pins the map, the
+// named abort and the flow of profile values into the constants.
+// Карта «модель → профиль субстрата линз» (external-dependencies/04,
+// решение оператора 2026-10-08): тарифная физика модели приходит только из
+// этой карты — карточка провайдера zcode потолков не несёт (там apiKey,
+// baseUrl, список моделей и reasoning-уровни), probe-вызовы автоподстройку
+// не кормят. Источник фактов для профиля — датированные наблюдения
+// docs/reference/dependencies.md; смена модели роли — /roles set плюс
+// профиль здесь. Фолбэка нет: модель без профиля — именованный отказ до
+// линз (fail-closed, симметрично пробе субстрата external-dependencies/01).
+// «Один файл на вызов» — инвариант гейта, в профиль не входит: топология
+// линз и честный coverage завязаны на пару файл×линза при любой модели.
+type LensProfile = {
+  maxFindings: number;
+  maxFiles: number;
+  maxDiffLines: number;
+  lensInlineLines: number;
+  lensRetries: number;
+  lensCallTimeoutMs: number;
+  lensConcurrency: number;
+};
+const LENS_PROFILES: Record<string, LensProfile> = {
+  // unlim-xl: тариф на 2026-10-08 (dependencies.md) — вход 138 336 токенов,
+  // вывод 8000/ответ (thinking в том же бюджете), reasoning high.
+  "qwen3.6-unlim-xl": {
+    maxFindings: 8,
+    maxFiles: 20,
+    maxDiffLines: 2000,
+    lensInlineLines: 6000,
+    lensRetries: 1,
+    lensCallTimeoutMs: 1_500_000,
+    lensConcurrency: 4,
+  },
+};
+function resolveLensProfile(model: string): LensProfile {
+  const p = LENS_PROFILES[model];
+  if (p) return p;
+  throw new Error(
+    `Гейт остановлен: у модели роли «${model}» нет профиля субстрата линз (роль reviewer). ` +
+      `Добавь профиль в карту LENS_PROFILES (skills/ship/reviewer.workflow.ts) — тарифные факты ` +
+      `с датой в docs/reference/dependencies.md — или выбери модель с профилем (/roles).`,
+  );
+}
+const reviewerModel = String(args.reviewerModel ?? "").trim() || "qwen3.6-unlim-xl";
+const lensProfile = resolveLensProfile(reviewerModel);
+// END LENS PROFILE
+
 /** Находок с одного файла — за лимитом считаем честно. */
-const MAX_FINDINGS = 8;
+const MAX_FINDINGS = lensProfile.maxFindings;
 /** Файлов в прогоне — сверх лимита пропускаются с пометкой, не молча. */
-const MAX_FILES = 20;
+const MAX_FILES = lensProfile.maxFiles;
 /** Строк диффа на один файл — больше файл пропускается: окно агента обязано вмещать файл целиком. */
-const MAX_DIFF_LINES = 2000;
+const MAX_DIFF_LINES = lensProfile.maxDiffLines;
 
 /** Запись карты диффа: untracked=true — новый файл, его «дифф» — весь контент. */
 type FileEntry = { path: string; diffLines: number; untracked: boolean };
@@ -414,7 +461,7 @@ if (files.length === 0) {
 // one-shot по материалу в промпте; бюджет LENS_INLINE_LINES на весь прогон,
 // сверх него файл получает адресную команду чтения и именуется в coverage.
 // no-index выходит 1 при наличии различий — это норма, не отказ.
-const LENS_INLINE_LINES = 6000;
+const LENS_INLINE_LINES = lensProfile.lensInlineLines;
 const inlineMap = new Map<string, string>();
 const inlineOverBudget: string[] = [];
 let inlineUsed = 0;
@@ -477,18 +524,17 @@ log(`Линз в ростере: ${LENSES.length}, стартуют: ${activeLen
 // попадает ни в argv журналируемых вызовов, ни в stdout. Потолок вывода
 // тарифа (8000/ответ, thinking в том же бюджете) виден как finish=length —
 // именованный отказ линзы с одним ретраем, не пустые ходы в чужой сессии.
-const reviewerModel = String(args.reviewerModel ?? "").trim() || "qwen3.6-unlim-xl";
 /** Карточка провайдера zcode, из которой берутся apiKey и baseUrl
  * (external-dependencies/01): id карточки — аргумент provider с дефолтом;
  * смена провайдера — карточка в zcode плюс provider и reviewerModel,
  * правки репо не требуется. */
 const ND_PROVIDER_DEFAULT = "neuraldeep-sub";
 const ndProvider = String(args.provider ?? "").trim() || ND_PROVIDER_DEFAULT;
-const LENS_RETRIES = 1;
+const LENS_RETRIES = lensProfile.lensRetries;
 // Потолок 25 мин на вызов API (high-reasoning на объёмном диффе — минуты;
 // потолок — страховка; внутренний таймаут скрипта чуть меньше, чтобы успеть
 // напечатать конверт ошибки вместо молчаливого реджекта world.run).
-const LENS_CALL_TIMEOUT_MS = 1_500_000;
+const LENS_CALL_TIMEOUT_MS = lensProfile.lensCallTimeoutMs;
 // BEGIN ND CALL — tests/test_reviewer_substrate.py pins the caller.
 // Инлайн-скрипт прямого вызова API (world.run("node", ["-e", ND_CALL, "--",
 // <json>])): едет в одном файле с воркфлоу — дрейфа версий helper'а нет.
@@ -704,7 +750,7 @@ const fileMaterial = (f: FileEntry): string => {
 // BEGIN LENS TASKS — tests/test_reviewer_substrate.py runs this slice: one
 // call per file×lens pair (no halving/dedup), workers derived as min(cap, N)
 // — the pool cap never widens with the task count (confirm гейта v6).
-const LENS_CONCURRENCY = 4;
+const LENS_CONCURRENCY = lensProfile.lensConcurrency;
 const lensTasks = activeLenses.flatMap(({ lens, files: lensFiles }) =>
   lensFiles.map((file) => ({ lens, file })),
 );

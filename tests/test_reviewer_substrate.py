@@ -14,7 +14,10 @@ is an ARG with the default neuraldeep-sub (a switch is configuration, not a
 repo edit), and the substrate is fail-closed — every missing piece (readable
 config, provider card, apiKey, the reviewer-role model in the card) is a
 named abort naming the role, the config path and what is missing, probed
-here live against fabricated HOMEs."""
+here live against fabricated HOMEs. external-dependencies/04: the tariff
+physics is a per-model profile map (LENS_PROFILES) resolved before the
+workflow constants — an unknown model is a named abort before the lenses,
+never a silent transfer of the unlim-xl constants."""
 import json
 import os
 import re
@@ -54,6 +57,34 @@ def lens_json_source() -> str:
         body = body.replace(old, new)
         s2 = m2.group(1).replace(old, new)
     return body + "\n" + s2
+
+
+def run_node_slice(driver: str) -> subprocess.CompletedProcess:
+    """Прогон JS-среза воркфлоу под node: файл .mjs во временнике, rc/stdout
+    наружу."""
+    with tempfile.NamedTemporaryFile("w", suffix=".mjs", delete=False) as fh:
+        fh.write(driver)
+        name = fh.name
+    try:
+        return subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
+    finally:
+        Path(name).unlink(missing_ok=True)
+
+
+def lens_profile_source() -> str:
+    """The model→profile map and its resolver from the shipped workflow
+    (external-dependencies/04), markers and TS annotations stripped — runs
+    under node."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    m = re.search(r"// BEGIN LENS PROFILE.*?\n(.*?)// END LENS PROFILE", text, re.S)
+    assert m, "LENS PROFILE block lost its markers in skills/ship/reviewer.workflow.ts"
+    body = re.sub(r"type LensProfile = \{.*?\};", "", m.group(1), flags=re.S)
+    for old, new in (
+        ("const LENS_PROFILES: Record<string, LensProfile> = {", "const LENS_PROFILES = {"),
+        ("function resolveLensProfile(model: string): LensProfile {", "function resolveLensProfile(model) {"),
+    ):
+        body = body.replace(old, new)
+    return body
 
 
 def test_nd_call_compiles():
@@ -281,9 +312,11 @@ def test_lens_pool_respects_tariff_concurrency():
     m = re.search(r"// BEGIN LENS TASKS.*?\n(.*?)// END LENS TASKS", text, re.S)
     assert m, "LENS TASKS block lost its markers"
     slice_src = m.group(1).replace(
-        "const LENS_CONCURRENCY = 4;",
+        "const LENS_CONCURRENCY = lensProfile.lensConcurrency;",
         "const LENS_CONCURRENCY = 4;\nconst activeLenses = LENSES_SAMPLE;",
         1)
+    assert "activeLenses = LENSES_SAMPLE" in slice_src, (
+        "якорь инъекции дрейфовал: LENS_CONCURRENCY в блоке TASKS не найден")
     driver = (
         "const LENSES_SAMPLE = [\n"
         "  { lens: { id: 'logic' }, files: ['a.py', 'b.py'] },\n"
@@ -478,3 +511,81 @@ def test_repair_escapes_raw_newlines_inside_strings():
     Path(name).unlink()
     assert r.returncode == 0
     assert r.stdout.strip() == "true"
+
+
+def test_lens_profile_pins_unlim_constants():
+    """Профиль unlim-xl дублирует тарифные факты из dependencies.md
+    (external-dependencies/04, решения оператора 2026-10-07/08: потолки в
+    карточку zcode не входят, живут датированными наблюдениями, профиль в
+    репо обновляется руками). Поведенческий прогон среза: карта отдаёт все
+    семь значений ровно как в доке — расхождение профиля с наблюдением
+    ловит сьют."""
+    driver = (
+        'const args = { reviewerModel: "qwen3.6-unlim-xl" };\n'
+        f"{lens_profile_source()}\n"
+        "console.log(JSON.stringify(lensProfile));\n"
+    )
+    r = run_node_slice(driver)
+    assert r.returncode == 0, f"срез профиля упал:\n{r.stderr[:300]}"
+    assert json.loads(r.stdout) == {
+        "maxFindings": 8,
+        "maxFiles": 20,
+        "maxDiffLines": 2000,
+        "lensInlineLines": 6000,
+        "lensRetries": 1,
+        "lensCallTimeoutMs": 1_500_000,
+        "lensConcurrency": 4,
+    }
+
+
+def test_lens_profile_unknown_model_fails_named():
+    """Фолбэка нет (решение оператора 2026-10-08): модель роли без профиля —
+    именованный отказ до линз, диагност называет модель, карту для правки и
+    место тарифных фактов. Мутационная проба: пустая карта роняет и
+    дефолтную модель — спрятанного дефолта внутри резолвера быть не должно."""
+    driver = (
+        "const args = {};\n"
+        f"{lens_profile_source()}\n"
+        "const out = {};\n"
+        'try { resolveLensProfile("no-such-model"); out.refused = false; }\n'
+        'catch (e) { out.refused = true; out.msg = String(e.message); }\n'
+        "for (const k of Object.keys(LENS_PROFILES)) delete LENS_PROFILES[k];\n"
+        'try { resolveLensProfile("qwen3.6-unlim-xl"); out.hiddenDefault = false; }\n'
+        "catch (e) { out.hiddenDefault = true; }\n"
+        "console.log(JSON.stringify(out));\n"
+    )
+    r = run_node_slice(driver)
+    assert r.returncode == 0, f"срез отказа упал:\n{r.stderr[:300]}"
+    out = json.loads(r.stdout)
+    assert out["refused"], "модель без профиля не отказана — фолбэк протёк в резолвер"
+    assert out["hiddenDefault"], "после опустошения карты дефолтная модель разрешилась — в резолвере спрятанный дефолт"
+    assert "no-such-model" in out["msg"], "отказ не называет модель"
+    assert "LENS_PROFILES" in out["msg"], "отказ не называет карту для правки"
+    assert "dependencies.md" in out["msg"], "отказ не указывает место тарифных фактов"
+
+
+def test_lens_profile_flows_into_constants():
+    """Константы воркфлоу читают профиль; литералов тарифа вне карты нет
+    (verified-паттерн гейта: строковый пин ловит молчаливый перенос
+    unlim-xl-констант мимо профиля). «Один файл на вызов» — инвариант
+    гейта, ручки filesPerCall в профиле нет."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    for const, key in (
+        ("MAX_FINDINGS", "maxFindings"),
+        ("MAX_FILES", "maxFiles"),
+        ("MAX_DIFF_LINES", "maxDiffLines"),
+        ("LENS_INLINE_LINES", "lensInlineLines"),
+        ("LENS_RETRIES", "lensRetries"),
+        ("LENS_CALL_TIMEOUT_MS", "lensCallTimeoutMs"),
+        ("LENS_CONCURRENCY", "lensConcurrency"),
+    ):
+        assert f"const {const} = lensProfile.{key};" in text, f"{const} не читает профиль"
+    outside = re.sub(
+        r"// BEGIN LENS PROFILE.*?\n(.*?)// END LENS PROFILE", "", text, flags=re.S)
+    assert not re.search(
+        r"const (MAX_FINDINGS|MAX_FILES|MAX_DIFF_LINES|LENS_INLINE_LINES"
+        r"|LENS_RETRIES|LENS_CALL_TIMEOUT_MS|LENS_CONCURRENCY) = \d",
+        outside), "тарифная константа задана литералом вне карты профилей"
+    assert "filesPerCall" not in text, "«один файл на вызов» протёк в профиль как ручка"
+    assert text.index("// BEGIN LENS PROFILE") < text.index("const MAX_FINDINGS = lensProfile"), (
+        "профиль резолвится после констант — они прочитают мусор")
