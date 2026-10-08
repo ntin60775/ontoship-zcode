@@ -2,7 +2,7 @@
 node_type: plan
 title: onto-doc parity — бутстрап, карта, мастер-индекс и покрытие
 service: _platform
-status: active
+status: archived
 updated: 2026-10-08
 links:
   documents: [../../skills/doc/onto-doc.workflow.ts, ../../skills/kb-search/gitmark.py]

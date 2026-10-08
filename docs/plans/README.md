@@ -28,7 +28,7 @@ regenerate — never edit the table by hand.
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
-| [onto-doc-parity.md](onto-doc-parity.md) | active | — |
+| [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
 <!-- END inventory:plans -->
