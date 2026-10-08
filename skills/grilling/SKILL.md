@@ -58,7 +58,7 @@ execution; guessing about a one-way door is a worse one.
    challenger-contested items, as a single `AskUserQuestion` batch (≤4 questions per
    call, recommended option first, previews for visual forks). Never re-ask what the
    digest already settles.
-7. **Write the contract and ask once.** Write `docs/plans/<slug>.md`
+7. **Write the contract, run the definition-of-done pass, ask once.** Write `docs/plans/<slug>.md`
    (`node_type: plan`, per `kb-curate`: Goal / Done / Scope / Constraints / Context)
    and crystallised terms into `CONTEXT.md` / `docs/decisions/`. Run the
    **definition-of-done pass over the contract**: every `Scope` deliverable is
