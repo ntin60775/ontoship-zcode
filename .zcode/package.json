@@ -1,6 +1,6 @@
 {
   "name": "ontoship",
-  "version": "0.5.36",
+  "version": "0.5.37",
   "private": true,
   "description": "zcode-плагин OntoShip: GitMark KB (md+git, FTS5-поиск, онтология-линтер), автономный гриллинг и gated dev-flow на нативных примитивах zcode"
 }
