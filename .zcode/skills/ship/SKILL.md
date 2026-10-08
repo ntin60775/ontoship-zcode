@@ -45,7 +45,12 @@ run, strictly sequential.
    made by the workflow itself (gate-followups-2/07): `reviewerModel` is the bare
    API id of the reviewer-role model (its zcode card, e.g. "qwen3.6-unlim-xl");
    credentials and baseUrl come from the provider card in zcode, nothing else
-   is configured on the machine;
+   is configured on the machine. `provider` (optional, default `neuraldeep-sub`)
+   is the id of that zcode provider card — a provider switch is configuration
+   (card in zcode + `provider` + `reviewerModel`), never a repo edit; the run
+   fails closed with a named diagnostic (role, config path, what is missing)
+   when the config, the card, the key or the reviewer model is missing
+   (external-dependencies/01);
    `CreateWorkflow(path=confirm.workflow.ts next to this SKILL.md, args={root:
    "<the same worktree>", findings: <the `findings` field of the review run's
    return — the raw findings array, compact JSON>, ticket: "<the same ticket>"},

@@ -17,6 +17,10 @@ args:
     type: string
     description: "API-id модели линз (как в карточке zcode); пусто — qwen3.6-unlim-xl (безлимитный тариф оператора)."
     required: false
+  provider:
+    type: string
+    description: "Id карточки провайдера zcode в provider_config.json; пусто — neuraldeep-sub. Смена провайдера — карточка в zcode плюс provider и reviewerModel, правка репо не нужна."
+    required: false
 */
 
 // Independent review gate (/ship step 6, first of two runs). Ticket 13: the
@@ -474,8 +478,12 @@ log(`Линз в ростере: ${LENSES.length}, стартуют: ${activeLen
 // тарифа (8000/ответ, thinking в том же бюджете) виден как finish=length —
 // именованный отказ линзы с одним ретраем, не пустые ходы в чужой сессии.
 const reviewerModel = String(args.reviewerModel ?? "").trim() || "qwen3.6-unlim-xl";
-/** Карточка провайдера zcode, из которой берутся apiKey и baseUrl. */
-const ND_PROVIDER = "neuraldeep-sub";
+/** Карточка провайдера zcode, из которой берутся apiKey и baseUrl
+ * (external-dependencies/01): id карточки — аргумент provider с дефолтом;
+ * смена провайдера — карточка в zcode плюс provider и reviewerModel,
+ * правки репо не требуется. */
+const ND_PROVIDER_DEFAULT = "neuraldeep-sub";
+const ndProvider = String(args.provider ?? "").trim() || ND_PROVIDER_DEFAULT;
 const LENS_RETRIES = 1;
 // Потолок 25 мин на вызов API (high-reasoning на объёмном диффе — минуты;
 // потолок — страховка; внутренний таймаут скрипта чуть меньше, чтобы успеть
@@ -496,21 +504,45 @@ const path = require("path");
 // его давал -1, обращение уходило в argv[0] — путь к node) — гейт v3 поймал
 // это именованным отказом на всех линзах сразу
 const req = JSON.parse(process.argv[process.argv.length - 1]);
+// Fail-closed по субстрату (external-dependencies/01): каждая недостающая
+// часть контура — именованный отказ с путём конфига zcode и недостающим;
+// модель роли проверяется до сетевого вызова, иначе все линзы сгорят
+// одинаково посреди прогона HTTP-ошибкой.
+const cfgPath = path.join(os.homedir(), ".zcode", "v2", "provider_config.json");
+let cfg = null;
 let rule = null;
 try {
-  const cfg = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".zcode", "v2", "provider_config.json"), "utf8"));
-  rule = ((cfg.config && cfg.config.providerConfigRules && cfg.config.providerConfigRules.providerRules) || [])
+  cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+  rule = (((cfg.config || {}).providerConfigRules || {}).providerRules || [])
     .find((r) => r.providerId === req.provider) || null;
 } catch (e) {
-  console.log(JSON.stringify({ ok: false, error: "конфиг провайдеров zcode не читается: " + String((e && e.message) || e).slice(0, 200) }));
+  console.log(JSON.stringify({ ok: false, error: "конфиг провайдеров zcode (" + cfgPath + ") не читается: " + String((e && e.message) || e).slice(0, 200) }));
   process.exit(0);
 }
-if (!rule || !rule.config || !rule.config.access || !rule.config.access.apiKey) {
-  console.log(JSON.stringify({ ok: false, error: "в карточке провайдера " + req.provider + " нет apiKey — добавь провайдера и модель в zcode (контур моделей/кредов замкнут на zcode)" }));
+if (!rule) {
+  console.log(JSON.stringify({ ok: false, error: "в " + cfgPath + " нет карточки провайдера «" + req.provider + "» — добавь провайдера в zcode (или передай args.provider)" }));
+  process.exit(0);
+}
+if (!rule.config || !rule.config.access || !rule.config.access.apiKey) {
+  console.log(JSON.stringify({ ok: false, error: "у провайдера «" + req.provider + "» в " + cfgPath + " нет apiKey — добавь ключ в карточку провайдера в zcode" }));
+  process.exit(0);
+}
+const mr = (cfg.config || {}).modelConfigRules || {};
+const modelListed = (Array.isArray(rule.config.personalModelIds) && rule.config.personalModelIds.includes(req.model)) ||
+  [].concat(mr.providerModelRules || [], mr.manualProviderModelRules || [])
+    .some((r) => r && r.providerId === req.provider && r.modelId === req.model);
+if (!modelListed) {
+  console.log(JSON.stringify({ ok: false, error: "модель «" + req.model + "» не добавлена провайдеру «" + req.provider + "» в " + cfgPath + " — добавь модель в карточку провайдера в zcode" }));
   process.exit(0);
 }
 let base = String((rule.config.api && rule.config.api.baseUrl) || "https://api.neuraldeep.ru/v1");
 while (base.endsWith("/")) base = base.slice(0, -1);
+// проба субстрата (external-dependencies/01): конфиг проверен без сетевого
+// вызова — воркфлоу запускает этот режим до линз
+if (req.mode === "check") {
+  console.log(JSON.stringify({ ok: true, provider: req.provider, baseUrl: base }));
+  process.exit(0);
+}
 fetch(base + "/chat/completions", {
   method: "POST",
   headers: { "Authorization": "Bearer " + rule.config.access.apiKey, "Content-Type": "application/json" },
@@ -540,6 +572,35 @@ fetch(base + "/chat/completions", {
 // END ND CALL
 `;
 // END ND CALL MARKERS
+// BEGIN SUBSTRATE CHECK — tests/test_reviewer_substrate.py pins the branches.
+// Fail-closed по субстрату (external-dependencies/01): конфиг провайдеров
+// zcode не читается, нет карточки провайдера, нет ключа или модель роли не
+// добавлена — именованная остановка прогона ДО линз: диагност называет роль,
+// путь конфига zcode и недостающее. Без пробы такой прогон доходил до конца
+// со «сбоями файлов» и честным по форме «Находок нет» — ложнозелёный гейт.
+// Проба — тот же ND_CALL в режиме check: только чтение конфига, без
+// сетевого вызова.
+const substrateProbe = await world.run(
+  "node",
+  ["-e", ND_CALL, "--", JSON.stringify({ provider: ndProvider, model: reviewerModel, mode: "check" })],
+  { timeoutMs: 30_000 },
+);
+let substrateError = "";
+if (substrateProbe.exitCode !== 0) {
+  substrateError = `node exit ${substrateProbe.exitCode}: ${redact((substrateProbe.stdout + "\n" + substrateProbe.stderr).trim().slice(0, 300))}`;
+} else {
+  try {
+    const probeEnv = JSON.parse(substrateProbe.stdout) as { ok?: boolean; error?: string };
+    substrateError = probeEnv?.ok === true ? "" : String(probeEnv?.error ?? "проба субстрата ответила без вердикта");
+  } catch {
+    substrateError = `конверт пробы субстрата не читается: ${substrateProbe.stdout.trim().slice(0, 200)}`;
+  }
+}
+if (substrateError !== "") {
+  throw new Error(`Гейт остановлен: субстрат ревьюера недоступен (роль reviewer, провайдер ${ndProvider}, модель ${reviewerModel}). ${substrateError}`);
+}
+log(`Субстрат ревьюера проверен: карточка ${ndProvider} в zcode на месте, модель ${reviewerModel} добавлена`);
+// END SUBSTRATE CHECK
 // BEGIN LENS JSON — tests/test_reviewer_substrate.py pins the parser.
 // Ответ линзы — модельный текст: массив находок может лежать в ```json-фенсе,
 // в фенсе другого типа или голым текстом среди прозы (живая приёмка: модель
@@ -609,6 +670,17 @@ function classifyLensOutcome(env: { ok?: boolean; content?: string; finish?: str
   return { candidate, error: "" };
 }
 // END LENS OUTCOME
+// BEGIN SUBSTRATE TOTAL FAIL — tests/test_reviewer_substrate.py pins the
+// function. Страховка fail-closed (external-dependencies/01): если не ответил
+// НИ ОДИН файл — ревью не состоялось (субстрат умер между пробой и вызовами,
+// тариф закрылся, сеть легла), и «Находок нет» было бы ложным зелёным;
+// именованная остановка вместо пустого успеха.
+function totalSubstrateFailure(reviews: FileReview[], taskCount: number): string {
+  if (taskCount === 0 || !reviews.every((r) => r.failed)) return "";
+  const reasons = reviews.map((r) => r.failed).slice(0, 3).join(" | ");
+  return `Гейт остановлен: ни один файл не прошёл ревью (задач ${taskCount}, все линзы не ответили) — субстрат недоступен. Отказы: ${reasons}`.slice(0, 500);
+}
+// END SUBSTRATE TOTAL FAIL
 // Вызов линзы — на ОДИН файл (гейт v2, 2026-10-07): у unlim-xl тарифный
 // потолок вывода 8000 токенов за ответ, reasoning только high (карточка
 // модели, ListModels levels: high) — думание съедает ход; на мультифайловом
@@ -677,7 +749,7 @@ const runLensTask = async (taskIndex: number): Promise<void> => {
           : `\n\nПРЕДЫДУЩАЯ ПОПЫТКА НЕ УДАЛАСЬ (${lastError}) — на этот раз закончи ответ ровно одним \`\`\`json-блоком и ничего после него.`;
       let call;
       try {
-        call = await world.run("node", ["-e", ND_CALL, "--", JSON.stringify({ provider: ND_PROVIDER, model: reviewerModel, prompt: prompt(retryNote) })], { timeoutMs: LENS_CALL_TIMEOUT_MS });
+        call = await world.run("node", ["-e", ND_CALL, "--", JSON.stringify({ provider: ndProvider, model: reviewerModel, prompt: prompt(retryNote) })], { timeoutMs: LENS_CALL_TIMEOUT_MS });
       } catch (e) {
         // Таймаут/спавн-отказ — значение отказа линзы, не смерть рана
         // (живая приёмка: необработанный реджект world.run убил весь ран);
@@ -776,6 +848,8 @@ await Promise.all(
 );
 const reviews = results.map((x) => x.review);
 const failedReviews = reviews.filter((r) => r.failed).map((r) => `${r.file}: ${r.failed}`);
+const substrateAbort = totalSubstrateFailure(reviews, lensTasks.length);
+if (substrateAbort !== "") throw new Error(substrateAbort);
 const totalTruncated = results.reduce((n, x) => n + x.truncated, 0);
 const totalNormalized = results.reduce((n, x) => n + x.normalized, 0);
 
