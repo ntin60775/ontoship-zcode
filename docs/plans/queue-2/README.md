@@ -3,10 +3,10 @@ node_type: plan
 title: Очередь 2 — доставка, паритет, переезд
 service: _platform
 status: archived
-updated: 2026-10-05
+updated: 2026-10-08
 tags: [plan, queue-2, delivery, migration, parity]
 links:
-  relates_to: [../README.md, ../../reference/commands.md, ../../README.md]
+  relates_to: [../README.md, ../../reference/commands.md, ../../reference/review-invariants.md, ../../README.md]
   depends_on: [../../ontology.md]
 ---
 
