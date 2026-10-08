@@ -2,8 +2,8 @@
 node_type: ticket
 title: Поставляемые уроки контура — скилл skills/contour
 service: _platform
-status: draft
-updated: 2026-10-07
+status: archived
+updated: 2026-10-08
 links:
   part_of: [README.md]
 ---
@@ -57,11 +57,36 @@ zcode-примитивов, верную в любом проекте.
 
 **Blocked by:** None (can start immediately).
 
-- [ ] skills/contour/SKILL.md существует: frontmatter по паттерну скиллов
+- [x] skills/contour/SKILL.md существует: frontmatter по паттерну скиллов
       репо (name, description с триггерами «zcode workflow», «AmendWorkflow»,
       «workflow упал/стоп»), каждый урок — симптом → причина → действие
-- [ ] все девять уроков на месте, без тарифно-специфичных деталей
-- [ ] упоминание из docs/ops/install.md (машина работает с воркфлоу —
+- [x] все девять уроков на месте, без тарифно-специфичных деталей
+- [x] упоминание из docs/ops/install.md (машина работает с воркфлоу —
       загляни в скилл контура)
-- [ ] `gitmark lint --strict` + `pytest` зелёные; self-update в конце лупа
+- [x] `gitmark lint --strict` + `pytest` зелёные; self-update в конце лупа
       вендорит скилл, I7-чурн закрывается inventory на деплой-шаге
+
+**Shipping-note (2026-10-08).** Фича `b15c2f0` (3 файла, +163/−1:
+skills/contour/SKILL.md 151 строка, маппинг deploy.json, install.md),
+dev-мерж `08a11e4`, main-мерж `2c2197f`, релиз v0.5.32 (`b238b2a` — bump
+package.json + .zcode-plugin/plugin.json, тег запушен явно), пин `3847240`
+(каталог 0.5.63), self-update `5263c72`, inventory `0ef5fd1`. Гейт: reviewer
+qwen3.6-unlim-xl$high (dwfrun-fa3bc611) — 1 сырая (пары файл×линза:
+deploy.json ← logic/security, install.md ← docs, SKILL.md ← docs;
+shell/concurrency/tests не стартовали — без релевантных файлов); confirmer
+GLM-5.3-Flash$high (dwfrun-6d7593db) — 0 verified / 1 опровергнута /
+0 unverified: «относительный путь `skills/contour` в бэктиках install.md
+ломает doc↔code синк» не воспроизведена — inline code, не markdown-ссылка,
+ничего не резолвит; `lint` по install.md чист (фронтматтер-ссылка
+`../../skills/contour/SKILL.md` резолвится); корне-относительные пути в
+бэктиках — конвенция KB на этой глубине; правка разорвала бы дословное
+соответствие с маппингом deploy.json. Отступление от буквы тикета: тикет
+предполагал «штатный маппинг `skills/*` (deploy.json не трогается)» —
+wildcard в deploy.json нет, раннер glob-маппинги не разворачивает
+(deploy-plugin.py: from — точный путь, каталог копируется рекурсивно);
+добавлен явный маппинг `skills/contour`, без него self-update скилл не
+вендорит (критерий приёмки). Кандидат-место деградации `finish=length`
+(logic-линза на 900-строчных диффах) — тарифно-специфичное, в скилл не
+попадает по контракту тикета; место — docs/reference/dependencies.md:39,46
+(док 02). Сьют 139 passed, lint --strict чист (83 файла), deploy-check
+exit=0 (вендор v0.5.32).

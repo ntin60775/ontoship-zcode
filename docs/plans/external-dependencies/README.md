@@ -84,7 +84,12 @@ provider-stop за день, выживаемость первого запро�
 тариф `neuraldeep/qwen3.6-unlim-xl`. План собран вручную из решений
 оператора, без гриллинга (прецедент gate-followups). Файловых коллизий с
 gate-followups-2 (05–07) и crossreview-adoption/03 нет: 01 правит
-гейт-воркфлоу/install/гейт-диагностику, 02 — только новый док.
+гейт-воркфлоу/install/гейт-диагностику, 02 — только новый док, 03 — новый
+скилл и его маппинг/упоминание. Отгружены 01 (v0.5.31), 02 (без релиза —
+доковый) и 03 (v0.5.32: skills/contour — 9 уроков механики zcode-workflow;
+явный маппинг в deploy.json вместо предполагавшегося тикетом wildcard
+`skills/*` — его в контракте раннера нет). Остался 04 (обсуждение, текст
+переписать под zcode при запуске).
 
 ## Tickets
 
@@ -92,5 +97,5 @@ gate-followups-2 (05–07) и crossreview-adoption/03 нет: 01 правит
 |---|-------|--------|------------|
 | [01](01-zcode-credentials-contour.md) | Контур моделей/кредов замкнут на zcode; гейт fail-closed по субстрату | archived | — |
 | [02](02-dependencies-inventory.md) | Инвентаризация внешних зависимостей и контур обновления | archived | — |
-| [03](03-contour-lessons-skill.md) | Поставляемые уроки контура — скилл skills/contour | draft | — |
+| [03](03-contour-lessons-skill.md) | Поставляемые уроки контура — скилл skills/contour | archived | — |
 | [04](04-lens-config-autotune.md) | Автоподстройка субстрата линз под модель роли (обсуждение) | draft | [01](01-zcode-credentials-contour.md) |
