@@ -3,10 +3,10 @@ node_type: index
 title: Reference
 service: _platform
 status: active
-updated: 2026-10-05
+updated: 2026-10-08
 links:
   part_of: [../README.md]
-  relates_to: [commands.md, memory.md, workflow-args.md]
+  relates_to: [commands.md, memory.md, workflow-args.md, dependencies.md]
 ---
 
 # Reference
@@ -23,3 +23,6 @@ Cross-cutting specs — not about one service.
 - [workflow-args.md](workflow-args.md) — args of CreateWorkflow are never
   truncated by the host; «не распарсились» means broken JSON at the caller, and
   workflow aborts must carry e.message + length + tail of the string.
+- [dependencies.md](dependencies.md) — внешние зависимости плагина (сторонние
+  решения и апстрим ontoship-omp): пин, канал обновления, владелец, деградация
+  при мажоре, где ловится; контуры замены провайдера LLM и синка апстрима.

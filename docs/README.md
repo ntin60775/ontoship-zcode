@@ -3,10 +3,10 @@ node_type: index
 title: Docs — master index
 service: _platform
 status: active
-updated: 2026-10-04
+updated: 2026-10-08
 links:
   documents: [../AGENTS.md]
-  relates_to: [ontology.md, reference/README.md, services/README.md, ops/README.md, plans/README.md, reference/commands.md]
+  relates_to: [ontology.md, reference/README.md, services/README.md, ops/README.md, plans/README.md, reference/commands.md, reference/dependencies.md]
 ---
 
 # Docs
@@ -20,3 +20,5 @@ plugin ships is maintained by the plugin's own discipline (ontology, lint, index
 - [plans/](plans/README.md) — plan contracts and tickets (the dev-flow substrate).
 - [ops/](ops/README.md) — operational procedures (install, update, release cycle).
 - [reference/commands.md](reference/commands.md) — the generated skill/command registry.
+- [reference/dependencies.md](reference/dependencies.md) — внешние зависимости:
+  сторонние решения и апстрим ontoship-omp, контуры замены провайдера и синка.
