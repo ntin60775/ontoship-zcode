@@ -46,8 +46,8 @@ regenerate — never edit the table by hand.
 [invariant-moratorium](../decisions/invariant-moratorium.md)).
 
 1. **lens-substrate-flash** — субстрат линз на дефолтных субагентах Flash
-   (убирает класс finish=length и обслуживание LENS_PROFILES; приёмка A/B,
-   форма — гибрид с посевом, финально подтверждает оператор при /ship).
+   (убирает класс finish=length и обслуживание LENS_PROFILES; приёмка A/B —
+   гибрид с посевом, решение оператора 2026-10-09).
 2. **gate-risk-scaling** — лёгкий контур гейта для доковых диффов (движок уже
    даёт docs-only ростер; добавляются условный confirm и доковая ветка
    шагов 6/7/9 скилла ship).
