@@ -52,6 +52,10 @@
       "to": ".zcode/skills/diagnose"
     },
     {
+      "from": "skills/contour",
+      "to": ".zcode/skills/contour"
+    },
+    {
       "from": "defaults",
       "to": ".zcode/defaults"
     },
