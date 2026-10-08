@@ -3,7 +3,7 @@ node_type: runbook
 title: Install ontoship into a project (marketplace runner)
 service: _platform
 status: active
-updated: 2026-10-06
+updated: 2026-10-08
 tags: [runbook, install, deploy, marketplace, update]
 links:
   documents: [../../deploy.json]
@@ -35,6 +35,25 @@ After install/update, the runner's post-steps tell the agent what remains
 exists), run the **init skill** for the managed block in `AGENTS.md` + `.gitignore`
 lines, and set project role overrides in `<repo>/.zcode/ontoship/roles.md` if the
 plugin defaults do not fit the host.
+
+## Machine prerequisites
+
+The runner vendors payload only (skills, hooks, scripts under `.zcode/`).
+Machine-level tools and credentials are the machine's responsibility — the
+runner neither installs nor reads them:
+
+- `git`, `python3` — the vendored engine and its operations;
+- `node` ≥ 18 — the review-gate lens caller (`fetch`, `AbortSignal`);
+- `pytest` — running the plugin's own test suite (`python3 -m pytest tests/ -q`).
+
+The independent review gate (`/ship` step 6) additionally requires the
+**reviewer model to be added to zcode with a provider card**: a provider entry
+with `apiKey` in `~/.zcode/v2/provider_config.json` and the reviewer-role model
+in that provider's card (`personalModelIds` or a model rule). The gate reads
+credentials and baseUrl from that card at run time and never prints them. A
+missing piece stops the gate with a named diagnostic — the role, the config
+path and what is missing; the gate is fail-closed by substrate and never
+reports «no findings» over a dead substrate (external-dependencies/01).
 
 ## Release cycle (plugin maintainers)
 
