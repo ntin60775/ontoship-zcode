@@ -126,7 +126,7 @@ def test_nd_call_argv_without_separator_fails_named(tmp_path):
     assert r.returncode == 0, f"скрипт должен отвечать конвертом, а не падать:\n{r.stderr[:200]}"
     out = json.loads(r.stdout)
     assert out["ok"] is False and "absent-p" in out["error"], out
-    r_noarg = run_nd_call(None)
+    r_noarg = run_nd_call(None, home=home)
     assert r_noarg.returncode != 0, (
         "argv-путь мёртв: вызов без конверта не крэшится — парс разборки argv не исполняется")
 
@@ -192,7 +192,7 @@ def test_args_provider_pinned():
     assert provider_entry, "args.provider пропал из шапки"
     assert "neuraldeep-sub" in provider_entry.group(1), "в описании provider нет дефолта"
 
-    m2 = re.search(r"const ndProvider = (.+);", text)
+    m2 = re.search(r"const ndProvider = (.*?);", text, re.S)
     assert m2, "выражение ndProvider дрейфовало"
     driver = (
         'const ND_PROVIDER_DEFAULT = "neuraldeep-sub";\n'
