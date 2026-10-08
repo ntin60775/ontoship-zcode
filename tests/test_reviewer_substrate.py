@@ -317,6 +317,10 @@ def test_lens_pool_respects_tariff_concurrency():
         1)
     assert "activeLenses = LENSES_SAMPLE" in slice_src, (
         "якорь инъекции дрейфовал: LENS_CONCURRENCY в блоке TASKS не найден")
+    # verified гейта 04: presence-якорь проходит при дубликате во вложенной
+    # функции — absence-проверка ловит неснятый lensProfile в любом месте среза
+    assert "lensProfile.lensConcurrency" not in slice_src, (
+        "в срезе остался неснятый LENS_CONCURRENCY — срез гетерогенный")
     driver = (
         "const LENSES_SAMPLE = [\n"
         "  { lens: { id: 'logic' }, files: ['a.py', 'b.py'] },\n"
@@ -587,5 +591,12 @@ def test_lens_profile_flows_into_constants():
         r"|LENS_RETRIES|LENS_CALL_TIMEOUT_MS|LENS_CONCURRENCY) = \d",
         outside), "тарифная константа задана литералом вне карты профилей"
     assert "filesPerCall" not in text, "«один файл на вызов» протёк в профиль как ручка"
-    assert text.index("// BEGIN LENS PROFILE") < text.index("const MAX_FINDINGS = lensProfile"), (
+    # verified гейта 04: str.index не различает комментарии — якоря порядка
+    # ищутся с ^-привязкой к началу строки, упоминание в комментарии не считывается
+    def line_pos(pattern: str) -> int:
+        m = re.search(pattern, text, re.M)
+        assert m, f"якорь порядка потерян: {pattern}"
+        return m.start()
+    assert line_pos(r"^// BEGIN LENS PROFILE") < line_pos(
+        r"^const MAX_FINDINGS = lensProfile\.maxFindings;$"), (
         "профиль резолвится после констант — они прочитают мусор")
