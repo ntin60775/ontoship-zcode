@@ -60,8 +60,12 @@ execution; guessing about a one-way door is a worse one.
    digest already settles.
 7. **Write the contract and ask once.** Write `docs/plans/<slug>.md`
    (`node_type: plan`, per `kb-curate`: Goal / Done / Scope / Constraints / Context)
-   and crystallised terms into `CONTEXT.md` / `docs/decisions/`; then present the plan
-   via **ExitPlanMode** — the contract plus the digest. The native approval **is** the
+   and crystallised terms into `CONTEXT.md` / `docs/decisions/`. Run the
+   **definition-of-done pass over the contract**: every `Scope` deliverable is
+   covered by a `Done` criterion stating an observable fact a third party can
+   verify — a criterion naming an activity or a degree («improve», «clean up»)
+   is rewritten until it names one. Then present the plan via **ExitPlanMode** —
+   the contract plus the digest. The native approval **is** the
    single approval of the whole package: a rejection names the disputed item, you
    re-decide only that item and re-present. `/ship` is never started by you — the
    operator launches it by hand.

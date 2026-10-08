@@ -111,6 +111,18 @@ is no reason to skip the quiz or proceed unilaterally:
 
 ### 4. Publish the tickets
 
+**Definition-of-done pass — before writing any file.** Walk the approved
+breakdown ticket by ticket and state, in one sentence each, the observable
+result (what works, from the user's perspective, when the ticket is done) and
+the completion criterion (a fact a third party can verify without the author).
+A result that cannot be stated as behaviour, or a criterion that names an
+activity rather than an observable fact («add tests», «update docs»), means
+the ticket is not finished being drafted — fix it now, while draft renumbering
+is still free (step 2, item 5). Step 2's granularity criteria size the unit;
+this pass checks what its «done» says. A fix that reshapes the breakdown
+(split, merge, rewired edges) goes back through the quiz (step 3) before any
+file is written.
+
 Write one file per ticket under the plan folder, numbered in dependency order
 (blockers first): `docs/plans/<slug>/NN-<slug>.md`. A fresh folder numbers from
 `01`; a folder that already has tickets continues from `max(NN)+1` — never restart
