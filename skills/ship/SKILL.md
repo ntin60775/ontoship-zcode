@@ -65,8 +65,10 @@ run, strictly sequential.
    did not answer even after one retry (a failed ask is retried exactly once,
    no cause sniffing; queue-2/17 owns cause classification); report them to
    the operator next to `unconfirmed`, never dropped.
-7. **Dev checks** — merge the worktree branch into `dev` (local branch when there is no
-   remote; MR when there is) and run the full suite there. Red → fix in the worktree,
+7. **Dev checks** — merge the worktree branch into `dev` with a local `--no-ff`
+   merge in every contour; MR is not part of this flow — only when the plan or
+   the project explicitly assigns one (paired with the stop-point
+   `stop-after-mr`). Run the full suite there. Red → fix in the worktree,
    do not merge onward.
 8. **Prod checks** — E2E/smoke against the real contour when one exists; skip only when
    the plan's `Constraints` say so or no contour exists (say which).
@@ -100,6 +102,8 @@ stop-point it answered, not these two confirmations.
 
 ## Honest degradation
 
-No remote → "MR" is a local merge into `dev`; say so in the run report. No deploy
-contour → step 8 is the test suite; say so. Every deviation from the full loop is
-written into the ticket's shipping note — the one thing that may never happen silently.
+The three constant deviations of this solo flow — no MR, no separate prod contour,
+remote may be absent — live in docs/ops/git-flow.md («Отступления-константы»);
+reference that section in the shipping note with one line instead of re-declaring
+them in every run. Every deviation beyond those constants is still written into the
+shipping note — the one thing that may never happen silently.

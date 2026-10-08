@@ -6,7 +6,7 @@ status: active
 updated: 2026-10-08
 links:
   part_of: [../README.md]
-  relates_to: [commands.md, memory.md, workflow-args.md, dependencies.md]
+  relates_to: [commands.md, memory.md, workflow-args.md, dependencies.md, review-invariants.md]
 ---
 
 # Reference
@@ -26,3 +26,6 @@ Cross-cutting specs — not about one service.
 - [dependencies.md](dependencies.md) — внешние зависимости плагина (сторонние
   решения и апстрим ontoship-omp): пин, канал обновления, владелец, деградация
   при мажоре, где ловится; контуры замены провайдера LLM и синка апстрима.
+- [review-invariants.md](review-invariants.md) — инварианты слепого ревью
+  гейт-прогонов (/ship, /code-review): у каждого — воркфлоу-механизм, который
+  его держит; чек-лист нового рана, линзы или правки воркфлоу.

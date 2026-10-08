@@ -2,7 +2,7 @@
 node_type: plan
 title: Внешние зависимости — контур провайдеров zcode и обновления
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-08
 tags: [plan, dependencies, roles, deploy, upstream, zcode]
 links:
@@ -89,10 +89,11 @@ gate-followups-2 (05–07) и crossreview-adoption/03 нет: 01 правит
 скилл и его маппинг/упоминание. Отгружены 01 (v0.5.31), 02 (без релиза —
 доковый) и 03 (v0.5.32: skills/contour — 9 уроков механики zcode-workflow;
 явный маппинг в deploy.json вместо предполагавшегося тикетом wildcard
-`skills/*` — его в контракте раннера нет). Остался 04 (обсуждение): текст
-переписан под zcode-контур 2026-10-08 — coddy-контур и вариант «ответ в
-файл» выброшены, открытые вопросы переформулированы под факт «карточка
-провайдера потолков не несёт».
+`skills/*` — его в контракте раннера нет). 04 отгружен последним
+(v0.5.33): обсуждение развёрнуто в кодовый тикет — карта профилей
+LENS_PROFILES в воркфлоу, модель без профиля — именованный отказ,
+«один файл на вызов» — инвариант; живая приёмка новой версии воркфлоу —
+PASS. План закрыт целиком.
 
 ## Tickets
 
@@ -101,4 +102,4 @@ gate-followups-2 (05–07) и crossreview-adoption/03 нет: 01 правит
 | [01](01-zcode-credentials-contour.md) | Контур моделей/кредов замкнут на zcode; гейт fail-closed по субстрату | archived | — |
 | [02](02-dependencies-inventory.md) | Инвентаризация внешних зависимостей и контур обновления | archived | — |
 | [03](03-contour-lessons-skill.md) | Поставляемые уроки контура — скилл skills/contour | archived | — |
-| [04](04-lens-config-autotune.md) | Профиль субстрата линз per-модель — карта LENS_PROFILES | draft | [01](01-zcode-credentials-contour.md) |
+| [04](04-lens-config-autotune.md) | Профиль субстрата линз per-модель — карта LENS_PROFILES | archived | [01](01-zcode-credentials-contour.md) |

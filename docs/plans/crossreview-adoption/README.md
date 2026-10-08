@@ -2,11 +2,11 @@
 node_type: plan
 title: Кросс-ревью — контрактные дельты в гейты ревью
 service: _platform
-status: draft
-updated: 2026-10-06
+status: archived
+updated: 2026-10-08
 tags: [plan, crossreview, review-gate, code-review, kb]
 links:
-  relates_to: [../README.md, ../queue-2/README.md, ../../reference/README.md]
+  relates_to: [../README.md, ../queue-2/README.md, ../../reference/README.md, ../../reference/review-invariants.md]
 ---
 
 # Контракт: кросс-ревью — контрактные дельты в гейты ревью
@@ -27,8 +27,8 @@ links:
 - Confirm-ран различает три исхода находки: verified / unconfirmed (проверено —
   не воспроизводится) / unverified (проверка не состоялась: отказ конфирмера);
   отказ API больше не создаёт оператору ложное «нужны глаза человека».
-- Инварианты слепого ревью записаны в `docs/reference/` со ссылками на
-  воркфлоу-механизмы и линкуются из индекса reference.
+- Инварианты слепого ревью записаны в `docs/reference/review-invariants.md`
+  со ссылками на воркфлоу-механизмы и линкуются из индекса reference.
 
 ## Scope
 
@@ -88,4 +88,4 @@ VERDICT-строки, второй раунд ревью дельта-диффа
 |---|-------|--------|------------|
 | [01](01-review-intent.md) | Intent диффа в осях /code-review | archived | — |
 | [02](02-confirm-unverified.md) | Confirm-ран: отказ проверки ≠ опровержение | archived | — |
-| [03](03-review-invariants.md) | Инварианты слепого ревью в KB | draft | 01, 02 (обе archived) |
+| [03](03-review-invariants.md) | Инварианты слепого ревью в KB | archived | 01, 02 (обе archived) |
