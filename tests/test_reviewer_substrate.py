@@ -9,8 +9,14 @@ config sync). The operator's decision closes the provider/model/credential
 contour on zcode: the script reads apiKey and baseUrl from the provider card
 in ~/.zcode/v2/provider_config.json and never prints the key. These tests
 pin the script's syntax and its hygiene; the JSON extraction/repair parsers
-are pinned below on synthetic samples."""
+are pinned below on synthetic samples. external-dependencies/01: the provider
+is an ARG with the default neuraldeep-sub (a switch is configuration, not a
+repo edit), and the substrate is fail-closed — every missing piece (readable
+config, provider card, apiKey, the reviewer-role model in the card) is a
+named abort naming the role, the config path and what is missing, probed
+here live against fabricated HOMEs."""
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -61,35 +67,199 @@ def test_nd_call_compiles():
     assert r.returncode == 0, f"инлайн-скрипт вызова API не компилируется:\n{r.stderr}"
 
 
-def run_nd_call(envelope: str | None) -> subprocess.CompletedProcess:
+def run_nd_call(envelope: str | None, home: Path | None = None) -> subprocess.CompletedProcess:
     """Поведенческий прогон инлайн-скрипта с НАСТОЯЩИМ argv: node file.cjs --
     <конверт> (конверт — последний элемент argv; node -e съедает «--»-сепаратор:
     поиск его давал -1 и ронял JSON.parse на argv[0] — гейт v3). envelope=None —
     вызов без конверта: негативный кейс argv-разбора (гейт v6 — прежний тест
-    подменял argv константой, argv-путь был мёртвым кодом)."""
+    подменял argv константой, argv-путь был мёртвым кодом). home — подменённый
+    HOME: ветки fail-closed пробуются живьём на подделках конфига, не на машине."""
     with tempfile.NamedTemporaryFile("w", suffix=".cjs", delete=False) as fh:
         fh.write(nd_call_source())
         name = fh.name
     argv = ["node", name] + (["--", envelope] if envelope is not None else [])
+    env = os.environ.copy()
+    if home is not None:
+        env["HOME"] = str(home)
     try:
-        return subprocess.run(argv, capture_output=True, text=True, timeout=240)
+        return subprocess.run(argv, capture_output=True, text=True, timeout=240, env=env)
     finally:
         Path(name).unlink(missing_ok=True)
 
 
-def test_nd_call_argv_without_separator_fails_named():
+def probe_home(root: Path, api_key: str | None, models: list[str] | None) -> Path:
+    """Подделка HOME с конфигом zcode: провайдер probe-p (ключ и список моделей
+    параметризуются); ключ — заведомо фейковый, сетевых вызовов тесты не делают."""
+    home = root / "home"
+    (home / ".zcode" / "v2").mkdir(parents=True)
+    access: dict = {"type": "api-key"}
+    if api_key is not None:
+        access["apiKey"] = api_key
+    config: dict = {
+        "api": {"type": "openai-chat-completions", "baseUrl": "https://probe.invalid/v1"},
+        "access": access,
+    }
+    if models is not None:
+        config["personalModelIds"] = models
+    cfg = {"schemaVersion": 1, "config": {"providerConfigRules": {"providerRules": [
+        {"providerId": "probe-p", "enabled": True, "config": config},
+    ]}}}
+    (home / ".zcode" / "v2" / "provider_config.json").write_text(json.dumps(cfg), encoding="utf-8")
+    return home
+
+
+PROBE_MODEL = "qwen3.6-unlim-xl"
+
+
+def probe_envelope(provider: str = "probe-p", **extra) -> str:
+    return json.dumps({"provider": provider, "model": PROBE_MODEL, "prompt": "p", **extra}, ensure_ascii=False)
+
+
+def test_nd_call_argv_without_separator_fails_named(tmp_path):
     """Негативный кейс argv-разбора поведенчески (verified гейта v6):
-    с конвертом в argv — именованный fallthrough к карточке провайдера
+    с конвертом в argv — именованный fallthrough к ветке субстрата
     (rc=0, ok=false); без конверта — argv-путь жив (крэш на незащищённом
     JSON.parse, rc!=0), а не молчаливый успех."""
-    envelope = json.dumps({"provider": "no-such-provider", "model": "m", "prompt": "p"}, ensure_ascii=False)
-    r = run_nd_call(envelope)
+    home = probe_home(tmp_path, api_key="sk-dummy-probe", models=[PROBE_MODEL])
+    envelope = probe_envelope(provider="absent-p")
+    r = run_nd_call(envelope, home=home)
     assert r.returncode == 0, f"скрипт должен отвечать конвертом, а не падать:\n{r.stderr[:200]}"
     out = json.loads(r.stdout)
-    assert out["ok"] is False and "нет apiKey" in out["error"]
-    r_noarg = run_nd_call(None)
+    assert out["ok"] is False and "absent-p" in out["error"], out
+    r_noarg = run_nd_call(None, home=home)
     assert r_noarg.returncode != 0, (
         "argv-путь мёртв: вызов без конверта не крэшится — парс разборки argv не исполняется")
+
+
+def test_substrate_branches_fail_closed(tmp_path):
+    """Живые пробы веток fail-closed (external-dependencies/01): конфиг не
+    читается, карточки провайдера нет, ключа нет — каждый отказ именует путь
+    конфига zcode и недостающее; Ok-ветка не достигается ни одной."""
+    # конфиг не читается: HOME без .zcode вообще
+    empty = tmp_path / "empty-home"
+    empty.mkdir()
+    out = json.loads(run_nd_call(probe_envelope(), home=empty).stdout)
+    assert out["ok"] is False, out
+    assert "не читается" in out["error"] and "provider_config.json" in out["error"], out["error"]
+
+    # карточка провайдера есть, но у запрошенного провайдера её нет
+    out = json.loads(run_nd_call(probe_envelope(provider="absent-p"), home=probe_home(tmp_path / "h1", "sk-dummy-probe", [PROBE_MODEL])).stdout)
+    assert out["ok"] is False, out
+    assert "нет карточки провайдера «absent-p»" in out["error"], out["error"]
+    assert "provider_config.json" in out["error"], out["error"]
+
+    # карточка есть, ключа нет
+    out = json.loads(run_nd_call(probe_envelope(), home=probe_home(tmp_path / "h2", None, [PROBE_MODEL])).stdout)
+    assert out["ok"] is False, out
+    assert "нет apiKey" in out["error"], out["error"]
+    assert "probe-p" in out["error"] and "provider_config.json" in out["error"], out["error"]
+
+
+def test_substrate_missing_model_fails_named_before_network(tmp_path):
+    """Модель роли не добавлена провайдеру — именованный отказ ДО сетевого
+    вызова (external-dependencies/01): и в вызывающем режиме (иначе все линзы
+    сгорели бы HTTP-ошибкой посреди прогона), и в режиме пробы check."""
+    home = probe_home(tmp_path / "h3", api_key="sk-dummy-probe", models=[])
+    for mode in ({}, {"mode": "check"}):
+        out = json.loads(run_nd_call(probe_envelope(**mode), home=home).stdout)
+        assert out["ok"] is False, (mode, out)
+        assert f"модель «{PROBE_MODEL}» не добавлена" in out["error"], out["error"]
+        assert "probe-p" in out["error"] and "provider_config.json" in out["error"], out["error"]
+
+
+def test_substrate_check_mode_passes_without_network(tmp_path):
+    """Ok-ветка пробы (external-dependencies/01): карточка на месте, модель
+    добавлена — check отвечает ok=true без сетевого вызова (выход до fetch),
+    ключ в stdout не попадает."""
+    home = probe_home(tmp_path / "h4", api_key="sk-dummy-probe", models=[PROBE_MODEL])
+    r = run_nd_call(probe_envelope(mode="check"), home=home)
+    assert r.returncode == 0, r.stderr[:200]
+    assert "sk-dummy-probe" not in r.stdout, "утечка фейкового ключа в stdout"
+    out = json.loads(r.stdout)
+    assert out["ok"] is True, out
+    assert out["provider"] == "probe-p" and out["baseUrl"] == "https://probe.invalid/v1", out
+
+
+def test_args_provider_pinned():
+    """args.provider пинен (external-dependencies/01): объявлен в шапке
+    workflow с дефолтом neuraldeep-sub; дефолт и trim поведенчески на
+    настоящем выражении из файла; вызов линзы берёт провайдера из args,
+    а не из константы — замена провайдера без правки репо."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    m = re.search(r"\nargs:\n(.*?)\n\*/", text, re.S)
+    assert m, "args-шапка workflow не читается"
+    provider_entry = re.search(r"\n  provider:\n((?:    [^\n]*\n)+)", m.group(1))
+    assert provider_entry, "args.provider пропал из шапки"
+    assert "neuraldeep-sub" in provider_entry.group(1), "в описании provider нет дефолта"
+
+    m2 = re.search(r"const ndProvider = (.*?);", text, re.S)
+    assert m2, "выражение ndProvider дрейфовало"
+    driver = (
+        'const ND_PROVIDER_DEFAULT = "neuraldeep-sub";\n'
+        f"const resolve = (args) => {m2.group(1)};\n"
+        'console.log(JSON.stringify([resolve({}), resolve({provider: " custom-p "}), resolve({provider: "  "})]));\n'
+    )
+    with tempfile.NamedTemporaryFile("w", suffix=".mjs", delete=False) as fh:
+        fh.write(driver)
+        name = fh.name
+    try:
+        r = subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
+    finally:
+        Path(name).unlink(missing_ok=True)
+    assert r.returncode == 0, f"срез ndProvider упал:\n{r.stderr[:300]}"
+    assert json.loads(r.stdout) == ["neuraldeep-sub", "custom-p", "neuraldeep-sub"]
+
+    assert re.search(r"provider: ndProvider,", text), "вызов линзы не берёт провайдера из args"
+    assert not re.search(r"provider: ND_PROVIDER\b", text), "провайдер захардкожен в обход args.provider"
+
+
+def test_substrate_fail_closed_blocks_pinned():
+    """Проба субстрата до линз и страховка полного отказа на месте
+    (external-dependencies/01): блоки с маркерами, abort именует роль,
+    проба раньше пула — отказ субстрата не тратит вызовы линз."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    m = re.search(r"// BEGIN SUBSTRATE CHECK.*?\n(.*?)// END SUBSTRATE CHECK", text, re.S)
+    assert m, "SUBSTRATE CHECK block lost its markers"
+    body = m.group(1)
+    assert 'mode: "check"' in body and "throw new Error" in body and "роль reviewer" in body
+    assert text.index("// END SUBSTRATE CHECK") < text.index("// BEGIN LENS TASKS"), (
+        "проба субстрата после пула линз — отказ тратит вызовы")
+    m2 = re.search(r"// BEGIN SUBSTRATE TOTAL FAIL.*?\n(.*?)// END SUBSTRATE TOTAL FAIL", text, re.S)
+    assert m2, "SUBSTRATE TOTAL FAIL block lost its markers"
+    assert re.search(r"const substrateAbort = totalSubstrateFailure\(reviews, lensTasks\.length\);", text)
+    assert 'if (substrateAbort !== "") throw new Error(substrateAbort);' in text
+
+
+def test_total_substrate_failure_names_abort():
+    """Страховка поведенчески (external-dependencies/01): все файлы failed —
+    именованный abort с отказами; смешанное покрытие и ноль задач — пусто
+    (гейт не абортит частичное покрытие)."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    m = re.search(r"// BEGIN SUBSTRATE TOTAL FAIL.*?\n(.*?)// END SUBSTRATE TOTAL FAIL", text, re.S)
+    assert m, "SUBSTRATE TOTAL FAIL block lost its markers"
+    body = m.group(1).replace(
+        "(reviews: FileReview[], taskCount: number): string", "(reviews, taskCount)")
+    assert body != m.group(1), "аннотация функции дрейфовала — срез не исполняется"
+    driver = (
+        f"{body}\n"
+        "const failed = (n) => Array.from({ length: n }, (_, i) => ({ file: 'f' + i, failed: 'линза не ответила: x' + i }));\n"
+        "const mixed = [{ file: 'a', failed: '' }, { file: 'b', failed: 'y' }];\n"
+        "console.log(JSON.stringify([\n"
+        "  totalSubstrateFailure(failed(3), 3).includes('ни один файл'),\n"
+        "  totalSubstrateFailure(failed(2), 2).includes('линза не ответила'),\n"
+        "  totalSubstrateFailure(mixed, 2) === '',\n"
+        "  totalSubstrateFailure([], 0) === '',\n"
+        "]));\n"
+    )
+    with tempfile.NamedTemporaryFile("w", suffix=".mjs", delete=False) as fh:
+        fh.write(driver)
+        name = fh.name
+    try:
+        r = subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
+    finally:
+        Path(name).unlink(missing_ok=True)
+    assert r.returncode == 0, f"срез totalSubstrateFailure упал:\n{r.stderr[:300]}"
+    assert all(json.loads(r.stdout)), r.stdout
 
 
 def test_nd_call_reads_envelope_from_last_argv():
@@ -165,7 +335,7 @@ def test_nd_call_stdout_is_envelope_only():
             assert "JSON.stringify" in line, f"печать не-JSON в stdout: {line.strip()}"
 
 
-def test_nd_call_never_prints_api_key():
+def test_nd_call_never_prints_api_key(tmp_path):
     """Поведенческая проверка утечки ключа (verified гейта v5: presence-
     ассерты пропускали фактическую утечку многострочным вызовом): каждый
     stdout-фрагмент скрипта обязан быть валидным JSON-конвертом — вписанная
@@ -181,10 +351,14 @@ def test_nd_call_never_prints_api_key():
         name = fh.name
     try:
         # с несуществующим провайдером утечки не будет — проверяем сам канал:
-        # тест-паттерн ловит любую печать вне JSON.stringify-конверта
+        # тест-паттерн ловит любую печать вне JSON.stringify-конверта;
+        # HOME подменён — ветка не зависит от машины (мутация встаёт в ветку
+        # «конфиг не читается», живой путь — конверт отсутствующей карточки)
+        home = probe_home(tmp_path, api_key="sk-dummy-probe", models=[PROBE_MODEL])
+        env = os.environ | {"HOME": str(home)}
         r = subprocess.run(
             ["node", name, "--", json.dumps({"provider": "no-such-provider", "model": "m", "prompt": "p"})],
-            capture_output=True, text=True, timeout=60)
+            capture_output=True, text=True, timeout=60, env=env)
     finally:
         Path(name).unlink(missing_ok=True)
     assert r.returncode == 0
