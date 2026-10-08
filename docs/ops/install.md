@@ -7,7 +7,7 @@ updated: 2026-10-08
 tags: [runbook, install, deploy, marketplace, update]
 links:
   documents: [../../deploy.json]
-  relates_to: [../../skills/init/SKILL.md, ../README.md]
+  relates_to: [../../skills/init/SKILL.md, ../../skills/contour/SKILL.md, ../README.md]
 ---
 
 # Install ontoship into a project (marketplace runner)
@@ -54,6 +54,13 @@ credentials and baseUrl from that card at run time and never prints them. A
 missing piece stops the gate with a named diagnostic — the role, the config
 path and what is missing; the gate is fail-closed by substrate and never
 reports «no findings» over a dead substrate (external-dependencies/01).
+
+If the machine runs zcode workflows — the review gate above or the project's
+own automations — read the **contour skill** first (`skills/contour`, vendored
+to `.zcode/skills/contour`): verified workflow-mechanics lessons in the
+symptom → cause → action form — args contracts of CreateWorkflow/AmendWorkflow,
+unconditional approval windows, `world.run` semantics, submit-time
+typechecking. It prevents re-collecting failures this repo already paid for.
 
 ## Release cycle (plugin maintainers)
 
