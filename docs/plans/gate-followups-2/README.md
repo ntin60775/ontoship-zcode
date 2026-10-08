@@ -3,7 +3,7 @@ node_type: plan
 title: Хвосты ship-прогонов — честность review-ранов и шаблон поставки
 service: _platform
 status: archived
-updated: 2026-10-07
+updated: 2026-10-08
 tags: [plan, gate-followups-2, review-gate, init, tests]
 links:
   relates_to: [../README.md, ../gate-followups/README.md, ../crossreview-adoption/README.md]
@@ -101,5 +101,5 @@ gate-followups). Файловых коллизий с crossreview-adoption/02–
 | [03](03-severity-normalize-log.md) | Нормализация severity не молчит | archived | — |
 | [04](04-extract-parts-once.md) | Матрица диффа читает файл один раз | archived | — |
 | [05](05-init-creates-registry.md) | Init создаёт реестр команд | archived | — |
-| [06](06-ship-step7-local-merge.md) | Шаг 7 скилла /ship синхронен формализованному git-флоу | draft | — |
+| [06](06-ship-step7-local-merge.md) | Шаг 7 скилла /ship синхронен формализованному git-флоу | archived | — |
 | [07](07-lens-reviewer-topology.md) | Гейт-ревью — узкие специализированные ревьюеры | archived | — |

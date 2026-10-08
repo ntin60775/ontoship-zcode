@@ -2,8 +2,8 @@
 node_type: ticket
 title: Шаг 7 скилла /ship синхронен формализованному git-флоу
 service: _platform
-status: draft
-updated: 2026-10-06
+status: archived
+updated: 2026-10-08
 links:
   part_of: [README.md]
 ---
@@ -24,10 +24,23 @@ remote; MR when there is» — при наличии remote предписыва
 
 **Blocked by:** None (can start immediately).
 
-- [ ] шаг 7: локальный мерж в `dev` при любом контуре; MR — только если план
+- [x] шаг 7: локальный мерж в `dev` при любом контуре; MR — только если план
       или проект явно назначил (упоминается вместе со стоп-поинтом
       `stop-after-mr`)
-- [ ] Honest degradation называет отступления-константы ссылкой на
+- [x] Honest degradation называет отступления-константы ссылкой на
       docs/ops/git-flow.md; правило «не молча» не ослаблено
-- [ ] дифф тикета не задевает код и воркфлоу (только SKILL.md)
-- [ ] `gitmark lint` + `pytest` зелёные
+- [x] дифф тикета не задевает код и воркфлоу (только SKILL.md)
+- [x] `gitmark lint` + `pytest` зелёные
+
+## Shipping note
+
+Отгружен v0.5.34 (2026-10-08). Фича `2311620`, dev-мерж `e0220e6`,
+main-мерж `9a097eb`, релиз `b265bd5` + тег `v0.5.34`, пин `9636a66`
+(каталог 0.5.65), self-update `9c281ad` (I7-чурна нет). Гейт: reviewer
+qwen3.6-unlim-xl$high — dwfrun-5932da8e, 1/1 файл (docs-линза), 0 находок,
+чистый первый ран; confirmer GLM-5.3-Flash$high — dwfrun-2b194a0d, честный
+пустой случай. 142 passed, lint --strict чист, deploy-check зелёный.
+Отступления-константы прогона — docs/ops/git-flow.md («Отступления-константы»):
+локальный `--no-ff` мерж вместо MR, прод-контур = полный suite + deploy-check.
+Первый прогон под новой формулировкой шага 7 — отступления в шиппинг-ноуте
+одной ссылкой, как и предписывает отгруженный текст.
