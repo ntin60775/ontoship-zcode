@@ -89,15 +89,20 @@ run, strictly sequential.
 From the plan contract's `Constraints`, enforced verbatim:
 
 - `stop-before-commit` — after the review (step 6: both gate runs done and the
-  verified findings addressed) stop with the uncommitted diff and
-  wait for the operator's "continue". **Default when the contract names nothing.**
+  verified findings addressed) stop and wait for the operator's "continue",
+  reporting facts only — refs and hashes, touched files, counts, gate verdicts.
+  Never paste diff bodies into stop-points or confirmation windows: the operator
+  reads diffs himself, when he considers it necessary (docs/ops/git-flow.md,
+  «Режим»); show the diff only on his explicit request. **Default when the
+  contract names nothing.**
 - `stop-after-mr` — after step 7, stop for the operator's review.
 - `no-deploy` — skip the deploy in step 9; the rolling-snapshot write still
   happens (it is not part of the deploy).
 
 **Never skippable, with or without a Constraints block:** before merging to `main`
-(step 9) and before any deploy, ask the operator — one `AskUserQuestion` each, showing
-what is about to land. A "continue" the operator typed earlier in this run covers the
+(step 9) and before any deploy, ask the operator — one `AskUserQuestion` each, stating
+what is about to land as facts (refs, hashes, counts; no diff bodies, same rule as
+`stop-before-commit`). A "continue" the operator typed earlier in this run covers the
 stop-point it answered, not these two confirmations.
 
 ## Honest degradation
