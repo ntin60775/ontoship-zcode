@@ -59,7 +59,15 @@ run, strictly sequential.
    conclusion + notCovered) — pass the findings array as-is, even when empty (the confirm
    run reports the empty case honestly). If the review run errored or stopped,
    there is nothing to confirm: stop the run and report the failure; never run
-   the confirm run on a failed review. Fix every `verified` finding; refute only
+   the confirm run on a failed review. A review run that completed but did not
+   cover every changed file — its report names a file as failed or the file is
+   missing from the coverage — is not a review result either: a named failure
+   is not «0 findings» (crossreview-adoption/03). Check the coverage in the
+   report first; if a file is missing, relaunch the review run once, clean
+   (same args, new run) and never confirm a partial review. If the same file
+   fails again after the clean relaunch, stop the run with a diagnostic naming
+   the file — accepted degradation class, output-budget overflow on big files
+   (docs/reference/dependencies.md). Fix every `verified` finding; refute only
    with evidence; `unconfirmed` findings are reported to the operator, never dropped.
    `unverified` findings are a failed check, not a refutation — the confirmer
    did not answer even after one retry (a failed ask is retried exactly once,
