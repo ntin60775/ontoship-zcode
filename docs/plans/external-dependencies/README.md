@@ -91,6 +91,6 @@ gate-followups-2 (05–07) и crossreview-adoption/03 нет: 01 правит
 | # | Title | Status | Blocked by |
 |---|-------|--------|------------|
 | [01](01-zcode-credentials-contour.md) | Контур моделей/кредов замкнут на zcode; гейт fail-closed по субстрату | archived | — |
-| [02](02-dependencies-inventory.md) | Инвентаризация внешних зависимостей и контур обновления | draft | — |
+| [02](02-dependencies-inventory.md) | Инвентаризация внешних зависимостей и контур обновления | archived | — |
 | [03](03-contour-lessons-skill.md) | Поставляемые уроки контура — скилл skills/contour | draft | — |
 | [04](04-lens-config-autotune.md) | Автоподстройка субстрата линз под модель роли (обсуждение) | draft | [01](01-zcode-credentials-contour.md) |
