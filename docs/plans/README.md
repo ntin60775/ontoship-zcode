@@ -33,7 +33,7 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
-| [run-args-discipline.md](run-args-discipline.md) | draft | — |
+| [run-args-discipline.md](run-args-discipline.md) | archived | — |
 <!-- END inventory:plans -->
 
 ## Порядок выполнения
@@ -51,11 +51,14 @@ regenerate — never edit the table by hand.
 2. ✅ **gate-risk-scaling** — отгружен v0.5.40: лёгкий контур гейта для
    доковых диффов (классификация по карте диффа + условный confirm и доковая
    ветка шагов 6/7/9 скилла ship; приёмка — две живые пробы лёгкого контура).
-3. **run-args-discipline** — префлайт args перед сабмитом рана (уроки 10–11
-   contour).
+3. ✅ **run-args-discipline** — отгружен v0.5.41: префлайт args перед сабмитом
+   рана — уроки 10–11 contour (декларация — нижняя граница; node -e съедает
+   `--`); триггер в description; verified-находка гейта закрыта фикс-ом
+   (гарда конфирма не отклоняет декодируемую строку).
 4. **Реальная эксплуатация** — миграция шести оставшихся проектов с omp по
    runbook queue-2/19 (ждёт перечень или «все шесть» от оператора) и
-   повседневное использование KB/гейтов в рабочих проектах.
+   повседневное использование KB/гейтов в рабочих проектах; первая реальная
+   док-only правка любого проекта — через лёгкий контур (v0.5.40).
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.
