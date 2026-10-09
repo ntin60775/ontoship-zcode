@@ -147,14 +147,17 @@ submit; treat parse failures as caller bugs, not transport limits.
 starts cleanly and reports the diffs unreadable — its `root` argument was
 never passed, and the run went on with the silent default; a confirm run
 aborts honestly on its own guard — the `findings` argument arrived as a
-pre-serialized JSON string where an array was declared.
+pre-serialized JSON string that did not decode to the declared array.
 
 **Cause.** The host checks the call against the header declaration and
 nothing else: unknown keys, missing required values and wrong types are
 rejected. But `required: false` with a default passes silently when the
 argument is omitted, and a `type: json` argument accepts a string as a valid
-value. Whether a semantically needed argument was actually passed for *this*
-call is the caller's knowledge — no declaration carries it.
+value — the transport never looks inside it, so a string that does decode to
+the declared structure travels too, and what it becomes there is the
+consumer's own guard, not the host. Whether a semantically needed argument
+was actually passed for *this* call is the caller's knowledge — no
+declaration carries it.
 
 **Do.** Preflight the args before every submit, against what the script
 reads in this call, not against the declaration alone:
