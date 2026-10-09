@@ -34,6 +34,7 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
+| [roles-fallback-substrate/](roles-fallback-substrate/README.md) | draft | 0/4 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
 <!-- END inventory:plans -->
 
@@ -63,7 +64,14 @@ regenerate — never edit the table by hand.
    03 доковый — лёгкий контур v0.5.40). План собран 2026-10-09 из разбора
    заметки о TDD и агентах (DeepSWE, arXiv 2603.07084) по явному запросу
    оператора, без грилла — прецедент external-dependencies.
-5. **Реальная эксплуатация** — миграция шести оставшихся проектов с omp по
+5. **roles-fallback-substrate** — честные роли с фолбэком и демонтаж прямого
+   API-субстрата: роль-константа `fallback`, шаг 6 ведёт линзы на модель роли
+   reviewer, снос direct-ветки с тарифной картой, чистка модельных якорей
+   комментариев (решения оператора 2026-10-09; тикеты линейны 01→02→03→04).
+   Едет после evidence-discipline: тикет 02 правит тот же шаг 6 ship-скилла
+   (один файл — один чурн), 03 — тот же пин-тест субстрата; пререквизит 02 —
+   оператор перепризначает reviewer/challenger на GLM-5.3-Flash$high.
+6. **Реальная эксплуатация** — миграция шести оставшихся проектов с omp по
    runbook queue-2/19 (ждёт перечень или «все шесть» от оператора) и
    повседневное использование KB/гейтов в рабочих проектах; первая реальная
    док-only правка любого проекта — через лёгкий контур (v0.5.40).
