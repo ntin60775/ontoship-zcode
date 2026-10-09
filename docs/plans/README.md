@@ -23,6 +23,7 @@ regenerate — never edit the table by hand.
 | Plan | Status | Tickets |
 |---|---|---|
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
+| [evidence-discipline/](evidence-discipline/README.md) | draft | 0/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
@@ -33,7 +34,8 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
-| [run-args-discipline.md](run-args-discipline.md) | draft | — |
+| [roles-fallback-substrate/](roles-fallback-substrate/README.md) | draft | 0/4 |
+| [run-args-discipline.md](run-args-discipline.md) | archived | — |
 <!-- END inventory:plans -->
 
 ## Порядок выполнения
@@ -51,11 +53,28 @@ regenerate — never edit the table by hand.
 2. ✅ **gate-risk-scaling** — отгружен v0.5.40: лёгкий контур гейта для
    доковых диффов (классификация по карте диффа + условный confirm и доковая
    ветка шагов 6/7/9 скилла ship; приёмка — две живые пробы лёгкого контура).
-3. **run-args-discipline** — префлайт args перед сабмитом рана (уроки 10–11
-   contour).
-4. **Реальная эксплуатация** — миграция шести оставшихся проектов с omp по
+3. ✅ **run-args-discipline** — отгружен v0.5.41: префлайт args перед сабмитом
+   рана — уроки 10–11 contour (декларация — нижняя граница; node -e съедает
+   `--`); триггер в description; verified-находка гейта закрыта фикс-ом
+   (гарда конфирма не отклоняет декодируемую строку).
+4. **evidence-discipline** — дисциплина доказательств: телеметрия прогона
+   (лог прочитан, иначе активность, не факт), обязательность негативной/
+   мутационной пробы для новой тест-матрицы, справка «Иерархия доказательств»
+   (03 blocked by 01+02; 01–02 правят один шаг ship-скилла — едут подряд;
+   03 доковый — лёгкий контур v0.5.40). План собран 2026-10-09 из разбора
+   заметки о TDD и агентах (DeepSWE, arXiv 2603.07084) по явному запросу
+   оператора, без грилла — прецедент external-dependencies.
+5. **roles-fallback-substrate** — честные роли с фолбэком и демонтаж прямого
+   API-субстрата: роль-константа `fallback`, шаг 6 ведёт линзы на модель роли
+   reviewer, снос direct-ветки с тарифной картой, чистка модельных якорей
+   комментариев (решения оператора 2026-10-09; тикеты линейны 01→02→03→04).
+   Едет после evidence-discipline: тикет 02 правит тот же шаг 6 ship-скилла
+   (один файл — один чурн), 03 — тот же пин-тест субстрата; пререквизит 02 —
+   оператор перепризначает reviewer/challenger на GLM-5.3-Flash$high.
+6. **Реальная эксплуатация** — миграция шести оставшихся проектов с omp по
    runbook queue-2/19 (ждёт перечень или «все шесть» от оператора) и
-   повседневное использование KB/гейтов в рабочих проектах.
+   повседневное использование KB/гейтов в рабочих проектах; первая реальная
+   док-only правка любого проекта — через лёгкий контур (v0.5.40).
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.

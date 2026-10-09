@@ -1,6 +1,6 @@
 {
   "name": "ontoship",
-  "version": "0.5.40",
+  "version": "0.5.42",
   "description": "OntoShip for ZCode: markdown+git knowledge base, autonomous grilling, gated dev-flow",
   "skills": "./skills"
 }

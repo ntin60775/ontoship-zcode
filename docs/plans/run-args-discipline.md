@@ -2,7 +2,7 @@
 node_type: plan
 title: Транспортная дисциплина args — префлайт перед сабмитом рана
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-09
 links:
   documents: [../../skills/contour/SKILL.md]
