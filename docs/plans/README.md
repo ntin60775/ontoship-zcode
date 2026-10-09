@@ -29,7 +29,7 @@ regenerate — never edit the table by hand.
 | [gate-risk-scaling.md](gate-risk-scaling.md) | draft | — |
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
-| [lens-substrate-flash.md](lens-substrate-flash.md) | draft | — |
+| [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
