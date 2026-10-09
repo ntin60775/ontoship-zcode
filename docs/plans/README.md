@@ -3,7 +3,7 @@ node_type: index
 title: Plans
 service: _platform
 status: active
-updated: 2026-10-08
+updated: 2026-10-09
 links:
   part_of: [../README.md]
   relates_to: [../ontology.md]
@@ -26,7 +26,7 @@ regenerate — never edit the table by hand.
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
-| [gate-risk-scaling.md](gate-risk-scaling.md) | draft | — |
+| [gate-risk-scaling.md](gate-risk-scaling.md) | archived | — |
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
 | [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
@@ -45,12 +45,12 @@ regenerate — never edit the table by hand.
 пере-решены), затем — реальная эксплуатация (ADR
 [invariant-moratorium](../decisions/invariant-moratorium.md)).
 
-1. **lens-substrate-flash** — субстрат линз на дефолтных субагентах Flash
-   (убирает класс finish=length и обслуживание LENS_PROFILES; приёмка A/B —
-   гибрид с посевом, решение оператора 2026-10-09).
-2. **gate-risk-scaling** — лёгкий контур гейта для доковых диффов (движок уже
-   даёт docs-only ростер; добавляются условный confirm и доковая ветка
-   шагов 6/7/9 скилла ship).
+1. ✅ **lens-substrate-flash** — отгружен v0.5.39: субстрат линз на дефолтных
+   субагентах Flash (убирает класс finish=length и обслуживание LENS_PROFILES;
+   приёмка A/B с посевом: новый субстрат 4/4 + полный coverage, старый 3/4).
+2. ✅ **gate-risk-scaling** — отгружен v0.5.40: лёгкий контур гейта для
+   доковых диффов (классификация по карте диффа + условный confirm и доковая
+   ветка шагов 6/7/9 скилла ship; приёмка — две живые пробы лёгкого контура).
 3. **run-args-discipline** — префлайт args перед сабмитом рана (уроки 10–11
    contour).
 4. **Реальная эксплуатация** — миграция шести оставшихся проектов с omp по

@@ -2,7 +2,7 @@
 node_type: plan
 title: Риск-скейлинг гейта — доковые диффы проходят лёгкий контур
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-09
 links:
   documents: [../../skills/ship/SKILL.md]
