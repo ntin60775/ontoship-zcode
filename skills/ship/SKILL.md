@@ -34,7 +34,8 @@ run, strictly sequential.
    Run the suite until green (background long runs, report honestly). A suite run is
    telemetry, not a fact by itself: it counts as a fact only with its log read — the
    first failure, the counters, the warnings. Filtering the output must not eat the
-   exit code (`pytest | tail` lesson); rc=0 with the log unread is activity, not a fact.
+   exit code (`pytest | tail` ate rc — gate-followups-2/02); rc=0 with the log
+   unread is activity, not a fact.
 6. **Independent review** — resolve the two gate roles (`roles.py resolve --json`,
    roles skill) — `reviewer` and `confirmer` — and verify each against **ListModels**:
    missing/disabled model or absent level → **stop the run** with a diagnostic naming
