@@ -15,6 +15,7 @@ The knowledge base of the `ontoship-zcode` plugin itself — dogfooded: the KB t
 plugin ships is maintained by the plugin's own discipline (ontology, lint, index).
 
 - [ontology.md](ontology.md) — the knowledge model (types, properties, typed links, invariants).
+- [decisions/](decisions/README.md) — decisions of record (the invariant moratorium, accepted trade-offs).
 - [reference/](reference/README.md) — cross-cutting specs (command registry, roles, memory).
 - [services/](services/README.md) — per-component docs (the gitmark CLI engine).
 - [plans/](plans/README.md) — plan contracts and tickets (the dev-flow substrate).

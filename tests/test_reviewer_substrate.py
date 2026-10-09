@@ -1,23 +1,32 @@
-"""Contract of the gate reviewer substrate (gate-followups-2/07): the lens
-reviews are DIRECT neuraldeep API calls made by an inline node script that
-travels inside the workflow file itself (world.run("node", ["-e", ND_CALL,
-"--", <json>]) — no version drift between the workflow and a helper). The
-host-subagent substrate died on the tariff wall (~140k base request weight
-against the 138336 ceiling, three provider stops in one day); the coddy
-detour died on its own agency (tool wandering, turn cap, thinking burn,
-config sync). The operator's decision closes the provider/model/credential
-contour on zcode: the script reads apiKey and baseUrl from the provider card
-in ~/.zcode/v2/provider_config.json and never prints the key. These tests
-pin the script's syntax and its hygiene; the JSON extraction/repair parsers
-are pinned below on synthetic samples. external-dependencies/01: the provider
-is an ARG with the default neuraldeep-sub (a switch is configuration, not a
-repo edit), and the substrate is fail-closed — every missing piece (readable
-config, provider card, apiKey, the reviewer-role model in the card) is a
-named abort naming the role, the config path and what is missing, probed
-here live against fabricated HOMEs. external-dependencies/04: the tariff
-physics is a per-model profile map (LENS_PROFILES) resolved before the
-workflow constants — an unknown model is a named abort before the lenses,
-never a silent transfer of the unlim-xl constants."""
+"""Contract of the gate reviewer substrate (gate-followups-2/07 +
+lens-substrate-flash). DEFAULT lens substrate since 2026-10-09: HOST
+SUBAGENTS (agent()) on the model the caller assigns via the workflow's
+subagent_model (the confirmer role model, ship SKILL.md step 6); the host
+runtime owns parallelism, provider-error retries and timeouts (dynamic-
+workflows contract §16.3) — the subagent branch has no pool, no retries, no
+per-call timeouts, and one typed ask per file×lens pair (no JSON-in-fence).
+The DIRECT neuraldeep API call remains the explicit fallback
+(args.substrate="direct") for models whose context cannot carry the ~141k
+subagent base weight (the 2026-10-06 tariff wall, three provider stops in
+one day): the inline node caller travels inside the workflow file itself
+(world.run("node", ["-e", ND_CALL, "--", <json>]) — no version drift), the
+host-subagent substrate back then died on the tariff wall, the coddy detour
+died on its own agency. The operator's decision closes the provider/model/
+credential contour on zcode: the script reads apiKey and baseUrl from the
+provider card in ~/.zcode/v2/provider_config.json and never prints the key.
+These tests pin the script's syntax and its hygiene; the JSON extraction/
+repair parsers are pinned below on synthetic samples. external-dependencies/
+01: the provider is an ARG with the default neuraldeep-sub (a switch is
+configuration, not a repo edit), and the direct substrate is fail-closed —
+every missing piece (readable config, provider card, apiKey, the
+reviewer-role model in the card) is a named abort naming the role, the
+config path and what is missing, probed here live against fabricated HOMEs.
+external-dependencies/04: the tariff physics is a per-model profile map
+(LENS_PROFILES) resolved ONLY inside the direct branch — an unknown model is
+a named abort before the lenses, never a silent transfer of the unlim-xl
+constants; the subagent branch has its own hygiene literals outside the map.
+Substrate args: empty = subagent, unknown = named return, reviewerModel/
+provider under the default substrate = named abort (never a silent ignore)."""
 import json
 import os
 import re
@@ -246,17 +255,24 @@ def test_args_provider_pinned():
 
 def test_substrate_fail_closed_blocks_pinned():
     """Проба субстрата до линз и страховка полного отказа на месте
-    (external-dependencies/01): блоки с маркерами, abort именует роль,
-    проба раньше пула — отказ субстрата не тратит вызовы линз."""
+    (external-dependencies/01; пин переписан поимённо под lens-substrate-flash):
+    проба живёт ТОЛЬКО в direct-ветке и стоит до кода линз — отказ субстрата
+    не тратит вызовы; abort именует роль; страховка полного отказа общая."""
     text = WORKFLOW.read_text(encoding="utf-8")
-    m = re.search(r"// BEGIN SUBSTRATE CHECK.*?\n(.*?)// END SUBSTRATE CHECK", text, re.S)
-    assert m, "SUBSTRATE CHECK block lost its markers"
-    body = m.group(1)
-    assert 'mode: "check"' in body and "throw new Error" in body and "роль reviewer" in body
-    assert text.index("// END SUBSTRATE CHECK") < text.index("// BEGIN LENS TASKS"), (
-        "проба субстрата после пула линз — отказ тратит вызовы")
-    m2 = re.search(r"// BEGIN SUBSTRATE TOTAL FAIL.*?\n(.*?)// END SUBSTRATE TOTAL FAIL", text, re.S)
-    assert m2, "SUBSTRATE TOTAL FAIL block lost its markers"
+    m = re.search(r"// BEGIN DIRECT LENSES.*?\n(.*?)// END DIRECT LENSES", text, re.S)
+    assert m, "DIRECT LENSES block lost its markers"
+    direct = m.group(1)
+    m2 = re.search(r"// BEGIN SUBSTRATE CHECK.*?\n(.*?)// END SUBSTRATE CHECK", text, re.S)
+    assert m2, "SUBSTRATE CHECK block lost its markers"
+    assert 'mode: "check"' in m2.group(1) and "throw new Error" in m2.group(1) and "роль reviewer" in m2.group(1)
+    # проба внутри direct-ветки и до исполнения линз
+    assert m2.group(1) in direct, "проба субстрата вне direct-ветки"
+    check_pos = direct.find("// BEGIN SUBSTRATE CHECK")
+    task_pos = direct.find("const runLensTask")
+    assert check_pos != -1 and task_pos != -1, "якоря порядка пробы потеряны в direct-ветке"
+    assert check_pos < task_pos, "проба субстрата после кода линз — отказ тратит вызовы"
+    m3 = re.search(r"// BEGIN SUBSTRATE TOTAL FAIL.*?\n(.*?)// END SUBSTRATE TOTAL FAIL", text, re.S)
+    assert m3, "SUBSTRATE TOTAL FAIL block lost its markers"
     assert re.search(r"const substrateAbort = totalSubstrateFailure\(reviews, lensTasks\.length\);", text)
     assert 'if (substrateAbort !== "") throw new Error(substrateAbort);' in text
 
@@ -303,48 +319,52 @@ def test_nd_call_reads_envelope_from_last_argv():
 
 
 def test_lens_pool_respects_tariff_concurrency():
-    """Пул поведенчески (verified гейта v6: прежний тест пинал строки —
-    мутация «length: lensTasks.length» давала неограниченный параллелизм
-    при зелёном сьюте). Срез LENS TASKS исполняется под node: задач ровно
-    по паре файл×линза (без нарезки/дедупа), воркеры = min(4, N) — потолок
-    не растёт с числом задач; сайт рождения параллелизма пинен лексически."""
+    """Срез LENS TASKS поведенчески: задач ровно по паре файл×линза (без
+    нарезки/дедупа). Пул «воркеры = min(cap, N)» — поведенческий прогон среза
+    POOL LOOP с инструментированным runLensTask (verified confirm-рана
+    2026-10-09: лексические якоря проходила и мутация «мёртвый пул +
+    несвязанный Promise.all», maxInFlight 4 → 10); пул живёт ТОЛЬКО в
+    direct-ветке — субагентная параллелит все задачи без своего пула."""
     text = WORKFLOW.read_text(encoding="utf-8")
     m = re.search(r"// BEGIN LENS TASKS.*?\n(.*?)// END LENS TASKS", text, re.S)
     assert m, "LENS TASKS block lost its markers"
-    slice_src = m.group(1).replace(
-        "const LENS_CONCURRENCY = lensProfile.lensConcurrency;",
-        "const LENS_CONCURRENCY = 4;\nconst activeLenses = LENSES_SAMPLE;",
-        1)
-    assert "activeLenses = LENSES_SAMPLE" in slice_src, (
-        "якорь инъекции дрейфовал: LENS_CONCURRENCY в блоке TASKS не найден")
-    # verified гейта 04: presence-якорь проходит при дубликате во вложенной
-    # функции — absence-проверка ловит неснятый lensProfile в любом месте среза
-    assert "lensProfile.lensConcurrency" not in slice_src, (
-        "в срезе остался неснятый LENS_CONCURRENCY — срез гетерогенный")
+    tasks_slice = m.group(1)
+    assert "lensProfile" not in tasks_slice, "тариф/пул протёк в общий блок задач"
+    mp = re.search(r"// BEGIN LENS POOL LOOP.*?\n(.*?)// END LENS POOL LOOP", text, re.S)
+    assert mp, "LENS POOL LOOP block lost its markers"
+    md = re.search(r"// BEGIN DIRECT LENSES.*?\n(.*?)// END DIRECT LENSES", text, re.S)
+    ms = re.search(r"// BEGIN SUBAGENT LENSES.*?\n(.*?)// END SUBAGENT LENSES", text, re.S)
+    assert md and ms, "маркеры веток субстрата потеряны"
+    direct, subagent = md.group(1), ms.group(1)
+    assert mp.group(1) in direct, "пул не в direct-ветке"
+    mworkers = re.search(r"^const LENS_WORKERS = .*?;$", direct, re.M)
+    assert mworkers, "строка воркеров пула потеряна в direct-ветке"
+    assert "LENS_WORKERS" not in subagent, "пул протёк в субагентную ветку"
+    assert "Promise.all(lensTasks.map" in subagent, "субагентная ветка не мапит все задачи"
+    outside = re.sub(r"// BEGIN DIRECT LENSES.*?\n(.*?)// END DIRECT LENSES", "", text, flags=re.S)
+    assert "length: LENS_WORKERS" not in outside, "параллелизм пула рождается вне direct-ветки"
+    # поведенческий прогон: N=10 задач, cap=4 → максимум одновременных ровно 4
     driver = (
-        "const LENSES_SAMPLE = [\n"
-        "  { lens: { id: 'logic' }, files: ['a.py', 'b.py'] },\n"
-        "  { lens: { id: 'docs' }, files: ['c.md'] },\n"
-        "];\n"
-        f"{slice_src}\n"
-        "console.log(JSON.stringify({ tasks: lensTasks.length, workers: LENS_WORKERS }));\n"
+        "const activeLenses = [{ lens: { id: 'logic' }, files: Array.from({ length: 10 }, (_, i) => 'f' + i + '.py') }];\n"
+        f"{tasks_slice}\n"
+        "const LENS_CONCURRENCY = 4;\n"
+        f"{mworkers.group(0)}\n"
+        "let inFlight = 0, maxInFlight = 0, done = 0;\n"
+        "const runLensTask = async () => {\n"
+        "  inFlight += 1; maxInFlight = Math.max(maxInFlight, inFlight);\n"
+        "  await new Promise((resolve) => setTimeout(resolve, 5));\n"
+        "  inFlight -= 1; done += 1;\n"
+        "};\n"
+        f"{mp.group(1)}\n"
+        "console.log(JSON.stringify({ maxInFlight, done, tasks: lensTasks.length }));\n"
     )
-    with tempfile.NamedTemporaryFile("w", suffix=".mjs", delete=False) as fh:
-        fh.write(driver)
-        name = fh.name
-    try:
-        r = subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
-    finally:
-        Path(name).unlink(missing_ok=True)
-    assert r.returncode == 0, f"срез TASKS упал:\n{r.stderr[:300]}"
+    r = run_node_slice(driver)
+    assert r.returncode == 0, f"срез POOL LOOP упал:\n{r.stderr[:300]}"
     out = json.loads(r.stdout)
-    assert out["tasks"] == 3, f"пар файл×линза должно быть 3, срез дал {out['tasks']} — нарезка/дедуп"
-    assert out["workers"] == 3, f"воркеры = min(4, 3) = 3, срез дал {out['workers']}"
-    # сайт рождения параллелизма берёт воркеров из блока, не длину задач
-    assert "length: LENS_WORKERS" in text
-    outside = re.sub(r"// BEGIN LENS TASKS.*?\n(.*?)// END LENS TASKS", "", text, flags=re.S)
-    assert "length: lensTasks.length" not in outside, (
-        "параллелизм рождается вне запиненного блока")
+    assert out["tasks"] == 10, "пар файл×линза должно быть 10 — нарезка/дедуп"
+    assert out["done"] == 10, f"пул выполнил {out['done']} из 10 задач"
+    assert out["maxInFlight"] == 4, (
+        f"воркеры = min(4, 10) = 4, прогон дал {out['maxInFlight']} — потолок не держится")
 
 
 def test_nd_call_closes_credentials_contour_on_zcode():
@@ -569,34 +589,143 @@ def test_lens_profile_unknown_model_fails_named():
 
 
 def test_lens_profile_flows_into_constants():
-    """Константы воркфлоу читают профиль; литералов тарифа вне карты нет
-    (verified-паттерн гейта: строковый пин ловит молчаливый перенос
-    unlim-xl-констант мимо профиля). «Один файл на вызов» — инвариант
-    гейта, ручки filesPerCall в профиле нет."""
+    """Пин переписан поимённо под lens-substrate-flash: тарифные константы
+    читают профиль ТОЛЬКО внутри direct-ветки — живыми строками (^-привязка,
+    урок гейта 04: голый str.index не различает комментарии), под guard'ом
+    if (substrate === "direct") (verified confirm-рана 2026-10-09: перенос
+    блока профиля над guard'ом и присвоение-в-комментарии проходили зелёным);
+    у субагентной ветки — литералы гигиены вне карты; MAX_FINDINGS/MAX_FILES —
+    константы гейта для обеих веток (из профиля не читаются). «Один файл
+    на вызов» — инвариант гейта, ручки filesPerCall в профиле нет."""
     text = WORKFLOW.read_text(encoding="utf-8")
+    m = re.search(r"// BEGIN SUBSTRATE CONSTANTS.*?\n(.*?)// END SUBSTRATE CONSTANTS", text, re.S)
+    assert m, "SUBSTRATE CONSTANTS block lost its markers"
+    span, outside = m.group(1), text.replace(m.group(0), "")
     for const, key in (
-        ("MAX_FINDINGS", "maxFindings"),
-        ("MAX_FILES", "maxFiles"),
         ("MAX_DIFF_LINES", "maxDiffLines"),
         ("LENS_INLINE_LINES", "lensInlineLines"),
         ("LENS_RETRIES", "lensRetries"),
         ("LENS_CALL_TIMEOUT_MS", "lensCallTimeoutMs"),
         ("LENS_CONCURRENCY", "lensConcurrency"),
     ):
-        assert f"const {const} = lensProfile.{key};" in text, f"{const} не читает профиль"
-    outside = re.sub(
-        r"// BEGIN LENS PROFILE.*?\n(.*?)// END LENS PROFILE", "", text, flags=re.S)
-    assert not re.search(
-        r"const (MAX_FINDINGS|MAX_FILES|MAX_DIFF_LINES|LENS_INLINE_LINES"
-        r"|LENS_RETRIES|LENS_CALL_TIMEOUT_MS|LENS_CONCURRENCY) = \d",
-        outside), "тарифная константа задана литералом вне карты профилей"
+        line = rf"^\s*{const} = lensProfile\.{key};\s*$"
+        assert re.search(line, span, re.M), f"{const} не читает профиль живой строкой в direct-ветке"
+        assert not re.search(line, outside, re.M), f"{const} читает профиль вне direct-ветки"
+    # субагентная ветка — литералы гигиены, не тариф
+    assert re.search(r"^\s*MAX_DIFF_LINES = \d+;\s*$", span, re.M), "литерал гигиены субагентной ветки пропал"
+    assert re.search(r"^\s*LENS_INLINE_LINES = \d+;\s*$", span, re.M), "литерал гигиены субагентной ветки пропал"
+    # константы гейта обеих веток — литералы, профиль на них не влияет
+    assert "const MAX_FINDINGS = 8;" in text and "const MAX_FILES = 20;" in text
+    assert "MAX_FINDINGS = lensProfile" not in text and "MAX_FILES = lensProfile" not in text
     assert "filesPerCall" not in text, "«один файл на вызов» протёк в профиль как ручка"
-    # verified гейта 04: str.index не различает комментарии — якоря порядка
-    # ищутся с ^-привязкой к началу строки, упоминание в комментарии не считывается
-    def line_pos(pattern: str) -> int:
-        m = re.search(pattern, text, re.M)
-        assert m, f"якорь порядка потерян: {pattern}"
-        return m.start()
-    assert line_pos(r"^// BEGIN LENS PROFILE") < line_pos(
-        r"^const MAX_FINDINGS = lensProfile\.maxFindings;$"), (
+
+    def line_pos(pattern: str, src: str) -> int:
+        mm = re.search(pattern, src, re.M)
+        assert mm, f"якорь порядка потерян: {pattern}"
+        return mm.start()
+
+    # контейнмент: guard direct-ветки стоит ДО блока профиля (перенос над
+    # guard'ом сделал бы профиль безусловным)
+    guard = span.find('if (substrate === "direct") {')
+    profile = span.find("// BEGIN LENS PROFILE")
+    assert guard != -1, "guard direct-ветки потерян в блоке констант"
+    assert profile != -1, "блок LENS PROFILE потерян в блоке констант"
+    assert guard < profile, "профиль резолвится вне guard'а direct-ветки"
+    # порядок: резолвер профиля до первого присвоения константе
+    resolver = r"^\s*const lensProfile = resolveLensProfile\(reviewerModel\);\s*$"
+    assert line_pos(r"^\s*// BEGIN LENS PROFILE", span) < line_pos(resolver, span), (
+        "резолвер профиля не после маркера блока")
+    assert line_pos(resolver, span) < line_pos(r"^\s*MAX_DIFF_LINES = lensProfile\.maxDiffLines;", span), (
         "профиль резолвится после констант — они прочитают мусор")
+    # тарифных литералов вне карты профилей нет — все пять тарифных имён
+    assert not re.search(
+        r"const (MAX_DIFF_LINES|LENS_INLINE_LINES|LENS_RETRIES|LENS_CALL_TIMEOUT_MS|LENS_CONCURRENCY) = \d",
+        outside), "тарифная константа задана литералом вне карты профилей"
+
+
+def test_substrate_args_resolution():
+    """Новый пин (lens-substrate-flash): шапка субстрата поведенчески —
+    пусто = subagent; неизвестное значение — именованный возврат, не ранняя
+    смерть; reviewerModel/provider при дефолтном субстрате — именованный
+    abort («имеет смысл только с substrate=direct»), не молчаливый игнор;
+    пустые (после trim) значения не аборят; позитивный путь direct + явные
+    reviewerModel/provider проходит (verified confirm-рана 2026-10-09:
+    безусловный guard, убивающий весь direct-фолбэк, зелёным не отличался)."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    m = re.search(r"// BEGIN SUBSTRATE ARGS.*?\n(.*?)// END SUBSTRATE ARGS", text, re.S)
+    assert m, "SUBSTRATE ARGS block lost its markers"
+    slice_src = m.group(1).replace(
+        "const directOnlyArgs: string[] = [];", "const directOnlyArgs = [];")
+    assert "string[]" not in slice_src, "TS-аннотация в срезе не снята — node срез не исполнит"
+    driver = (
+        "async function run(args) {\n"
+        f"{slice_src}\n"
+        "return { ok: true, substrate };\n"
+        "}\n"
+        "const out = [];\n"
+        "out.push((await run({})).substrate === 'subagent');\n"
+        "const unknown = await run({ substrate: 'wat' });\n"
+        "out.push(unknown.ok === undefined && unknown.conclusion.includes('неизвестный substrate'));\n"
+        "let aborted = '';\n"
+        "try { await run({ reviewerModel: 'x' }); } catch (e) { aborted = String(e.message); }\n"
+        "out.push(aborted.includes('args.reviewerModel') && aborted.includes('только с substrate=direct'));\n"
+        "aborted = '';\n"
+        "try { await run({ provider: 'p' }); } catch (e) { aborted = String(e.message); }\n"
+        "out.push(aborted.includes('args.provider') && aborted.includes('только с substrate=direct'));\n"
+        "out.push((await run({ reviewerModel: ' ', provider: ' ' })).substrate === 'subagent');\n"
+        "out.push((await run({ substrate: 'direct' })).substrate === 'direct');\n"
+        "out.push((await run({ substrate: 'direct', reviewerModel: 'x', provider: 'p' })).substrate === 'direct');\n"
+        "console.log(JSON.stringify(out));\n"
+    )
+    r = run_node_slice(driver)
+    assert r.returncode == 0, f"срез шапки субстрата упал:\n{r.stderr[:300]}"
+    assert all(json.loads(r.stdout)), r.stdout
+
+
+def test_nd_call_absent_from_subagent_branch():
+    """Новый пин (lens-substrate-flash, absence-якорь — урок гейта 04:
+    presence-якорь дополняется absence-проверкой): в субагентной ветке нет
+    ND_CALL, прямых world.run-вызовов API и JSON-ремонта — там типизированный
+    ask; ND_CALL живёт только в direct-ветке."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    md = re.search(r"// BEGIN DIRECT LENSES.*?\n(.*?)// END DIRECT LENSES", text, re.S)
+    ms = re.search(r"// BEGIN SUBAGENT LENSES.*?\n(.*?)// END SUBAGENT LENSES", text, re.S)
+    assert md and ms, "маркеры веток субстрата потеряны"
+    direct, subagent = md.group(1), ms.group(1)
+    assert "BEGIN ND CALL" in direct and "ND_CALL" in direct, "ND_CALL потерян в direct-ветке"
+    assert "ND_CALL" not in subagent, "ND_CALL протёк в субагентную ветку"
+    assert "world.run(" not in subagent, "прямой вызов API в субагентной ветке"
+    assert "extractLensJson" not in subagent and "repairJsonStrings" not in subagent, (
+        "JSON-в-фенсе протёк в субагентную ветку")
+
+
+def test_subagent_lens_one_typed_ask_per_pair():
+    """Новый пин (lens-substrate-flash): инвариант «одна пара файл×линза =
+    ровно один agent().ask» — сайт вызова ask в субагентной ветке один, ветка
+    мапит все задачи по парам, результат типизированный (LensReviewResult),
+    явной model в agent() нет (модель линз — subagent_model воркфлоу);
+    отказ вызова изолирован в catch, именует линзу, идёт через redact и
+    ОБЯЗАН записать failed в results именно внутри catch (verified
+    confirm-рана 2026-10-09: presence-пин проходил catch без записи — файл
+    молча выпадал из coverage)."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    ms = re.search(r"// BEGIN SUBAGENT LENSES.*?\n(.*?)// END SUBAGENT LENSES", text, re.S)
+    assert ms, "SUBAGENT LENSES block lost its markers"
+    subagent = ms.group(1)
+    assert "interface LensReviewResult" in text, "типизированный интерфейс линзы потерян"
+    assert subagent.count(".ask<LensReviewResult>(") == 1, "ask не один на ветку"
+    assert subagent.count("await agent(") == 1, "сайт agent() не один"
+    assert "model:" not in subagent, (
+        "явная model в agent() молча перекрывает subagent_model воркфлоу")
+    assert "lensTasks.map((_, i) => runSubagentLensTask(i))" in subagent, (
+        "задачи не мапятся по парам файл×линза")
+    mcatch = re.search(r"catch \(e\) \{(.*?)\n  \}", subagent, re.S)
+    assert mcatch, "catch-ветка отказа вызова потеряна"
+    catch = mcatch.group(1)
+    assert 'results[taskIndex] = { review: { file: file.path, findings: [], summary: "", failed }' in catch, (
+        "catch не пишет failed в results — отказавший файл молча выпадает из coverage")
+    assert "${lens.id}" in catch, "отказ вызова не именует линзу"
+    assert "redact(" in catch, "текст исключения уходит наружу без redact"
+    # без своего ретрая: повторы решает рантайм хоста (dynamic-workflows §16.3)
+    assert "retry" not in subagent.lower() and "attempt" not in subagent.lower(), (
+        "у субагентной ветки появился свой ретрай")
