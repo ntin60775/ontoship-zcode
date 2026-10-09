@@ -13,8 +13,8 @@ Source of truth = markdown. Всё производное (поисковый и
     gitmark map   [-o docs/docs-map.html]     self-contained HTML: дерево+рендер+граф
     gitmark serve [-p 8799]                   локальный http для просмотра HTML
     gitmark stat                              статистика индекса/БЗ
-    gitmark lint  [paths…] [--strict]         проверить онтологию (типы/связи/README/битые ссылки/реестр I7)
-    gitmark inventory [--check]               перегенерировать сводные таблицы реестра команд/навыков
+    gitmark lint  [paths…] [--strict]         проверить онтологию (типы/связи/README/битые ссылки/реестры I7, цепочка I10)
+    gitmark inventory [--check]               перегенерировать сводные таблицы реестров: команд/навыков, планов
     gitmark version
 
 Markdown-рендер в `map` использует lib `markdown` если установлена (опционально),
@@ -650,8 +650,53 @@ def card_schema_issues(rels: list, fm_cache: dict) -> list:
     return issues
 
 
+def index_chain_issues(root: Path) -> list:
+    """I10 — индексная цепочка: README каждого подраздела docs/ достижим по
+    body-ссылке из README родителя, от docs/README.md вниз по дереву.
+
+    Body-семантика: frontmatter не участвует, ссылки внутри fenced-блоков и
+    inline-кода не считаются (тот же strip_code, что у I4). Ссылка покрывает
+    подраздел, если резолвится в сам каталог подраздела или его README.md.
+    Подраздел без README — находка I5, здесь не дублируется; без docs/README.md
+    цепочки нет и проверять нечего.
+    """
+    docs_root = root / "docs"
+    if not (docs_root / "README.md").exists():
+        return []
+    readmes: dict = {}
+    for p in docs_root.rglob("README.md"):
+        readmes[p.parent.relative_to(root).as_posix()] = p
+    issues = []
+    for rel_dir in sorted(readmes):
+        try:
+            text = readmes[rel_dir].read_text("utf-8", errors="replace")
+        except Exception:
+            # Нечитаемый README — fail-closed: находка, а не молчаливый пропуск
+            # всей подцепочки ниже (гейт-находка 12).
+            issues.append(("ERR", "I10", rel_dir + "/README.md",
+                           "README не читается — цепочка индексов не проверена"))
+            continue
+        body = strip_code(FM_RE.sub("", text, count=1))
+        covered = set()
+        for href in LINK_RE.findall(body):
+            h = _nfc(urllib.parse.unquote(_strip_sel(href))).replace("\\", "/")
+            if not h or is_external(h) or h.startswith("/"):
+                continue
+            covered.add(posixpath.normpath((Path(rel_dir) / h).as_posix()))
+        for child in sorted((root / rel_dir).iterdir()):
+            if not child.is_dir():
+                continue
+            child_rel = child.relative_to(root).as_posix()
+            if child_rel not in readmes:
+                continue
+            if child_rel not in covered and child_rel + "/README.md" not in covered:
+                issues.append(("ERR", "I10", rel_dir + "/README.md",
+                               f"в теле индекса нет ссылки на подраздел {child_rel}/"))
+    return issues
+
+
 def cmd_lint(root: Path, paths: list | None = None) -> dict:
-    """Проверка инвариантов онтологии I1–I9. Возвращает {errors, warnings, checked}."""
+    """Проверка инвариантов онтологии I1–I10. Возвращает {errors, warnings, checked}."""
     for warning in gitignore_warnings(root):
         print(f"[WARN] gitignore: {warning}", file=sys.stderr)
     docs = list(iter_md(root))
@@ -752,6 +797,9 @@ def cmd_lint(root: Path, paths: list | None = None) -> dict:
     # I9 — схемы карточек: обязательные поля и допустимые значения
     issues.extend(card_schema_issues(rels, fm_cache))
 
+    # I10 — индексная цепочка: README подраздела — по body-ссылке из README родителя
+    issues.extend(index_chain_issues(root))
+
     errs = [i for i in issues if i[0] == "ERR"]
     warns = [i for i in issues if i[0] == "WARN"]
     return {"issues": issues, "errors": errs, "warnings": warns,
@@ -762,6 +810,8 @@ def cmd_lint(root: Path, paths: list | None = None) -> dict:
 COMMANDS_DIR = ".zcode/commands"
 SKILLS_DIR = ".zcode/skills"
 REGISTRY_REL = "docs/reference/commands.md"
+PLANS_DIR = "docs/plans"
+PLANS_INDEX_REL = PLANS_DIR + "/README.md"
 
 
 def _rel(p: Path, root: Path) -> str:
@@ -843,6 +893,53 @@ def _skills_table(skills: list) -> str:
     return "\n".join(rows)
 
 
+def _scan_plans(root: Path) -> list:
+    """Планы из docs/plans: файл-планы и папки — {name, label, link, status, done, total}.
+
+    Статус — из frontmatter носителя (файл плана / README папки), счётчик тикетов —
+    по frontmatter документов папки: node_type: ticket, done — status: archived.
+    Папка без README попадает в скан без статуса (её называет I5); src-планов один —
+    сортировка по имени стабильна по построению."""
+    d = root / PLANS_DIR
+    if not d.is_dir():
+        return []
+    out = []
+    for p in sorted(d.iterdir()):
+        if p.name == "README.md":
+            continue
+        if p.is_file() and p.suffix == ".md":
+            fm = parse_frontmatter(p.read_text("utf-8", errors="replace")) or {}
+            out.append({"name": p.stem, "label": p.name, "link": p.name,
+                        "status": str(fm.get("status", "")), "done": 0, "total": 0})
+        elif p.is_dir():
+            rm = p / "README.md"
+            fm = parse_frontmatter(rm.read_text("utf-8", errors="replace")) or {} if rm.exists() else {}
+            tickets = []
+            for q in sorted(p.glob("*.md")):
+                if q.name == "README.md":
+                    continue
+                tfm = parse_frontmatter(q.read_text("utf-8", errors="replace")) or {}
+                if tfm.get("node_type") == "ticket":
+                    tickets.append(tfm)
+            # Папка без README (зона I5) ссылается на сам каталог: ссылка на
+            # несуществующий README делала бы генерат источником ERR I4.
+            link = p.name + "/README.md" if rm.exists() else p.name + "/"
+            out.append({"name": p.name, "label": p.name + "/", "link": link,
+                        "status": str(fm.get("status", "")),
+                        "done": sum(1 for t in tickets if t.get("status") == "archived"),
+                        "total": len(tickets)})
+    return sorted(out, key=lambda s: (s["name"], s["link"]))
+
+
+def _plans_table(plans: list) -> str:
+    rows = ["| Plan | Status | Tickets |", "|---|---|---|"]
+    for s in plans:
+        st = _cell(s["status"]) or "—"
+        tix = f"{s['done']}/{s['total']}" if s["total"] else "—"
+        rows.append(f"| [{s['label']}]({s['link']}) | {st} | {tix} |")
+    return "\n".join(rows)
+
+
 def _marker_pair(what: str):
     return (f"<!-- BEGIN inventory:{what} -->", f"<!-- END inventory:{what} -->")
 
@@ -888,8 +985,27 @@ def ontology_twin_issues(root: Path) -> list:
              "синхронизируй тело от первого '## '")]
 
 
+def _plans_issues(root: Path) -> list:
+    """I7-таргет «планы»: таблица в docs/plans/README.md синхронна с frontmatter
+    носителей. README нет — таргета нет (I5 называет саму папку); README есть,
+    маркеров нет — рассинхрон вслух."""
+    reg = root / PLANS_INDEX_REL
+    if not reg.exists():
+        return []
+    text = reg.read_text("utf-8", errors="replace")
+    b, e = _marker_pair("plans")
+    i, j = text.find(b), text.find(e)
+    # j < i + len(b) — END раньше или внутри BEGIN: маркеры битые, а не «пусто»
+    if i < 0 or j < 0 or j < i + len(b):
+        return [(PLANS_INDEX_REL, "нет или битые маркеры inventory:plans")]
+    if text[i + len(b):j].strip("\n") != _plans_table(_scan_plans(root)):
+        return [(PLANS_INDEX_REL,
+                 "таблица inventory:plans рассинхронизирована — `gitmark inventory`")]
+    return []
+
+
 def inventory_issues(root: Path) -> list:
-    """I7: рассинхрон реестра. → список (path, msg). Пусто = синхронно."""
+    """I7: рассинхрон реестров. → список (path, msg). Пусто = синхронно."""
     issues = []
     reg = root / REGISTRY_REL
     commands, skills = _scan_commands(root), _scan_skills(root)
@@ -923,22 +1039,26 @@ def inventory_issues(root: Path) -> list:
         issues.append((REGISTRY_REL, f"нет секции `## /{n}` для {COMMANDS_DIR}/{n}.md"))
     for n in sorted(sections - known):
         issues.append((REGISTRY_REL, f"секция `## /{n}` без файла {COMMANDS_DIR}/{n}.md"))
+    issues.extend(_plans_issues(root))
     return issues
 
 
 def cmd_inventory(root: Path, check: bool = False) -> dict:
-    """Перегенерация (--check: только доклад) сводных таблиц реестра."""
+    """Перегенерация (--check: только доклад) сводных таблиц реестров.
+
+    Таргеты: команды и навыки — docs/reference/commands.md (реестр обязателен:
+    едет с пакетом); планы — docs/plans/README.md факультативен: у потребителя
+    планов может не быть, тогда таргет молчит (папку называет I5)."""
+    commands, skills, plans = _scan_commands(root), _scan_skills(root), _scan_plans(root)
     if check:
-        commands, skills = _scan_commands(root), _scan_skills(root)
         return {"issues": inventory_issues(root),
-                "commands": len(commands), "skills": len(skills)}
-    commands, skills = _scan_commands(root), _scan_skills(root)
+                "commands": len(commands), "skills": len(skills), "plans": len(plans)}
+    changed = []
     reg = root / REGISTRY_REL
     if not reg.exists():
         print(f"ОШИБКА: {REGISTRY_REL} не найден — реестр ещё не создан", file=sys.stderr)
         sys.exit(2)
     text = reg.read_text("utf-8", errors="replace")
-    changed = []
     for what, table in (("commands", _commands_table(commands)),
                         ("skills", _skills_table(skills))):
         b, e = _marker_pair(what)
@@ -949,9 +1069,26 @@ def cmd_inventory(root: Path, check: bool = False) -> dict:
         if new != text:
             changed.append(what)
         text = new
-    if changed:
+    plans_reg = root / PLANS_INDEX_REL
+    plans_text = None
+    if plans_reg.exists():
+        ptext = plans_reg.read_text("utf-8", errors="replace")
+        b, e = _marker_pair("plans")
+        new, ok = _replace_between(ptext, b, e, _plans_table(plans))
+        if not ok:
+            print(f"ОШИБКА: в {PLANS_INDEX_REL} нет маркеров {b} … {e}", file=sys.stderr)
+            sys.exit(2)
+        plans_text = new
+        if new != ptext:
+            changed.append("plans")
+    # Все маркер-пары проверены до первой записи: exit 2 означает «ничего не
+    # применено», частичной мутации реестров быть не может (гейт-находка 4).
+    if "commands" in changed or "skills" in changed:
         reg.write_text(text, encoding="utf-8")
-    return {"changed": changed, "commands": len(commands), "skills": len(skills)}
+    if plans_text is not None and "plans" in changed:
+        plans_reg.write_text(plans_text, encoding="utf-8")
+    return {"changed": changed, "commands": len(commands), "skills": len(skills),
+            "plans": len(plans)}
 
 
 # ─────────────────────────── map (HTML обзор + граф) ───────────────────────────
@@ -1078,11 +1215,12 @@ def main(argv=None):
     sp = sub.add_parser("search", help="искать"); sp.add_argument("query"); sp.add_argument("-k", type=int, default=8); sp.add_argument("--json", action="store_true")
     mp = sub.add_parser("map", help="HTML обзор+граф"); mp.add_argument("-o", "--out", default=None)
     sv = sub.add_parser("serve", help="локальный http"); sv.add_argument("-p", "--port", type=int, default=8799)
-    sub.add_parser("stat", help="статистика")
-    lp = sub.add_parser("lint", help="проверить онтологию (I1–I8)")
+    stp = sub.add_parser("stat", help="статистика")
+    stp.add_argument("--json", action="store_true", help="машинный вывод (files/chunks/links/…)")
+    lp = sub.add_parser("lint", help="проверить онтологию (I1–I10)")
     lp.add_argument("paths", nargs="*", help="ограничить файлами (по умолчанию — все docs/)")
     lp.add_argument("--strict", action="store_true", help="exit 1 при любых ERR")
-    inv = sub.add_parser("inventory", help="перегенерировать сводные таблицы реестра команд/навыков")
+    inv = sub.add_parser("inventory", help="перегенерировать сводные таблицы реестров: команд/навыков и планов")
     inv.add_argument("--check", action="store_true", help="только доложить рассинхрон (exit 1)")
     sub.add_parser("version", help="версия")
     a = ap.parse_args(argv)
@@ -1112,6 +1250,10 @@ def main(argv=None):
         cmd_serve(root, a.port)
     elif a.cmd == "stat":
         s = cmd_stat(root)
+        if a.json:
+            # машинный контракт: JSON всегда — «индекс не построен» тоже JSON,
+            # потребитель парсит stdout без разбора случаев (гейт-находка 3)
+            print(json.dumps(s, ensure_ascii=False)); return
         if not s.get("indexed"):
             print("индекс не построен — `gitmark index`"); return
         print(f"GitMark · {s['files']} файлов · {s['areas']} папок · {s['chunks']} чанков · "
@@ -1138,10 +1280,12 @@ def main(argv=None):
                     print(f"\033[31mERR\033[0m \033[90mI7\033[0m {path} — {msg}")
                 print(f"\n\033[31mрассинхрон: {len(r['issues'])}\033[0m — `gitmark inventory`")
                 sys.exit(1)
-            print(f"\033[32m✓ реестр синхронен\033[0m  ({r['commands']} команд · {r['skills']} навыков)")
+            print(f"\033[32m✓ реестры синхронны\033[0m  ({r['commands']} команд · "
+                  f"{r['skills']} навыков · {r['plans']} планов)")
         else:
             what = ", ".join(r["changed"]) if r["changed"] else "без изменений"
-            print(f"✓ inventory: {r['commands']} команд · {r['skills']} навыков → {REGISTRY_REL} ({what})")
+            print(f"✓ inventory: {r['commands']} команд · {r['skills']} навыков → {REGISTRY_REL} · "
+                  f"{r['plans']} планов → {PLANS_INDEX_REL} ({what})")
     elif a.cmd == "version":
         print(f"gitmark {pkg_version()}")
 

@@ -2,7 +2,7 @@
 node_type: plan
 title: Субстрат линз гейта — дефолтные субагенты на модели конфирмера
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-09
 links:
   documents: [../../skills/ship/reviewer.workflow.ts, ../../skills/ship/SKILL.md]
