@@ -2,8 +2,8 @@
 node_type: ticket
 title: Телеметрия прогона — лог прочитан, иначе активность, а не факт
 service: _platform
-status: draft
-updated: 2026-10-09
+status: archived
+updated: 2026-10-10
 links:
   part_of: [README.md]
 ---
