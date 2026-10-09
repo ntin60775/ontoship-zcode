@@ -43,7 +43,9 @@ run, strictly sequential.
    role$level>)`
    — it ends with raw findings. Then classify the diff by the same map the
    review run measured (numstat + untracked): the **light contour** iff every
-   file of the map lies in `docs/**`, ends with `.md` and the map names none
+   file of the map lies in `docs/**`, ends with `.md`, the raw numstat has no
+   binary row (added/deleted print as `-` and the map drops them — check the
+   raw rows before the map, gate-risk-scaling) and the map names none
    of the heavy paths — the heavy ones are explicit: `skills/**` (including
    `*.md`), `defaults/roles.md`, `.zcode/**`, root `README.md`/`AGENTS.md`,
    `deploy.json`, `package.json`, `.zcode-plugin/`, `hooks/**`, `scripts/**`,
@@ -133,7 +135,8 @@ From the plan contract's `Constraints`, enforced verbatim:
   happens (it is not part of the deploy).
 
 **Never skippable, with or without a Constraints block:** before merging to `main`
-(step 9) and before any deploy, ask the operator — one `AskUserQuestion` each, stating
+(step 9; step 7 in the light contour) and before any deploy, ask the operator — one
+`AskUserQuestion` each, stating
 what is about to land as facts (refs, hashes, counts; no diff bodies, same rule as
 `stop-before-commit`). A "continue" the operator typed earlier in this run covers the
 stop-point it answered, not these two confirmations.
