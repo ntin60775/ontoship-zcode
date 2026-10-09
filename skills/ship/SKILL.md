@@ -39,18 +39,24 @@ run, strictly sequential.
    own model). Then run the gate as two CreateWorkflows:
    `CreateWorkflow(path=reviewer.workflow.ts next to this SKILL.md, args={ticket:
    "<what + acceptance criteria + touched files>", base: "<merge-base ref>",
-   root: "<the worktree created in step 3>", reviewerModel: "<reviewer role model,
-   API id from its zcode card>"})`
-   — it ends with raw findings; the lens substrate is direct neuraldeep API calls
-   made by the workflow itself (gate-followups-2/07): `reviewerModel` is the bare
-   API id of the reviewer-role model (its zcode card, e.g. "qwen3.6-unlim-xl");
-   credentials and baseUrl come from the provider card in zcode, nothing else
-   is configured on the machine. `provider` (optional, default `neuraldeep-sub`)
-   is the id of that zcode provider card — a provider switch is configuration
-   (card in zcode + `provider` + `reviewerModel`), never a repo edit; the run
-   fails closed with a named diagnostic (role, config path, what is missing)
-   when the config, the card, the key or the reviewer model is missing
-   (external-dependencies/01);
+   root: "<the worktree created in step 3>"}, subagent_model=<confirmer
+   role$level>)`
+   — it ends with raw findings. The DEFAULT lens substrate is host subagents
+   (agent()) on the model assigned via `subagent_model` — the confirmer role
+   model (lens-substrate-flash, operator decision 2026-10-09); the argument is
+   live only since that migration (before it, the workflow contained no
+   agent() at all). The direct neuraldeep API remains the explicit fallback:
+   pass `substrate: "direct"` plus `reviewerModel: "<reviewer role model,
+   API id from its zcode card>"` and `provider` (optional, default
+   `neuraldeep-sub`) — credentials and baseUrl come from the provider card in
+   zcode, nothing else is configured on the machine; a provider switch is
+   configuration (card in zcode + `provider` + `reviewerModel`), never a repo
+   edit; the run fails closed with a named diagnostic (role, config path,
+   what is missing) when the config, the card, the key or the reviewer model
+   is missing (external-dependencies/01). Mixed-up arguments are a named
+   abort, never a silent ignore: `reviewerModel`/`provider` under the default
+   substrate abort the run («имеет смысл только с substrate=direct»); both
+   roles still resolve and verify fail-closed as today;
    `CreateWorkflow(path=confirm.workflow.ts next to this SKILL.md, args={root:
    "<the same worktree>", findings: <the `findings` field of the review run's
    return — the raw findings array, compact JSON>, ticket: "<the same ticket>"},
