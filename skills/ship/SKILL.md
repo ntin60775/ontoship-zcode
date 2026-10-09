@@ -35,7 +35,13 @@ run, strictly sequential.
    telemetry, not a fact by itself: it counts as a fact only with its log read — the
    first failure, the counters, the warnings. Filtering the output must not eat the
    exit code (`pytest | tail` ate rc — gate-followups-2/02); rc=0 with the log
-   unread is activity, not a fact.
+   unread is activity, not a fact. A new test matrix ships with a negative or
+   mutation probe — a case that must fail while the behavior under test is broken;
+   a matrix without one is not evidence. Live precedents: the redact matrix (the
+   positive criterion is the secret absent from the output, not out≠input —
+   tests/redact_matrix.mjs), the verdict matrix (tests/verdict_matrix.mjs), the
+   extractParts one-shot probe (reads must equal extracted files —
+   tests/diff_map.mjs).
 6. **Independent review** — resolve the two gate roles (`roles.py resolve --json`,
    roles skill) — `reviewer` and `confirmer` — and verify each against **ListModels**:
    missing/disabled model or absent level → **stop the run** with a diagnostic naming
