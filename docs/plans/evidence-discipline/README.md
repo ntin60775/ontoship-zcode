@@ -2,8 +2,8 @@
 node_type: plan
 title: Дисциплина доказательств — телеметрия прогона, обязательность проб, иерархия справкой
 service: _platform
-status: draft
-updated: 2026-10-09
+status: archived
+updated: 2026-10-11
 links:
   documents: [../../../skills/ship/SKILL.md, ../../../skills/to-tickets/SKILL.md]
   relates_to: [../../reference/review-invariants.md, ../../decisions/invariant-moratorium.md]
@@ -83,4 +83,4 @@ docs/reference с механизмами, которые её держат.
 |---|-------|--------|------------|
 | [01](01-test-run-telemetry.md) | Телеметрия прогона — лог прочитан, иначе активность, а не факт | archived | — |
 | [02](02-matrix-needs-probe.md) | Новая тест-матрица обязана нести негативную/мутационную пробу | archived | — |
-| [03](03-evidence-hierarchy.md) | Справка «Иерархия доказательств» — уровни с механизмами | draft | [01](01-test-run-telemetry.md), [02](02-matrix-needs-probe.md) |
+| [03](03-evidence-hierarchy.md) | Справка «Иерархия доказательств» — уровни с механизмами | archived | [01](01-test-run-telemetry.md), [02](02-matrix-needs-probe.md) |

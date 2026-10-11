@@ -2,8 +2,8 @@
 node_type: ticket
 title: Справка «Иерархия доказательств» — уровни с механизмами
 service: _platform
-status: draft
-updated: 2026-10-09
+status: archived
+updated: 2026-10-11
 links:
   part_of: [README.md]
   depends_on: [01-test-run-telemetry.md, 02-matrix-needs-probe.md]
@@ -24,9 +24,9 @@ links:
 **Blocked by:** 01 (телеметрия), 02 (обязательность проб) — справка называет их
 отгруженные формулировки механизмами, как review-invariants называет воркфлоу.
 
-- [ ] Справка существует (`node_type: reference`), relates_to ведёт на
+- [x] Справка существует (`node_type: reference`), relates_to ведёт на
   review-invariants.md.
-- [ ] Каждый из четырёх уровней называет механизм; для уровней пробы и зелёного
+- [x] Каждый из четырёх уровней называет механизм; для уровней пробы и зелёного
   теста — отгруженные тексты тикетов 01/02.
-- [ ] Чек-лист выбора доказательства в конце; `gitmark lint --strict` зелёный
+- [x] Чек-лист выбора доказательства в конце; `gitmark lint --strict` зелёный
   (доковый тикет — лёгкий контур гейта).
