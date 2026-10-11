@@ -3,7 +3,7 @@ node_type: index
 title: Plans
 service: _platform
 status: active
-updated: 2026-10-09
+updated: 2026-10-11
 links:
   part_of: [../README.md]
   relates_to: [../ontology.md]
@@ -23,7 +23,7 @@ regenerate — never edit the table by hand.
 | Plan | Status | Tickets |
 |---|---|---|
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
-| [evidence-discipline/](evidence-discipline/README.md) | draft | 1/3 |
+| [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
@@ -57,11 +57,10 @@ regenerate — never edit the table by hand.
    рана — уроки 10–11 contour (декларация — нижняя граница; node -e съедает
    `--`); триггер в description; verified-находка гейта закрыта фикс-ом
    (гарда конфирма не отклоняет декодируемую строку).
-4. **evidence-discipline** — дисциплина доказательств: телеметрия прогона
-   (лог прочитан, иначе активность, не факт), обязательность негативной/
-   мутационной пробы для новой тест-матрицы, справка «Иерархия доказательств»
-   (03 blocked by 01+02; 01–02 правят один шаг ship-скилла — едут подряд;
-   03 доковый — лёгкий контур v0.5.40). План собран 2026-10-09 из разбора
+4. ✅ **evidence-discipline** — отгружен целиком: телеметрия прогона v0.5.43,
+   обязательность пробы v0.5.44, справка
+   [evidence-hierarchy.md](../reference/evidence-hierarchy.md) (03 доковый —
+   лёгкий контур, без релиза). План собран 2026-10-09 из разбора
    заметки о TDD и агентах (DeepSWE, arXiv 2603.07084) по явному запросу
    оператора, без грилла — прецедент external-dependencies.
 5. **roles-fallback-substrate** — честные роли с фолбэком и демонтаж прямого

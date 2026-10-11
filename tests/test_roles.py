@@ -1,5 +1,6 @@
 """Tests for the roles resolver: layer priority, merge by name, broken files, set/unset."""
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -106,3 +107,36 @@ def test_split_model_level():
         roles._split_model("a/b$")
     with pytest.raises(roles.RolesError):
         roles._split_model("a/b$UPPER")
+
+
+REPO = Path(__file__).resolve().parent.parent
+
+
+def test_defaults_layer_defines_fallback_constant(tmp_path: Path, monkeypatch):
+    """roles-fallback-substrate/01: the restart slot resolves from the defaults
+    layer with model$level and plugin-default provenance — an assigned run that
+    died must be restartable on fallback. Mutations that break the defaults
+    wiring (e.g. a bad DEFAULTS_REL) or drop the provenance must turn this test
+    red (mutation probes confirmed by the gate's confirmer)."""
+    monkeypatch.setenv("ONTOSHIP_HOME", str(tmp_path / "home"))  # isolate user layer
+    got = roles.resolve(tmp_path)  # project layer missing in tmp_path as well
+    cfg = got.get("fallback")
+    assert cfg, "роль fallback не резолвится из defaults-слоя"
+    assert cfg["_source"] == "plugin-default", "у fallback нет provenance defaults-слоя"
+    assert cfg["_file"].endswith("defaults/roles.md"), "fallback резолвится не из defaults/roles.md"
+    assert cfg.get("level"), "у fallback нет уровня"
+    text = (REPO / "defaults" / "roles.md").read_text("utf-8")
+    assert "not a step assignment" in text, "абзац-описание fallback повреждён"
+    assert "nothing consults this role at runtime" in text, "маркер честного статуса механики повреждён"
+
+
+def test_roles_skill_marks_fallback_as_service_constant():
+    """The /roles dashboard instruction must couple the fallback role with the
+    service-constant note in one block — without the block fallback renders as
+    a regular assignable step model. Dropping the note block from
+    skills/roles/SKILL.md must turn this test red (mutation probe); the intro
+    mention of `fallback` alone must not satisfy it."""
+    skill = (REPO / "skills" / "roles" / "SKILL.md").read_text("utf-8")
+    assert re.search(
+        r"The `fallback` role.*константа фолбэка, потребителям не назначается",
+        skill, re.S), "пункт дашборда с пометкой константы фолбэка повреждён"
