@@ -3,10 +3,10 @@ node_type: index
 title: Reference
 service: _platform
 status: active
-updated: 2026-10-08
+updated: 2026-10-11
 links:
   part_of: [../README.md]
-  relates_to: [commands.md, memory.md, workflow-args.md, dependencies.md, review-invariants.md]
+  relates_to: [commands.md, memory.md, workflow-args.md, dependencies.md, review-invariants.md, evidence-hierarchy.md]
 ---
 
 # Reference
@@ -29,3 +29,7 @@ Cross-cutting specs — not about one service.
 - [review-invariants.md](review-invariants.md) — инварианты слепого ревью
   гейт-прогонов (/ship, /code-review): у каждого — воркфлоу-механизм, который
   его держит; чек-лист нового рана, линзы или правки воркфлоу.
+- [evidence-hierarchy.md](evidence-hierarchy.md) — иерархия доказательств
+  приёмки результата агента: проба над проверкой → живой E2E-ран → зелёный
+  тест с прочитанным логом → самоотчёт; у каждого уровня — механизм, который
+  его держит; чек-лист «каким доказательством принимать тикет».
