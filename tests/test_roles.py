@@ -127,7 +127,7 @@ def test_defaults_layer_defines_fallback_constant(tmp_path: Path, monkeypatch):
     assert cfg.get("level"), "у fallback нет уровня"
     text = (REPO / "defaults" / "roles.md").read_text("utf-8")
     assert "not a step assignment" in text, "абзац-описание fallback повреждён"
-    assert "nothing consults this role at runtime" in text, "маркер честного статуса механики повреждён"
+    assert "No workflow script reads it as its model" in text, "маркер честного статуса механики повреждён"
 
 
 def test_roles_skill_marks_fallback_as_service_constant():

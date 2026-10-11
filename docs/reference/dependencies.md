@@ -30,7 +30,10 @@ provider-stop'у). Здесь инвентаризация двух классо
 - **Зачем**: фолбэк-субстрат линз независимого ревью (`/ship`, шаг 6): при
   `substrate="direct"` гейт зовёт `chat/completions` напрямую из воркфлоу
   (gate-followups-2/07). Дефолтный субстрат с 2026-10-09 (lens-substrate-flash)
-  — субагенты хоста на модели роли `confirmer` (`subagent_model` воркфлоу):
+  — субагенты хоста на модели роли рана через `subagent_model` воркфлоу
+  (2026-10-09 моделью линз была роль `confirmer`; с 2026-10-11,
+  roles-fallback-substrate/02, review-ран идёт на роли `reviewer`, confirm —
+  на `confirmer`):
   тарифный план zai несёт базовый вес субагента; прямой вызов остался для
   моделей, чей контекст базовый вес не несёт. Модели ролей user-слоя с
   2026-10-11 — `GLM-5.3-Flash` (reviewer `$max`, challenger `$high`,
@@ -105,7 +108,7 @@ provider-stop'у). Здесь инвентаризация двух классо
 
 ### sot-zcode-marketplace — раннер поставки
 
-- **Зачем**: вендорит релиз в проекты (`.zcode/`) по [../../deploy.json]:
+- **Зачем**: вендорит релиз в проекты (`.zcode/`) по [../../deploy.json](../../deploy.json):
   contract v1, `strategy: replace`, `on_drift: fail`, mappings, `post_update`.
 - **Пин**: `marketplace.json` каталога: `ontoship` → `ref: v0.5.31` плюс display
   `version: 0.5.31`; сам каталог — `0.5.62` (оба на 2026-10-08). Source:
@@ -218,7 +221,8 @@ roles-fallback-substrate.)
    `ok:true` с непустым `content`.
 3. **args вызова гейта.** Дефолтный субстрат (субагенты) аргументов
    провайдера не берёт вовсе — модель линз задаёт CreateWorkflow через
-   `subagent_model` (модель роли `confirmer`; постоянная смена модели роли —
+   `subagent_model` (модель роли рана: review — `reviewer`, confirm —
+   `confirmer`, roles-fallback-substrate/02; постоянная смена модели роли —
    `/roles set` в user-слой, [roles.md](roles.md)). Для direct-фолбэка —
    `substrate: "direct"` плюс `provider: <id карточки>` и `reviewerModel: <id
    модели>` (контракт шага 6 —

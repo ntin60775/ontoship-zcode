@@ -168,6 +168,13 @@ reads in this call, not against the declaration alone:
 - pass `json`-typed arguments as structural values, never as pre-serialized
   strings; build the strings you do pass with `JSON.stringify`, not by hand
   (lesson 9);
+- args assembled by hand are semantically unvalidated: the host compile is as
+  green on a stub as on the real payload (dwfrun-5d20732c — a
+  `[{":where": null}]` stub passed as a `findings` array started like the
+  real thing and produced garbage verdicts); re-read the assembled literal
+  against what the script reads in *this* call before every submit, and a run
+  that did start on garbage args is stopped immediately and relaunched clean
+  (roles-fallback-substrate/02);
 - the script needs args — submit via `path` with a header; an inline script
   accepts none (lesson 2);
 - a revision whose args contract changed — a fresh `CreateWorkflow`
