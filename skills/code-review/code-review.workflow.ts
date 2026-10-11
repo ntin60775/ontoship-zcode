@@ -24,7 +24,7 @@ args:
 // subagent_model=<reviewer role>). Design (operator, 2026-10-01): the axes are
 // ALWAYS split per file — one agent per axis per changed file, each reads only
 // its file's diff — so no single context ever depends on the total diff size
-// (qwen-fp8's window must survive every ask). Ticket 14/02: this run ENDS with
+// (every ask must survive any diff size). Ticket 14/02: this run ENDS with
 // raw findings serialized into the common gate form ({where, claim, evidence,
 // severity, quote?, axis?} — the axis quote rides along as evidence, it is what
 // the confirmers check against); confirming them and merging the report is the
@@ -93,19 +93,35 @@ const MAX_DIFF_LINES = 2000;
 /** Запись карты диффа: untracked=true — новый файл, его «дифф» — весь контент. */
 type FileEntry = { path: string; diffLines: number; untracked: boolean };
 
-/** Строки `git diff --numstat <base>` → карта текстовых файлов. Бинарные строки ("-") пропускаются — они не ревьюятся; rename «old => new» берётся новым путём. */
+/** Записи `git diff --numstat -z <base>` → карта текстовых файлов. Бинарные
+ * записи ("-") пропускаются — они не ревьюятся; rename идёт парой NUL-полей
+ * src, dst и ревьюется по новому пути (dst): декорации « => » в -z нет, так
+ * что стрелка, кавычка или скобка внутри имени путь не ломают. */
 function parseNumstat(out: string): FileEntry[] {
   const files: FileEntry[] = [];
-  for (const line of out.split("\n")) {
-    const m = /^(\d+|-)\t(\d+|-)\t(.+)$/.exec(line.trim());
-    if (!m) continue;
-    if (m[1] === "-" || m[2] === "-") continue; // binary
-    // Rename-запись numstat «old => new» ревьюется по новому пути (хвост после
-    // последнего « => »; разделитель внутри имени git закавычивает, так что
-    // вне кавычек он однозначен).
-    const sep = m[3].lastIndexOf(" => ");
-    const path = sep === -1 ? m[3] : m[3].slice(sep + 4);
-    files.push({ path, diffLines: Number(m[1]) + Number(m[2]), untracked: false });
+  const parts = out.split("\0");
+  for (let i = 0; i < parts.length; ) {
+    // Обычная запись — «adds\tdels\tpath»; у rename после второй табуляции
+    // пусто, а следом два NUL-поля (src, dst).
+    const m = /^(\d+|-)\t(\d+|-)\t(.*)$/.exec(parts[i]);
+    if (!m) {
+      i += 1;
+      continue;
+    }
+    if (m[1] === "-" || m[2] === "-") {
+      i += 1;
+      continue;
+    } // binary
+    if (m[3] !== "") {
+      files.push({ path: m[3], diffLines: Number(m[1]) + Number(m[2]), untracked: false });
+      i += 1;
+      continue;
+    }
+    const dst = parts[i + 2];
+    if (dst !== undefined && dst !== "") {
+      files.push({ path: dst, diffLines: Number(m[1]) + Number(m[2]), untracked: false });
+    }
+    i += 3;
   }
   return files;
 }
@@ -311,9 +327,11 @@ if (refOk.exitCode !== 0) {
 let ns;
 try {
   // world.run — fixed argv без шелла: pathspec применяется механически.
-  // core.quotepath=false: не-ASCII пути приходят сырым UTF-8, а не C-escape в
-  // кавычках (гейт 16; контракт скопированного parseNumstat).
-  ns = await world.run("git", ["-C", root, "-c", "core.quotepath=false", "diff", "--numstat", base, ...(scope ? ["--", scope] : [])]);
+  // -z: записи NUL-разделены без кавычек в любом случае (quotepath не
+  // участвует), rename — пара полей src, dst: контракт скопированного
+  // parseNumstat (verified находка gate 04: « => » внутри имени ломало
+  // хвостовой парсер строк).
+  ns = await world.run("git", ["-C", root, "diff", "--numstat", "-z", base, ...(scope ? ["--", scope] : [])]);
 } catch (e) {
   return abort(`git diff --numstat не исполним в ${root}: ${String(e)}.`, "всё — git недоступен");
 }
