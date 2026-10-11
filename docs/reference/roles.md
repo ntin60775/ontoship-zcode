@@ -1,24 +1,26 @@
 ---
 node_type: reference
-title: Роли subagent-моделей (reviewer, challenger)
+title: Роли subagent-моделей (reviewer, confirmer, challenger, fallback)
 service: _platform
 status: active
-updated: 2026-10-01
+updated: 2026-10-11
 tags: [roles, subagent, model, resolution, fail-closed, grilling, ship]
 links:
   documents: [../../defaults/roles.md, ../../skills/roles/roles.py]
   relates_to: [commands.md, ../ops/install.md]
 ---
 
-# Роли subagent-моделей (reviewer, challenger)
+# Роли subagent-моделей (reviewer, confirmer, challenger, fallback)
 
 **Роль** — имя, которое говорит, на какой модели выполняется субагентный шаг
-(`subagent_model` в `CreateWorkflow`). Плагин поставляет две роли (`defaults/roles.md`):
+(`subagent_model` в `CreateWorkflow`). Плагин поставляет четыре роли (`defaults/roles.md`):
 
 | роль | потребитель | что делает |
 |---|---|---|
 | `reviewer` | `/ship`, шаг 6 (`skills/ship/SKILL.md`) | независимое read-only ревью дифа тикета |
+| `confirmer` | `/ship`, шаг 6, второй ран (`skills/ship/SKILL.md`) | подтверждение находок ревьюера свежими глазами |
 | `challenger` | grilling (`skills/grilling/SKILL.md`) | red team по черновым решениям |
+| `fallback` | перезапуск рана, умершего по модельной причине (план roles-fallback-substrate) | константа фолбэка, потребителям не назначается |
 
 Смысл ролей в том, что проверяющий шаг работает на **другой** модели, чем сессия:
 ценность независимого ревью и red team исчезает, если шаг молча садится на модель
@@ -35,7 +37,8 @@ project          <repo>/.zcode/ontoship/roles.md
 Разрешение — от общего к частному, **слияние по имени роли**: более специфичный слой
 заменяет роль только если сам её определяет; проектный `reviewer` не прячет
 пользовательского `challenger` (`resolve()` в `skills/roles/roles.py`). Plugin-слой —
-это дефолты автора (сейчас хост-план Z.AI: обе роли `GLM-5.3-Flash`, `level: max`);
+это дефолты автора (сейчас хост-план Z.AI, все роли на `GLM-5.3-Flash`: reviewer
+`$max`, confirmer `$high`, challenger `$max`, fallback `$max`);
 user-слой перекрывает их для всех проектов, project-слой — для одного репозитория.
 
 У каждой разрешённой роли есть провенанс — `_source` (`plugin-default` | `user` |
@@ -110,5 +113,6 @@ user-слой, который проектный затеняет — фикс �
 
 ## Проверки
 
-Тесты резолвера — `tests/test_roles.py` (9 тестов: приоритет слоёв, слияние по
-имени, битые файлы, set/unset); идёт в общем прогоне `python3 -m pytest tests/ -q`.
+Тесты резолвера — `tests/test_roles.py` (11 тестов: приоритет слоёв, слияние по
+имени, битые файлы, set/unset, пин константы `fallback` и её дашборд-пометки);
+идёт в общем прогоне `python3 -m pytest tests/ -q`.

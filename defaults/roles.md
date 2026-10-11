@@ -30,15 +30,19 @@ The **least specific layer**: a user overrides these for all projects in
   gate stops, fail-closed). Operator decision, ticket 14.
 - `challenger` — grilling: red team over the draft decisions.
 
-`fallback` is a service constant, not a step assignment: it holds the model for
-exactly one clean restart of a run that died for a model reason (provider-stop,
-repeated ContextLimit). No regular step reads it as its model — it is consulted
-only when the assigned role's model fails, and the restart is reported as a loud
-degradation, never silently (roles-fallback-substrate/02 wires the consuming
-steps). Layers work as for any other role: user/project may override it.
+`fallback` is a service constant, not a step assignment: the designated holder
+of the restart model for a run that died for a model reason (provider-stop,
+repeated ContextLimit). No regular step reads it as its model. The consuming
+restart discipline — one clean rerun with a loud degradation note — is wired by
+roles-fallback-substrate/02 and does not exist in code yet; until that ticket
+ships, nothing consults this role at runtime. Layers work as for any other
+role: user/project may override it.
 
 These ids are the author's host plan (Z.AI individual coding plan). On another host
 they will not resolve — by design the consuming skill then stops with a diagnostic
-(fail-closed, never falls back to the session model). Follow the diagnostic's
+(fail-closed, never falls back to the session model — not to be confused with the
+`fallback` role above: fail-closed answers an id that never resolved on this host,
+while the `fallback` role answers a run whose assigned model resolved but died at
+runtime). Follow the diagnostic's
 layer-aware guidance (roles skill, fail-closed rule): a bare `/roles set` writes the
 user layer and is a no-op whenever a project layer pins the role.

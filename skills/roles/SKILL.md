@@ -1,6 +1,6 @@
 ---
 name: roles
-description: View and reassign the subagent model roles (reviewer, confirmer, challenger) across three layers — plugin default, user global, per-project. Use when the user runs /roles, says "поменяй модель ревьюера", "назначь модель для ролей", or asks which model reviews their ships. Shows the effective configuration with provenance and shadowing warnings.
+description: View and reassign the subagent model roles (reviewer, confirmer, challenger, fallback) across three layers — plugin default, user global, per-project. Use when the user runs /roles, says "поменяй модель ревьюера", "назначь модель для ролей", or asks which model reviews their ships. Shows the effective configuration with provenance and shadowing warnings.
 ---
 
 # /roles — subagent model roles
@@ -34,8 +34,7 @@ the script does file work; zcode tools do verification.
    you can switch to".
 4. The `fallback` role, when present, gets its own line with the note
    **«константа фолбэка, потребителям не назначается»** — it holds the restart
-   model for a dead run, so never offer it in step 4 of `set` below and never
-   assign it to a regular step.
+   model for a dead run; it is never a step's model, so never suggest it as one.
 5. If the user picks a change, go to `set` below.
 
 ### `/roles set <role> <model>[$level]` — assign (writes the USER layer by default)
