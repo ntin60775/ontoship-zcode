@@ -3,7 +3,7 @@ node_type: runbook
 title: Install ontoship into a project (marketplace runner)
 service: _platform
 status: active
-updated: 2026-10-08
+updated: 2026-10-11
 tags: [runbook, install, deploy, marketplace, update]
 links:
   documents: [../../deploy.json]
@@ -43,17 +43,17 @@ Machine-level tools and credentials are the machine's responsibility — the
 runner neither installs nor reads them:
 
 - `git`, `python3` — the vendored engine and its operations;
-- `node` ≥ 18 — the review-gate lens caller (`fetch`, `AbortSignal`);
+- `node` ≥ 22.6 — the workflow-logic slices the plugin's test suite runs under
+  node (23+ strips the types itself; 22.6–22.x via `--experimental-strip-types`);
 - `pytest` — running the plugin's own test suite (`python3 -m pytest tests/ -q`).
 
-The independent review gate (`/ship` step 6) additionally requires the
-**reviewer model to be added to zcode with a provider card**: a provider entry
-with `apiKey` in `~/.zcode/v2/provider_config.json` and the reviewer-role model
-in that provider's card (`personalModelIds` or a model rule). The gate reads
-credentials and baseUrl from that card at run time and never prints them. A
-missing piece stops the gate with a named diagnostic — the role, the config
-path and what is missing; the gate is fail-closed by substrate and never
-reports «no findings» over a dead substrate (external-dependencies/01).
+The independent review gate (`/ship` step 6) additionally requires the **gate
+roles' models to be resolvable on the host**: the reviewer's and the
+confirmer's role models must be listed in ListModels (the role layers) — a
+missing or disabled model stops the run before launch, fail-closed. Since
+2026-10-11 (roles-fallback-substrate/03) the gate makes no direct API calls
+and reads no provider card; a provider entry with `apiKey` in zcode is only
+what makes a model visible to the host in the first place.
 
 If the machine runs zcode workflows — the review gate above or the project's
 own automations — read the **contour skill** first (`skills/contour`, vendored

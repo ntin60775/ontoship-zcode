@@ -84,26 +84,18 @@ run, strictly sequential.
    light rule — the full contour, both runs as today. In the light contour at
    0 findings and full coverage the confirm run is NOT created (the
    «pass the findings array as-is, even when empty» below gets the doc-only
-   branch); with findings the confirm runs unchanged. The DEFAULT lens
-   substrate is host subagents
-   (agent()) on the model assigned via `subagent_model` — each run's own role
+   branch); with findings the confirm runs unchanged. The lens transport is
+   host subagents (agent()) only — there is no direct-API fallback: the
+   workflow takes no substrate/provider/model arguments and makes no API calls
+   of its own (roles-fallback-substrate/03 demolished the direct fallback,
+   2026-10-11); the lens model is the one assigned via
+   `subagent_model` — each run's own role
    model: the reviewer's for the review run, the confirmer's for the confirm
    run (lens-substrate-flash put the gate on the confirmer, operator decision
    2026-10-09; roles-fallback-substrate/02 moved the review run onto the
    reviewer, 2026-10-11); the `subagent_model` argument is live only since the
    lens-substrate-flash migration (before it, the workflow contained no
-   agent() at all). The direct neuraldeep API remains the explicit fallback:
-   pass `substrate: "direct"` plus `reviewerModel: "<reviewer role model,
-   API id from its zcode card>"` and `provider` (optional, default
-   `neuraldeep-sub`) — credentials and baseUrl come from the provider card in
-   zcode, nothing else is configured on the machine; a provider switch is
-   configuration (card in zcode + `provider` + `reviewerModel`), never a repo
-   edit; the run fails closed with a named diagnostic (role, config path,
-   what is missing) when the config, the card, the key or the reviewer model
-   is missing (external-dependencies/01). Mixed-up arguments are a named
-   abort, never a silent ignore: `reviewerModel`/`provider` under the default
-   substrate abort the run («имеет смысл только с substrate=direct»); both
-   roles still resolve and verify fail-closed as today;
+   agent() at all). Both roles still resolve and verify fail-closed as before;
    `CreateWorkflow(path=confirm.workflow.ts next to this SKILL.md, args={root:
    "<the same worktree>", findings: <the `findings` field of the review run's
    return — the raw findings array, compact JSON>, ticket: "<the same ticket>"},
