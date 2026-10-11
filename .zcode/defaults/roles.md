@@ -32,11 +32,10 @@ The **least specific layer**: a user overrides these for all projects in
 
 `fallback` is a service constant, not a step assignment: the designated holder
 of the restart model for a run that died for a model reason (provider-stop,
-repeated ContextLimit). No regular step reads it as its model. The consuming
-restart discipline — one clean rerun with a loud degradation note — is wired by
-roles-fallback-substrate/02 and does not exist in code yet; until that ticket
-ships, nothing consults this role at runtime. Layers work as for any other
-role: user/project may override it.
+repeated ContextLimit that ends the run). No workflow script reads it as its model —
+the restart lives at the calling-skill level: one clean rerun with a loud
+degradation note (ship step 6, grilling — roles-fallback-substrate/02,
+2026-10-11). Layers work as for any other role: user/project may override it.
 
 These ids are the author's host plan (Z.AI individual coding plan). On another host
 they will not resolve — by design the consuming skill then stops with a diagnostic
