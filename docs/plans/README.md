@@ -3,7 +3,7 @@ node_type: index
 title: Plans
 service: _platform
 status: active
-updated: 2026-10-11
+updated: 2026-10-12
 links:
   part_of: [../README.md]
   relates_to: [../ontology.md]
@@ -31,6 +31,7 @@ regenerate — never edit the table by hand.
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
 | [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
+| [onto-doc-command.md](onto-doc-command.md) | draft | — |
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
@@ -74,6 +75,12 @@ regenerate — never edit the table by hand.
    runbook queue-2/19 (ждёт перечень или «все шесть» от оператора) и
    повседневное использование KB/гейтов в рабочих проектах; первая реальная
    док-only правка любого проекта — через лёгкий контур (v0.5.40).
+7. **onto-doc-command** — восстановление команды-входа онто-дока: тонкий
+   скилл-обёртка над воркфлоу (бутстрап по умолчанию, паттерн grilling),
+   замена `/onto-doc` в runbook миграции (решение оператора 2026-10-12 —
+   «onto-doc всегда был отдельной командой как и doc», сверка с оригиналом
+   Ковальского). Слот «в любой момент»: один файл-план — один слайс,
+   с разработочными планами по файлам не пересекается.
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.
