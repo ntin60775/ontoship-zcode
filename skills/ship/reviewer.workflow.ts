@@ -1,5 +1,5 @@
 /* zcode-workflow
-description: Независимый ревью диффа тикета — первый ран шага 6 девфлоу /ship. Разбивка по узким линзам-специалистам (ростер logic, security, shell, concurrency, tests, docs; линза без релевантных файлов не стартует); субстрат линз по умолчанию — субагенты хоста (модель — subagent_model воркфлоу, роль confirmer), явный фолбэк args.substrate=direct — прямые вызовы API neuraldeep из воркфлоу (модель и креды — из карточки провайдера zcode, тарифные потолки — профиль модели из карты LENS_PROFILES). На выходе сырые находки для confirm-рана (confirm.workflow.ts).
+description: Независимый ревью диффа тикета — первый ран шага 6 девфлоу /ship. Разбивка по узким линзам-специалистам (ростер logic, security, shell, concurrency, tests, docs; линза без релевантных файлов не стартует); субстрат линз по умолчанию — субагенты хоста (модель — subagent_model воркфлоу, роль рана — с 2026-10-11 reviewer, roles-fallback-substrate/02), явный фолбэк args.substrate=direct — прямые вызовы API neuraldeep из воркфлоу (модель и креды — из карточки провайдера zcode, тарифные потолки — профиль модели из карты LENS_PROFILES). На выходе сырые находки для confirm-рана (confirm.workflow.ts).
 args:
   ticket:
     type: string
@@ -62,8 +62,8 @@ args:
 // линз — субагенты хоста (agent()): план zai несёт базовый вес субагента
 // (~141k токенов контракта воркфлоу + схемы инструментов; раны
 // dwfrun-0f9b01df и dwfrun-68730a08 — ноль отказов), модель линз — модель
-// роли confirmer через CreateWorkflow subagent_model (SKILL.md, шаг 6);
-// параллелизм, повторы и таймауты — рантайм хоста (контракт
+// роли рана через CreateWorkflow subagent_model (с 2026-10-11 — reviewer,
+// roles-fallback-substrate/02); параллелизм, повторы и таймауты — рантайм хоста (контракт
 // dynamic-workflows §16.3), своего пула и ретраев у ветки нет. Прямой вызов
 // API neuraldeep — явный фолбэк args.substrate="direct" для моделей, чей
 // контекст не несёт базовый вес субагента (история 2026-10-06: три
@@ -287,8 +287,8 @@ if (!ticket.trim() || !base.trim()) {
 
 // Субстрат линз (lens-substrate-flash, решение оператора 2026-10-09):
 // дефолт — субагенты хоста (agent()), модель линз — та, что вызывающий задал
-// CreateWorkflow subagent_model (роль confirmer — skills/ship/SKILL.md,
-// шаг 6). Прямой вызов API neuraldeep — явный фолбэк substrate="direct":
+// CreateWorkflow subagent_model (роль рана — с 2026-10-11 reviewer,
+// skills/ship/SKILL.md шаг 6, roles-fallback-substrate/02). Прямой вызов API neuraldeep — явный фолбэк substrate="direct":
 // модель и креды из карточки провайдера zcode, тарифные потолки из профиля.
 // BEGIN SUBSTRATE ARGS — tests/test_reviewer_substrate.py pins the
 // resolution: default subagent, unknown substrate named, reviewerModel и
@@ -1000,7 +1000,8 @@ await Promise.all(
 // тестов) — параллелизм, повторы провайдерных ошибок и таймауты решает
 // рантайм хоста (контракт dynamic-workflows §16.3), у ветки нет своего пула
 // и ретраев. Отказ вызова — именованный failed файла, не смерть рана.
-// Модель линз — subagent_model воркфлоу (роль confirmer, SKILL.md шаг 6);
+// Модель линз — subagent_model воркфлоу (роль рана — с 2026-10-11 reviewer,
+// roles-fallback-substrate/02);
 // отсутствие модели/уровня ловит скилл до рана (fail-closed, шаг 6).
 // Персона: тот же узкий вопрос ростера, материал в аске (общий
 // fileMaterial); субагент хоста читает тяжёлый файл адресно по подсказке

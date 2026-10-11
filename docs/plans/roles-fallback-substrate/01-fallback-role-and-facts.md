@@ -2,8 +2,8 @@
 node_type: ticket
 title: Роль fallback — константа-хранилище фолбэк-LM + датированные факты субстрата
 service: _platform
-status: draft
-updated: 2026-10-09
+status: archived
+updated: 2026-10-11
 links:
   part_of: [README.md]
 ---
@@ -20,17 +20,17 @@ links:
 
 **Blocked by:** None (can start immediately).
 
-- [ ] `roles.py resolve --json --root <repo>` отдаёт роль `fallback` с
+- [x] `roles.py resolve --json --root <repo>` отдаёт роль `fallback` с
   моделью, уровнем и provenance (defaults-слой); дашборд `/roles` показывает
   её отдельной строкой с пометкой «константа фолбэка, потребителям не
   назначается».
-- [ ] Список ролей в текстах roles-скилла читается из defaults (как сегодня),
+- [x] Список ролей в текстах roles-скилла читается из defaults (как сегодня),
   описание `fallback` в defaults/roles.md объясняет её назначение одним
   абзацем: только перезапуск умершего рана, никогда — штатная модель шага.
-- [ ] docs/reference/dependencies.md несёт три датированные записи
+- [x] docs/reference/dependencies.md несёт три датированные записи
   2026-10-09: (а) пол моделей — окно ≥262k, вывод ≥131k (постулат
   оператора); (б) решение — транспорт линз только штатные субагенты, прямой
   API демонтируется; (в) списание qwen3.6-unlim-xl: потолок входа 138 336
   ниже базового веса субагента ~141k, полезный опыт перечислен (прямой
   API-паттерн, «тариф ≠ карточка», finish=length-протокол).
-- [ ] `gitmark lint --strict` зелёный; вендор `.zcode/` доедет self-update.
+- [x] `gitmark lint --strict` зелёный; вендор `.zcode/` доедет self-update.
