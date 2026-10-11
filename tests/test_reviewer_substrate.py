@@ -1,7 +1,8 @@
 """Contract of the gate reviewer substrate (gate-followups-2/07 +
 lens-substrate-flash). DEFAULT lens substrate since 2026-10-09: HOST
 SUBAGENTS (agent()) on the model the caller assigns via the workflow's
-subagent_model (the confirmer role model, ship SKILL.md step 6); the host
+subagent_model (each run's own role model — the review run on the reviewer
+role, the confirm run on the confirmer; roles-fallback-substrate/02); the host
 runtime owns parallelism, provider-error retries and timeouts (dynamic-
 workflows contract §16.3) — the subagent branch has no pool, no retries, no
 per-call timeouts, and one typed ask per file×lens pair (no JSON-in-fence).

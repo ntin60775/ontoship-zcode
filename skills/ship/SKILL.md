@@ -46,10 +46,29 @@ run, strictly sequential.
    roles skill) — `reviewer` and `confirmer` — and verify each against **ListModels**:
    missing/disabled model or absent level → **stop the run** with a diagnostic naming
    the role and the layer file to fix (fail-closed; never review or confirm with your
-   own model). Then run the gate as two CreateWorkflows:
+   own model). Preflight the assembled args before every submit of either run:
+   re-read the literal args about to be sent against what the script reads in this
+   call (ticket, base, root; the findings array in full — a stub compiles and starts
+   exactly like a real array, and its verdicts are garbage; dwfrun-5d20732c,
+   roles-fallback-substrate/01); garbage is never launched — a run that did start on
+   garbage args is stopped immediately and relaunched clean. A run that died for a
+   model reason — a provider-stop of the whole run, or a ContextLimit again — is
+   relaunched clean exactly once on `subagent_model=<fallback role$level>` with a
+   loud degradation note in the run output («ран #1 на <модель> не тянет —
+   перезапущено на <фолбэк>»); resolve the `fallback` role
+   (roles-fallback-substrate/01) and verify it against ListModels before the
+   relaunch, fail-closed as above; a second model-death stops the shipping run with
+   a diagnostic. Transient errors are the host runtime's retries — not a fallback
+   signal — and a model missing from ListModels stays a fail-closed stop before
+   launch: the fallback covers a model that cannot carry the run, never a
+   configuration error. The fallback branch is live-non-inducible (deterministic
+   model refusals kill the run before the script — the contour skill, lesson 6):
+   it is anchored by this text, not by a live proof. Then run the gate as two
+   CreateWorkflows, each on its own role's model — review on `reviewer`, confirm
+   on `confirmer` (roles-fallback-substrate/02):
    `CreateWorkflow(path=reviewer.workflow.ts next to this SKILL.md, args={ticket:
    "<what + acceptance criteria + touched files>", base: "<merge-base ref>",
-   root: "<the worktree created in step 3>"}, subagent_model=<confirmer
+   root: "<the worktree created in step 3>"}, subagent_model=<reviewer
    role$level>)`
    — it ends with raw findings. Then classify the diff by the same map the
    review run measured (numstat + untracked): the **light contour** iff every
@@ -66,8 +85,11 @@ run, strictly sequential.
    «pass the findings array as-is, even when empty» below gets the doc-only
    branch); with findings the confirm runs unchanged. The DEFAULT lens
    substrate is host subagents
-   (agent()) on the model assigned via `subagent_model` — the confirmer role
-   model (lens-substrate-flash, operator decision 2026-10-09); the argument is
+   (agent()) on the model assigned via `subagent_model` — each run's own role
+   model: the reviewer's for the review run, the confirmer's for the confirm
+   run (lens-substrate-flash put the gate on the confirmer, operator decision
+   2026-10-09; roles-fallback-substrate/02 moved the review run onto the
+   reviewer, 2026-10-11); the argument is
    live only since that migration (before it, the workflow contained no
    agent() at all). The direct neuraldeep API remains the explicit fallback:
    pass `substrate: "direct"` plus `reviewerModel: "<reviewer role model,
