@@ -5,7 +5,9 @@
 // Функции извлекаются из живых файлов — регресс парсера, выдернутый вызов
 // или рассинхрон копии ломают прогон. Запуск: node tests/diff_map.mjs
 // (из pytest — tests/test_diff_map.py). Форматы проверены на реальном
-// git 2.51 (скретч-репо, 2026-10-04): numstat "a\td\tpath"; porcelain -z —
+// git 2.51 (скретч-репо, 2026-10-04; numstat -z перекрыт пробами 2026-10-11 —
+// rename со стрелкой/кавычкой/скобкой в имени, verified находка gate 04):
+// numstat -z — "a\td\tpath\0", rename — "a\td\t\0src\0dst\0"; porcelain -z —
 // записи через NUL без кавычек, intent-to-add идёт ` A`, а не `??`;
 // no-index numstat — третье поле "/dev/null => path", exit 1 и для
 // различий, и для нечитаемого файла.
@@ -244,25 +246,34 @@ const { parseNumstat, parseUntrackedStatus, parseNoIndexNumstat, contextHint, no
 
 // [имя, fn, вход, ожидаемое значение (deep-equal)]
 const CASES = [
-  ["numstat: два текстовых файла", parseNumstat, "2\t1\ttracked.txt\n1\t0\tita.txt\n", [
+  ["numstat -z: два текстовых файла", parseNumstat, "2\t1\ttracked.txt\u00001\t0\tita.txt\u0000", [
     { path: "tracked.txt", diffLines: 3, untracked: false },
     { path: "ita.txt", diffLines: 1, untracked: false },
   ]],
-  ["numstat: бинарная строка пропускается", parseNumstat, "-\t-\tpic.png\n3\t2\ta.py\n", [
+  ["numstat -z: бинарная запись пропускается", parseNumstat, "-\t-\tpic.png\u00003\t2\ta.py\u0000", [
     { path: "a.py", diffLines: 5, untracked: false },
   ]],
-  ["numstat: пустой вывод", parseNumstat, "", []],
-  ["numstat: путь с пробелом", parseNumstat, "2\t0\twith space.txt\n", [
+  ["numstat -z: пустой вывод", parseNumstat, "", []],
+  ["numstat -z: путь с пробелом", parseNumstat, "2\t0\twith space.txt\u0000", [
     { path: "with space.txt", diffLines: 2, untracked: false },
   ]],
-  ["numstat: мусорные строки игнорируются", parseNumstat, "random noise\n\n4\t0\tb.py\n", [
+  ["numstat -z: мусорные записи игнорируются", parseNumstat, "random noise\u0000\u00004\t0\tb.py\u0000", [
     { path: "b.py", diffLines: 4, untracked: false },
   ]],
-  ["numstat: rename берёт новый путь", parseNumstat, "0\t0\told.py => new.py\n1\t2\tbig => bigger\n", [
+  ["numstat -z: rename берёт новый путь (dst)", parseNumstat, "0\t0\t\u0000old.py\u0000new.py\u00001\t2\t\u0000big\u0000bigger\u0000", [
     { path: "new.py", diffLines: 0, untracked: false },
     { path: "bigger", diffLines: 3, untracked: false },
   ]],
-  ["numstat: не-ASCII путь сырым UTF-8 (контракт quotepath=false)", parseNumstat, "2\t0\tтест-файл.txt\n", [
+  ["numstat -z: rename со стрелкой в имени — dst сырой (verified находка gate 04)", parseNumstat, "0\t0\t\u0000old.txt\u0000a => b.txt\u0000", [
+    { path: "a => b.txt", diffLines: 0, untracked: false },
+  ]],
+  ["numstat -z: brace-rename без декорации « => »", parseNumstat, "0\t0\t\u0000d/f.txt\u0000d/g.txt\u0000", [
+    { path: "d/g.txt", diffLines: 0, untracked: false },
+  ]],
+  ["numstat -z: rename с кавычкой в имени — без C-escape", parseNumstat, "0\t0\t\u0000a => b.txt\u0000q\"x => y.txt\u0000", [
+    { path: "q\"x => y.txt", diffLines: 0, untracked: false },
+  ]],
+  ["numstat -z: не-ASCII путь сырым UTF-8 (в -z кавычек нет вовсе)", parseNumstat, "2\t0\tтест-файл.txt\u0000", [
     { path: "тест-файл.txt", diffLines: 2, untracked: false },
   ]],
   ["status -z: полный живой образец", parseUntrackedStatus, " A ita.txt\0 M tracked.txt\0?? bin.dat\0?? untracked.txt\0", [
