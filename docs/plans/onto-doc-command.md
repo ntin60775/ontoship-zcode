@@ -5,7 +5,7 @@ service: _platform
 status: draft
 updated: 2026-10-12
 links:
-  documents: [../../skills/doc/onto-doc.workflow.ts]
+  documents: [../../skills/onto-doc/onto-doc.workflow.ts]
   relates_to: [onto-doc-parity.md, ../ops/migration-omp-to-zcode.md, ../reference/workflow-args.md]
 ---
 

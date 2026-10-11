@@ -28,6 +28,10 @@
       "to": ".zcode/skills/doc"
     },
     {
+      "from": "skills/onto-doc",
+      "to": ".zcode/skills/onto-doc"
+    },
+    {
       "from": "skills/roles",
       "to": ".zcode/skills/roles"
     },

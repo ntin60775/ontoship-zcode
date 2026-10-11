@@ -5,7 +5,7 @@ service: _platform
 status: archived
 updated: 2026-10-08
 links:
-  documents: [../../skills/doc/onto-doc.workflow.ts, ../../skills/kb-search/gitmark.py]
+  documents: [../../skills/onto-doc/onto-doc.workflow.ts, ../../skills/kb-search/gitmark.py]
   relates_to: [queue-2/README.md]
 ---
 
