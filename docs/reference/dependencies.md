@@ -3,11 +3,11 @@ node_type: reference
 title: Внешние зависимости — инвентаризация и контуры замены/синка
 service: _platform
 status: active
-updated: 2026-10-09
+updated: 2026-10-11
 tags: [dependencies, inventory, provider, neuraldeep, zcode-host, marketplace, upstream, ontoship-omp]
 links:
   documents: [../../deploy.json]
-  relates_to: [README.md, roles.md, workflow-args.md, ../ops/install.md, ../ops/git-flow.md, ../ops/migration-omp-to-zcode.md, ../services/kb-search/README.md, ../plans/external-dependencies/README.md]
+  relates_to: [README.md, roles.md, workflow-args.md, ../ops/install.md, ../ops/git-flow.md, ../ops/migration-omp-to-zcode.md, ../services/kb-search/README.md, ../plans/external-dependencies/README.md, ../plans/roles-fallback-substrate/README.md]
 ---
 
 # Внешние зависимости — инвентаризация и контуры замены/синка
@@ -32,11 +32,10 @@ provider-stop'у). Здесь инвентаризация двух классо
   (gate-followups-2/07). Дефолтный субстрат с 2026-10-09 (lens-substrate-flash)
   — субагенты хоста на модели роли `confirmer` (`subagent_model` воркфлоу):
   тарифный план zai несёт базовый вес субагента; прямой вызов остался для
-  моделей, чей контекст базовый вес не несёт. Сюда же указывает модель роли
-  `reviewer` user-слоя (`qwen3.6-unlim-xl`, [roles.md](roles.md)) — она живёт в
-  direct-фолбэке и в воркфлоу код-ревью; модель роли `challenger` (тот же
-  тариф) используется воркфлоу гриллинга через `subagent_model`, direct не
-  вызывает.
+  моделей, чей контекст базовый вес не несёт. Модели ролей user-слоя с
+  2026-10-11 — `GLM-5.3-Flash` (reviewer `$max`, challenger `$high`,
+  [roles.md](roles.md)); до того обе роли сидели на `qwen3.6-unlim-xl` —
+  модель списана 2026-10-09 (см. «Субстрат линз: решения 2026-10-09» ниже).
 - **Пин**: версии нет — подписка. Карточка провайдера в zcode
   (`~/.zcode/v2/provider_config.json`, провайдер `neuraldeep-sub`: `access.apiKey`,
   `api.baseUrl`) — единственный источник кредов; ключи в репо не хранятся и не
@@ -168,6 +167,35 @@ provider-stop'у). Здесь инвентаризация двух классо
 - **Где ловится**: полный сьют `python3 -m pytest tests/ -q`; матрица
   дифф-парсеров `tests/diff_map.mjs` (гоняется `tests/test_diff_map.py`);
   `gitmark lint --strict`; rebuild индекса и `deploy-check.sh` на деплой-шаге.
+
+## Субстрат линз: решения 2026-10-09
+
+Датированные записи, на которых держится демонтаж прямого API-контура линз
+(план [roles-fallback-substrate](../plans/roles-fallback-substrate/README.md);
+демонтаж кода — тикеты 03–04 плана, факт-слой — здесь):
+
+- **Пол моделей** — постулат оператора (2026-10-09): рабочие модели хоста —
+  окно входа ≥262k токенов, вывод ≥131k. Постулат, не замер: на 2026-10-11 ни
+  один потолок карточек провайдеров его не опроверг — базовый вес субагента
+  ~141k (наблюдение в разделе neuraldeep выше) и объёмные линз-ответы
+  влезают целиком, обходной прямой вызов не нужен.
+- **Транспорт линз — только штатные субагенты** (решение оператора,
+  2026-10-09): ветка `substrate="direct"` (ND CALL, `LENS_PROFILES`, пул,
+  таймауты, JSON-ремонт, ручной redact) демонтируется до нуля клиентов;
+  `classifyLensOutcome` адаптируется на исходы субагентов. Узость ростка
+  линз — принцип, а не компенсация слабой модели: ростер шести осей и
+  инвариант файл×линза не меняются (агрегация ростера отвергнута).
+  «Нерезолвящееся — не деградация»: модель, которой нет на хосте (ListModels),
+  остаётся fail-closed стопом до запуска — фолбэк ошибки конфигурации не
+  маскирует.
+- **qwen3.6-unlim-xl списан** (решение оператора, 2026-10-09): потолок входа
+  тарифа 138 336 ниже базового веса субагента ~141k — субагентом модель не
+  работала никогда, прямой вызов остаётся без ветки. Полезный опыт: паттерн
+  прямого API из карточки провайдера zcode (инлайн-вызов `node -e`, креды
+  только из карточки), факт «тариф ≠ карточка» (model-id резолвится, тариф
+  не привязан), finish=length-протокол coverage (обрыв → компакт-ретрай →
+  перезапуск рана). Финансовый вывод: вложение не окупилось; карточка
+  neuraldeep-sub остаётся в zcode ради будущих не-субагентных применений.
 
 ## Контур замены провайдера LLM
 

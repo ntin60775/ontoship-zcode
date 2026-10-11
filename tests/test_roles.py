@@ -106,3 +106,28 @@ def test_split_model_level():
         roles._split_model("a/b$")
     with pytest.raises(roles.RolesError):
         roles._split_model("a/b$UPPER")
+
+
+REPO = Path(__file__).resolve().parent.parent
+
+
+def test_defaults_layer_defines_fallback_constant():
+    """roles-fallback-substrate/01: the restart slot ships in the defaults
+    layer with a concrete model$level — resolve must be able to hand it out
+    when an assigned run dies. Removing the entry from defaults/roles.md must
+    turn this test red (mutation probe)."""
+    text = (REPO / "defaults" / "roles.md").read_text("utf-8")
+    got = roles.parse_roles(text, "defaults/roles.md")
+    assert "fallback" in got, "роль fallback исчезла из defaults-слоя"
+    assert got["fallback"]["model"], "у fallback нет модели"
+    assert got["fallback"].get("level"), "у fallback нет уровня"
+
+
+def test_roles_skill_marks_fallback_as_service_constant():
+    """The /roles dashboard instruction must carry the service-constant note —
+    without it fallback renders as a regular assignable step model. Dropping
+    the note line from skills/roles/SKILL.md must turn this test red
+    (mutation probe)."""
+    skill = (REPO / "skills" / "roles" / "SKILL.md").read_text("utf-8")
+    assert "константа фолбэка, потребителям не назначается" in skill
+    assert "`fallback`" in skill

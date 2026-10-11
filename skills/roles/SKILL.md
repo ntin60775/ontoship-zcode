@@ -7,7 +7,10 @@ description: View and reassign the subagent model roles (reviewer, confirmer, ch
 
 A **role** names which model a subagent step runs on: `reviewer` (/ship step 6,
 independent diff review), `confirmer` (/ship step 6, second run — confirms the
-reviewer's findings) and `challenger` (grilling red team) by default. Resolution
+reviewer's findings) and `challenger` (grilling red team) by default. The plugin
+also ships `fallback` — a service constant holding the restart model for a run
+that died for a model reason; it is never a step's model (see the dashboard note
+below). Resolution
 is three layers, most specific wins, **merged per role name** (a project `reviewer`
 does not hide a user `challenger`):
 
@@ -29,7 +32,11 @@ the script does file work; zcode tools do verification.
    any role that comes from the project layer** (it shadows the user's global choice —
    offer `/roles unset <role>` right on that line); then the ListModels list as "what
    you can switch to".
-4. If the user picks a change, go to `set` below.
+4. The `fallback` role, when present, gets its own line with the note
+   **«константа фолбэка, потребителям не назначается»** — it holds the restart
+   model for a dead run, so never offer it in step 4 of `set` below and never
+   assign it to a regular step.
+5. If the user picks a change, go to `set` below.
 
 ### `/roles set <role> <model>[$level]` — assign (writes the USER layer by default)
 
