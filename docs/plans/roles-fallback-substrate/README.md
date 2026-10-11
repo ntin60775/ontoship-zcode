@@ -71,6 +71,8 @@ links:
 - `skills/ship/SKILL.md` — шаг 6: subagent_model из роли reviewer,
   фолбэк-перезапуск, снос direct-инструкций.
 - `skills/grilling/SKILL.md` — та же фолбэк-дисциплина challenger-рана.
+- `skills/contour/SKILL.md` — префлайт собранных args вызовов гейта
+  (хвост-урок тикета 01, решение оператора 2026-10-11).
 - `skills/ship/reviewer.workflow.ts` — демонтаж direct-ветки.
 - `skills/code-review/code-review.workflow.ts`, `skills/ship/reviewer.workflow.ts`
   — чистка модельных якорей комментариев.
