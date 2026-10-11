@@ -3,7 +3,7 @@ node_type: plan
 title: Честные роли с фолбэком и демонтаж прямого API-субстрата
 service: _platform
 status: draft
-updated: 2026-10-09
+updated: 2026-10-11
 links:
   documents: [../../../skills/ship/SKILL.md, ../../../skills/ship/reviewer.workflow.ts, ../../../defaults/roles.md]
   relates_to: [../../reference/dependencies.md, ../lens-substrate-flash.md, ../../decisions/invariant-moratorium.md]
@@ -116,7 +116,7 @@ links:
 
 | # | Title | Status | Blocked by |
 |---|---|---|---|
-| 01 | Роль fallback — константа-хранилище фолбэк-LM + датированные факты субстрата | draft | — |
+| 01 | Роль fallback — константа-хранилище фолбэк-LM + датированные факты субстрата | archived | — |
 | 02 | Честная колонка reviewer + фолбэк-перезапуск ранов на роли fallback | draft | 01 |
 | 03 | Демонтаж direct-субстрата линз — снос прямого API-контура целиком | draft | 02 |
 | 04 | Чистка модельных якорей из комментариев живого кода | draft | 03 |
