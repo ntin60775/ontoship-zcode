@@ -23,7 +23,7 @@ regenerate — never edit the table by hand.
 | Plan | Status | Tickets |
 |---|---|---|
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
-| [evidence-discipline/](evidence-discipline/README.md) | draft | 0/3 |
+| [evidence-discipline/](evidence-discipline/README.md) | draft | 1/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |

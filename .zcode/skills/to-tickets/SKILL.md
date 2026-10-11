@@ -118,7 +118,9 @@ the completion criterion (a fact a third party can verify without the author).
 A result that cannot be stated as behaviour, or a criterion that names an
 activity rather than an observable fact («add tests», «update docs»), means
 the ticket is not finished being drafted — fix it now, while draft renumbering
-is still free (step 2, item 5). Step 2's granularity criteria size the unit;
+is still free (step 2, item 5). For a criterion that names a test run, the
+observable fact is the run's read log — first failure, counters, warnings —
+not the launch itself: a green rc nobody read is still activity, not a fact. Step 2's granularity criteria size the unit;
 this pass checks what its «done» says. A fix that reshapes the breakdown
 (split, merge, rewired edges) goes back through the quiz (step 3) before any
 file is written.
