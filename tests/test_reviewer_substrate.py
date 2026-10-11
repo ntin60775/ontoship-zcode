@@ -33,6 +33,7 @@ import os
 import re
 import subprocess
 import tempfile
+import pytest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -59,13 +60,14 @@ def lens_json_source() -> str:
     body = m.group(1)
     m2 = re.search(r"// BEGIN LENS OUTCOME.*?\n(.*?)// END LENS OUTCOME", text, re.S)
     assert m2, "LENS OUTCOME block lost its markers in skills/ship/reviewer.workflow.ts"
+    s2 = m2.group(1)
     for old, new in (
         ("(out: string): string | null", "(out)"),
         ("(s: string): string", "(s)"),
         ("(env: { ok?: boolean; content?: string; finish?: string; error?: string }): { candidate: string | null; error: string }", "(env)"),
     ):
         body = body.replace(old, new)
-        s2 = m2.group(1).replace(old, new)
+        s2 = s2.replace(old, new)
     return body + "\n" + s2
 
 
@@ -88,11 +90,13 @@ def lens_profile_source() -> str:
     text = WORKFLOW.read_text(encoding="utf-8")
     m = re.search(r"// BEGIN LENS PROFILE.*?\n(.*?)// END LENS PROFILE", text, re.S)
     assert m, "LENS PROFILE block lost its markers in skills/ship/reviewer.workflow.ts"
-    body = re.sub(r"type LensProfile = \{.*?\};", "", m.group(1), flags=re.S)
+    body, n = re.subn(r"type LensProfile = \{.*?\};", "", m.group(1), flags=re.S)
+    assert n == 1, "type-алиас LensProfile дрейфовал — зачистка не применилась"
     for old, new in (
         ("const LENS_PROFILES: Record<string, LensProfile> = {", "const LENS_PROFILES = {"),
         ("function resolveLensProfile(model: string): LensProfile {", "function resolveLensProfile(model) {"),
     ):
+        assert old in body, f"аннотация дрейфовала, замена не применилась: {old[:60]}"
         body = body.replace(old, new)
     return body
 
@@ -179,18 +183,24 @@ def test_substrate_branches_fail_closed(tmp_path):
     # конфиг не читается: HOME без .zcode вообще
     empty = tmp_path / "empty-home"
     empty.mkdir()
-    out = json.loads(run_nd_call(probe_envelope(), home=empty).stdout)
+    r = run_nd_call(probe_envelope(), home=empty)
+    assert r.returncode == 0, f"скрипт упал вместо конверта:\n{r.stderr[:200]}"
+    out = json.loads(r.stdout)
     assert out["ok"] is False, out
     assert "не читается" in out["error"] and "provider_config.json" in out["error"], out["error"]
 
     # карточка провайдера есть, но у запрошенного провайдера её нет
-    out = json.loads(run_nd_call(probe_envelope(provider="absent-p"), home=probe_home(tmp_path / "h1", "sk-dummy-probe", [PROBE_MODEL])).stdout)
+    r = run_nd_call(probe_envelope(provider="absent-p"), home=probe_home(tmp_path / "h1", "sk-dummy-probe", [PROBE_MODEL]))
+    assert r.returncode == 0, f"скрипт упал вместо конверта:\n{r.stderr[:200]}"
+    out = json.loads(r.stdout)
     assert out["ok"] is False, out
     assert "нет карточки провайдера «absent-p»" in out["error"], out["error"]
     assert "provider_config.json" in out["error"], out["error"]
 
     # карточка есть, ключа нет
-    out = json.loads(run_nd_call(probe_envelope(), home=probe_home(tmp_path / "h2", None, [PROBE_MODEL])).stdout)
+    r = run_nd_call(probe_envelope(), home=probe_home(tmp_path / "h2", None, [PROBE_MODEL]))
+    assert r.returncode == 0, f"скрипт упал вместо конверта:\n{r.stderr[:200]}"
+    out = json.loads(r.stdout)
     assert out["ok"] is False, out
     assert "нет apiKey" in out["error"], out["error"]
     assert "probe-p" in out["error"] and "provider_config.json" in out["error"], out["error"]
@@ -202,7 +212,9 @@ def test_substrate_missing_model_fails_named_before_network(tmp_path):
     сгорели бы HTTP-ошибкой посреди прогона), и в режиме пробы check."""
     home = probe_home(tmp_path / "h3", api_key="sk-dummy-probe", models=[])
     for mode in ({}, {"mode": "check"}):
-        out = json.loads(run_nd_call(probe_envelope(**mode), home=home).stdout)
+        r = run_nd_call(probe_envelope(**mode), home=home)
+        assert r.returncode == 0, f"скрипт упал вместо конверта ({mode}):\n{r.stderr[:200]}"
+        out = json.loads(r.stdout)
         assert out["ok"] is False, (mode, out)
         assert f"модель «{PROBE_MODEL}» не добавлена" in out["error"], out["error"]
         assert "probe-p" in out["error"] and "provider_config.json" in out["error"], out["error"]
@@ -398,20 +410,22 @@ def test_nd_call_never_prints_api_key(tmp_path):
     ассерты пропускали фактическую утечку многострочным вызовом): каждый
     stdout-фрагмент скрипта обязан быть валидным JSON-конвертом — вписанная
     утечка «DEBUG <ключ>» ломает парс фрагмента, тест-паттерн её ловит."""
-    marker = "console.log(JSON.stringify({"
-    assert marker in nd_call_source(), "формат ok-конверта дрейфовал"
+    live = 'console.log(JSON.stringify({ ok: false, error: "в " + cfgPath + " нет карточки'
+    assert live in nd_call_source(), "живая ветка «нет карточки провайдера» дрейфовала"
     leaky = nd_call_source().replace(
-        marker,
-        'console.log("DEBUG " + rule.config.access.apiKey);\n  ' + marker, 1)
+        live,
+        'console.log("DEBUG " + JSON.stringify(cfg));\n  ' + live, 1)
     assert leaky != nd_call_source(), "мутация утечки не применилась"
     with tempfile.NamedTemporaryFile("w", suffix=".cjs", delete=False) as fh:
         fh.write(leaky)
         name = fh.name
     try:
-        # с несуществующим провайдером утечки не будет — проверяем сам канал:
-        # тест-паттерн ловит любую печать вне JSON.stringify-конверта;
-        # HOME подменён — ветка не зависит от машины (мутация встаёт в ветку
-        # «конфиг не читается», живой путь — конверт отсутствующей карточки)
+        # Мутация встаёт в ЖИВУЮ ветку (нет карточки провайдера — прогоняемый
+        # путь), cfg в ней прочитан и несёт ключ probe-домашки: утечка доходит
+        # до stdout, и JSON-контракт фрагментов (паттерн всех проб stdout)
+        # обязан её поймать. Прежняя мутация вставала в мёртвую ветку «конфиг
+        # не читается», мутант выживал — проба была пустой (verified гейта
+        # roles-fallback-substrate/02).
         home = probe_home(tmp_path, api_key="sk-dummy-probe", models=[PROBE_MODEL])
         env = os.environ | {"HOME": str(home)}
         r = subprocess.run(
@@ -421,8 +435,10 @@ def test_nd_call_never_prints_api_key(tmp_path):
         Path(name).unlink(missing_ok=True)
     assert r.returncode == 0
     assert r.stdout.strip(), "скрипт ничего не напечатал — канал пуст"
-    for fragment in r.stdout.strip().splitlines():
-        json.loads(fragment)  # утечка-строка "DEBUG sk-…" здесь не распарсится
+    assert "DEBUG" in r.stdout, "утечка из живой ветки не дошла до stdout — проба пуста"
+    with pytest.raises(json.JSONDecodeError):
+        for fragment in r.stdout.strip().splitlines():
+            json.loads(fragment)  # строка «DEBUG …» — не JSON-конверт; паттерн её ловит
 
 
 def test_lens_outcome_classifier_names_failures():
@@ -517,8 +533,10 @@ def test_repair_escapes_raw_newlines_inside_strings():
     with tempfile.NamedTemporaryFile("w", suffix=".mjs", delete=False) as fh:
         fh.write(driver)
         name = fh.name
-    r = subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
-    Path(name).unlink()
+    try:
+        r = subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
+    finally:
+        Path(name).unlink(missing_ok=True)
     assert r.returncode == 0, f"node упал на срезе repair:\n{r.stderr}"
     assert json.loads(r.stdout)[0]["claim"] == "строка1\nстрока2 \"q\""
 
@@ -532,8 +550,10 @@ def test_repair_escapes_raw_newlines_inside_strings():
     with tempfile.NamedTemporaryFile("w", suffix=".mjs", delete=False) as fh:
         fh.write(driver)
         name = fh.name
-    r = subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
-    Path(name).unlink()
+    try:
+        r = subprocess.run(["node", name], capture_output=True, text=True, timeout=60)
+    finally:
+        Path(name).unlink(missing_ok=True)
     assert r.returncode == 0
     assert r.stdout.strip() == "true"
 

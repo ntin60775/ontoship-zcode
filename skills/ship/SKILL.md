@@ -52,10 +52,11 @@ run, strictly sequential.
    exactly like a real array, and its verdicts are garbage; dwfrun-5d20732c,
    roles-fallback-substrate/01); garbage is never launched — a run that did start on
    garbage args is stopped immediately and relaunched clean. A run that died for a
-   model reason — a provider-stop of the whole run, or a ContextLimit again — is
-   relaunched clean exactly once on `subagent_model=<fallback role$level>` with a
-   loud degradation note in the run output («ран #1 на <модель> не тянет —
-   перезапущено на <фолбэк>»); resolve the `fallback` role
+   model reason — a provider-stop of the whole run, or a repeated ContextLimit that
+   ends the whole run — is relaunched clean exactly once on
+   `subagent_model=<fallback role$level>` with a loud degradation note in the run
+   output («ран #1 на <модель> не тянет — перезапущено на <фолбэк>»); resolve the
+   `fallback` role
    (roles-fallback-substrate/01) and verify it against ListModels before the
    relaunch, fail-closed as above; a second model-death stops the shipping run with
    a diagnostic. Transient errors are the host runtime's retries — not a fallback
@@ -89,8 +90,8 @@ run, strictly sequential.
    model: the reviewer's for the review run, the confirmer's for the confirm
    run (lens-substrate-flash put the gate on the confirmer, operator decision
    2026-10-09; roles-fallback-substrate/02 moved the review run onto the
-   reviewer, 2026-10-11); the argument is
-   live only since that migration (before it, the workflow contained no
+   reviewer, 2026-10-11); the `subagent_model` argument is live only since the
+   lens-substrate-flash migration (before it, the workflow contained no
    agent() at all). The direct neuraldeep API remains the explicit fallback:
    pass `substrate: "direct"` plus `reviewerModel: "<reviewer role model,
    API id from its zcode card>"` and `provider` (optional, default

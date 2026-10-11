@@ -108,7 +108,7 @@ provider-stop'у). Здесь инвентаризация двух классо
 
 ### sot-zcode-marketplace — раннер поставки
 
-- **Зачем**: вендорит релиз в проекты (`.zcode/`) по [../../deploy.json]:
+- **Зачем**: вендорит релиз в проекты (`.zcode/`) по [../../deploy.json](../../deploy.json):
   contract v1, `strategy: replace`, `on_drift: fail`, mappings, `post_update`.
 - **Пин**: `marketplace.json` каталога: `ontoship` → `ref: v0.5.31` плюс display
   `version: 0.5.31`; сам каталог — `0.5.62` (оба на 2026-10-08). Source:

@@ -43,10 +43,11 @@ execution; guessing about a one-way door is a worse one.
    Resolve the role first: `roles.py resolve --json` (roles skill), then verify the
    model against **ListModels** — missing or disabled model **stops grilling** with a
    diagnostic (fail-closed; never fall back to your own model). A run that died for
-   a model reason — a provider-stop of the whole run, or a ContextLimit again — is
-   relaunched clean exactly once on `subagent_model=<fallback role$level>` (the
-   `fallback` role) with a loud note in the run output («ран #1 на <модель> не тянет
-   — перезапущено на <фолбэк>»); resolve and verify the fallback role the same way
+   a model reason — a provider-stop of the whole run, or a repeated ContextLimit
+   that ends the whole run — is relaunched clean exactly once on
+   `subagent_model=<fallback role$level>` (the `fallback` role) with a loud note in
+   the run output («ран #1 на <модель> не тянет — перезапущено на <фолбэк>»); resolve
+   and verify the fallback role the same way
    before the relaunch, and a second model-death stops grilling with a diagnostic.
    Transient errors are the host runtime's retries — not a fallback signal: the
    fallback covers a model that cannot carry the run, never a configuration error
