@@ -2,7 +2,7 @@
 node_type: ticket
 title: Честная колонка reviewer + фолбэк-перезапуск ранов на роли fallback
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-11
 links:
   part_of: [README.md]
