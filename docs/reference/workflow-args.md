@@ -3,10 +3,10 @@ node_type: reference
 title: Аргументы CreateWorkflow — транспорт не режет, abort несёт причину
 service: _platform
 status: active
-updated: 2026-10-05
+updated: 2026-10-12
 tags: [workflow, dynamic-workflows, args, diagnostics, gotcha]
 links:
-  implemented_by: [../../skills/grilling/challenger.workflow.ts, ../../skills/doc/onto-doc.workflow.ts]
+  implemented_by: [../../skills/grilling/challenger.workflow.ts, ../../skills/onto-doc/onto-doc.workflow.ts]
   relates_to: [README.md, ../plans/queue-2/09-diagnose.md, ../plans/queue-2/17-workflow-abort-diagnostics.md]
 ---
 
