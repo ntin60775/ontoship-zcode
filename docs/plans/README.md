@@ -33,7 +33,7 @@ regenerate — never edit the table by hand.
 | [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
 | [onto-doc-canon/](onto-doc-canon/README.md) | draft | 0/2 |
 | [onto-doc-command.md](onto-doc-command.md) | archived | — |
-| [onto-doc-hygiene.md](onto-doc-hygiene.md) | draft | — |
+| [onto-doc-hygiene.md](onto-doc-hygiene.md) | archived | — |
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |

@@ -2,7 +2,7 @@
 node_type: plan
 title: Онто-док — гигиена диагностических веток и хвоста прогона
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-12
 links:
   documents: [../../skills/onto-doc/onto-doc.workflow.ts]
