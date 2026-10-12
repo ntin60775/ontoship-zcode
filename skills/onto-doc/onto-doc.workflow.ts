@@ -4,11 +4,11 @@ args:
   task:
     type: string
     description: "Док-задача: что документируем и зачем; при бутстрапе — что за KB поднимаем."
-    required: true
+    required: false
   root:
     type: string
     description: "Корень KB-проекта (worktree): кураторы правят файлы только внутри него."
-    required: true
+    required: false
   plan:
     type: json
     description: "План правок: массив кусков [{path, what}] — по одному куратору на кусок. Не передан или пуст — бутстрап: surveyor сам survey'ит и декомпозирует."
@@ -67,7 +67,9 @@ interface Coverage {
   links: number;
 }
 
-const task = String(args.task ?? "");
+// Голый запуск — канон апстрима (onto-doc-canon/01): пустой или пропущенный
+// task означает «весь репозиторий» (scope-подсказка surveyor'у), а не abort.
+const task = String(args.task ?? "").trim() || "весь репозиторий";
 const root = String(args.root ?? ".").replace(/\/+$/, "");
 function abort(conclusion: string, why: string) {
   return {
@@ -80,12 +82,6 @@ function abort(conclusion: string, why: string) {
     verified: [] as string[],
     notCovered: [why],
   };
-}
-
-// Дешёвая валидация аргументов — до любого агент-вызова: пустая задача не
-// должна сжигать дорогой surveyor-прогон перед честным abort'ом (гейт-находка 15).
-if (!task.trim()) {
-  return abort("Нужен непустой args.task — прогон не начат.", "всё — args.task не передан");
 }
 
 /** Мин-редакция секретов для диагностических хвостов args.plan (гейт-находка 19):
