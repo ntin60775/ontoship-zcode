@@ -3,9 +3,9 @@ node_type: plan
 title: onto-doc parity — бутстрап, карта, мастер-индекс и покрытие
 service: _platform
 status: archived
-updated: 2026-10-08
+updated: 2026-10-12
 links:
-  documents: [../../skills/doc/onto-doc.workflow.ts, ../../skills/kb-search/gitmark.py]
+  documents: [../../skills/onto-doc/onto-doc.workflow.ts, ../../skills/kb-search/gitmark.py]
   relates_to: [queue-2/README.md]
 ---
 
@@ -51,7 +51,7 @@ links:
   статусов и счётчиков тикетов из frontmatter) и рендером по marker-парам в
   `docs/plans/README.md`; `inventory --check` / I7 ловят рассинхрон; тесты в
   `tests/`.
-- `skills/doc/onto-doc.workflow.ts` — surveyor-фаза при пустом `args.plan`
+- `skills/onto-doc/onto-doc.workflow.ts` — surveyor-фаза при пустом `args.plan`
   (survey + декомпозиция — шаги 1–2 канона апстрима; выход surveyor'а проходит
   тот же validation gate: куски, дубликаты); entry-point фаза — AGENTS.md-only;
   tail: `gitmark map` после зелёного линта, `inventory` рядом с `index`,

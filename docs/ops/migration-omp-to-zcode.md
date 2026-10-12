@@ -60,7 +60,7 @@ zcode тоже. KB (markdown в `docs/` + индекс `.gitmark/`) не «пе�
 | плагин `ontoship@sot-omp-marketplace` (регистрация + симлинк) | replace | zcode-плагин `ontoship` из `sot-zcode-marketplace` |
 | omp-секция KB в `AGENTS.md` (пути `.omp/plugins/...`) | replace | управляемый блок `<!-- BEGIN ontoship -->` (init, фаза 3) |
 | правила payload: `kb-first`, `kb-source-of-truth`, `ship-gate`, `acceptance-rounds` | replace | контракты скиллов zcode (`kb-search`, `ship`) и строки managed-блока; проза-дубликаты не создаются |
-| omp-команды (`/kb`, `/doc`, `/ship`, …) | replace | zcode-слэши (`/kb-search`, `/doc`, `/ship`, …) — перечислены в блоке |
+| omp-команды (`/kb`, `/doc`, `/onto-doc`, `/ship`, …) | replace | zcode-слэши (`/kb-search`, `/doc`, `/onto-doc`, `/ship`, …) — перечислены в блоке |
 | omp-блок в `.gitignore` (`.omp/plugins/`, …) | keep | omp остаётся фоллбэком-терминалом; существующие строки не удалять — init только дописывает, но чистка файла руками cmp-строки не защитит |
 | секции `.omp/RULES.md` (1c/unica) | keep | вне переезда |
 | локальные omp-скиллы проекта (не из payload) | keep | проектное, omp-фоллбэку |
