@@ -135,17 +135,21 @@ function curatorResult(out: unknown, path: string): PieceResult {
     };
   }
   const o = out as Partial<PieceResult>;
-  const writtenOk =
-    o.written === "created" || o.written === "updated" || o.written === "skipped" || o.written === "refused";
   const note = typeof o.note === "string" ? redactLite(o.note) : "";
-  if (!writtenOk && o.written != null) {
+  if (
+    o.written != null &&
+    o.written !== "created" &&
+    o.written !== "updated" &&
+    o.written !== "skipped" &&
+    o.written !== "refused"
+  ) {
     return {
       path,
       written: "refused",
       note: `куратор вернул written вне {created, updated, skipped, refused}: ${clipDiag(JSON.stringify(o.written))}`,
     };
   }
-  return { path, written: writtenOk ? o.written : "skipped", note };
+  return { path, written: o.written ?? "skipped", note };
 }
 
 /** Валидационный гейт набора кусков — общий для плана оператора и декомпозиции
