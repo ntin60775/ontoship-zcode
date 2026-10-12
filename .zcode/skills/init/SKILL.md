@@ -64,6 +64,7 @@ wholesale — there is no `--force` and no overwrite mode.
 - Entry point: [`docs/README.md`](docs/README.md) — the KB master index.
 - Search before answering about this project: `/kb-search <query>`.
 - New or updated docs: `/doc` — search first, never duplicate.
+- Whole-KB bootstrap or a multi-document rebuild: `/onto-doc`.
 - Code changes go through `/ship`: one ticket (or one file plan) per run, launched by hand.
 - The KB is markdown + git; `.gitmark/`, `*-map.html` and `.scratch/` are derived or ephemeral — never committed.
 <!-- END ontoship -->

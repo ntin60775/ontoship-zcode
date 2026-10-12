@@ -31,7 +31,8 @@ regenerate — never edit the table by hand.
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
 | [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
-| [onto-doc-command.md](onto-doc-command.md) | draft | — |
+| [onto-doc-command.md](onto-doc-command.md) | archived | — |
+| [onto-doc-hygiene.md](onto-doc-hygiene.md) | draft | — |
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
@@ -81,6 +82,12 @@ regenerate — never edit the table by hand.
    «onto-doc всегда был отдельной командой как и doc», сверка с оригиналом
    Ковальского). Слот «в любой момент»: один файл-план — один слайс,
    с разработочными планами по файлам не пересекается.
+8. **onto-doc-hygiene** — 10 verified дефектов тела онто-дока с гейта шипа
+   onto-doc-command (маскировка секретов в abort-ветках, инъекционные
+   обрамления, exitCode хвоста, нормализация выходов): в том шипе отклонены
+   по констрейнту «тело не меняется» (R100-критерий переезда), здесь констрейнт
+   снят явным перечнем. Один файл — один чурн; слот «в любой момент» после
+   onto-doc-command.
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.
