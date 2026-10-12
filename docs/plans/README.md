@@ -31,8 +31,9 @@ regenerate — never edit the table by hand.
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
 | [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
+| [onto-doc-canon/](onto-doc-canon/README.md) | draft | 0/2 |
 | [onto-doc-command.md](onto-doc-command.md) | archived | — |
-| [onto-doc-hygiene.md](onto-doc-hygiene.md) | draft | — |
+| [onto-doc-hygiene.md](onto-doc-hygiene.md) | archived | — |
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
@@ -65,7 +66,7 @@ regenerate — never edit the table by hand.
    лёгкий контур, без релиза). План собран 2026-10-09 из разбора
    заметки о TDD и агентах (DeepSWE, arXiv 2603.07084) по явному запросу
    оператора, без грилла — прецедент external-dependencies.
-5. **roles-fallback-substrate** — честные роли с фолбэком и демонтаж прямого
+5. ✅ **roles-fallback-substrate** — отгружен целиком 2026-10-11 (релиз v0.5.46, 4/4): честные роли с фолбэком и демонтаж прямого
    API-субстрата: роль-константа `fallback`, шаг 6 ведёт линзы на модель роли
    reviewer, снос direct-ветки с тарифной картой, чистка модельных якорей
    комментариев (решения оператора 2026-10-09; тикеты линейны 01→02→03→04).
@@ -76,7 +77,7 @@ regenerate — never edit the table by hand.
    runbook queue-2/19 (ждёт перечень или «все шесть» от оператора) и
    повседневное использование KB/гейтов в рабочих проектах; первая реальная
    док-only правка любого проекта — через лёгкий контур (v0.5.40).
-7. **onto-doc-command** — восстановление команды-входа онто-дока: тонкий
+7. ✅ **onto-doc-command** — отгружен v0.5.47 (2026-10-12): восстановление команды-входа онто-дока: тонкий
    скилл-обёртка над воркфлоу (бутстрап по умолчанию, паттерн grilling),
    замена `/onto-doc` в runbook миграции (решение оператора 2026-10-12 —
    «onto-doc всегда был отдельной командой как и doc», сверка с оригиналом
@@ -88,6 +89,16 @@ regenerate — never edit the table by hand.
    по констрейнту «тело не меняется» (R100-критерий переезда), здесь констрейнт
    снят явным перечнем. Один файл — один чурн; слот «в любой момент» после
    onto-doc-command.
+
+9. **onto-doc-canon** — возврат семантики апстрима команде /onto-doc: пустой
+   вызов = весь репозиторий молча, аргумент = опциональная scope-подсказка;
+   модель прогона = модель чата (решение оператора 2026-10-12, роль curator
+   отвергнута после подготовки). Прогрилен 2026-10-12 (challenger
+   dwfrun-8e44670e: 5 substantial пере-решены находкой required-хедера,
+   2 minor — поправки формулировок). Тикеты линейны 01→02. Едет после
+   onto-doc-hygiene: общий файл onto-doc.workflow.ts, якоря canon лежат
+   выше hygiene-правок и не сдвинутся, обратный порядок сдвигает
+   hygiene-якоря.
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.
