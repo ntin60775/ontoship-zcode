@@ -25,8 +25,8 @@ launch, launched only by hand.
 3. **Launch the run**:
    `CreateWorkflow(path=<onto-doc.workflow.ts next to this SKILL.md>, args={task:
    "<the task>", root: "<the root>"})` — add `plan` only in the ready-plan mode.
-4. **Read the report** — `{conclusion, green, rounds, pieces, verified,
-   notCovered}`: `green` means `gitmark lint --strict` passed after the healing
+4. **Read the report** — `{conclusion, green, rounds, pieces, coverage,
+   humanZones, verified, notCovered}`: `green` means `gitmark lint --strict` passed after the healing
    loop; `notCovered` names what the run did not verify — surface it together
    with the coverage delta and the surveyor's human zones.
 5. **Committing is the operator's** — the workflow writes files and makes no

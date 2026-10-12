@@ -26,5 +26,5 @@ Follow the `kb-curate` skill (ontology over code); the engine is `gitmark.py` in
 Report which file you created/updated, its `node_type`, and the links you added.
 
 Multi-document runs — bootstrapping a whole KB or a fan-out rebuild — are the
-`/onto-doc` skill (its workflow lives in `skills/onto-doc/`); this one composes
+`/onto-doc` skill (its workflow lives next to that skill's SKILL.md); this one composes
 or updates ONE document.

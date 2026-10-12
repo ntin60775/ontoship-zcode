@@ -3,7 +3,7 @@ node_type: reference
 title: Command registry
 service: _platform
 status: active
-updated: 2026-10-08
+updated: 2026-10-12
 links:
   part_of: [README.md]
 ---
