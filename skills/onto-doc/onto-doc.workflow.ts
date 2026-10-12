@@ -97,8 +97,11 @@ function redactLite(s: string): string {
     .replace(/\b(bearer|basic)\s+[A-Za-z0-9+/=_-]{8,}/gi, "$1 [REDACTED]")
     // Каноническая JSON-форма — кавычки вокруг ключа и значения (гейт-находка
     // onto-doc-hygiene): {"password": "…"} иначе проскакивает мимо формы
-    // password: x / password=x — между ключом и двоеточием стоит кавычка.
-    .replace(/("[\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)[\w.-]*"\s*:\s*)"[^"]{4,}"/gi, '$1"[REDACTED]"')
+    // password: x / password=x. Кавычка — класс ["'] с опциональным бэкслешем
+    // перед ней: python-repr {'password': '…'} и экранированные \"-формы
+    // диагностик матчатся тем же правилом (гейт-находки confirm-рана), а
+    // значение пересекает экранированные кавычки — (?:[^"\\]|\\.), не [^"].
+    .replace(/(\\?["'][\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)[\w.-]*\\?["']\s*:\s*)\\?["'](?:[^"\\]|\\.){4,}\\?["']/gi, '$1"[REDACTED]"')
     .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)[\w.-]*\s*[:=]\s*)[^\s,;}"']{4,}/gi, "$1[REDACTED]")
     .replace(/\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,})\b/g, "[REDACTED]");
 }
@@ -111,8 +114,11 @@ function clipDiag(s: string, n = 80): string {
 }
 
 /** Нормализация выхода куратора зеркально выходу surveyor'а (гейт-находка
- * onto-doc-hygiene): строка парсится как JSON, не-объект — именованный отказ
- * куска (written: refused), а не TypeError вне try и не молчаливый skipped. */
+ * onto-doc-hygiene): строка парсится как JSON, не-объект (включая массив —
+ * typeof [] === "object", гейт-находка confirm-рана) — именованный отказ
+ * куска (written: refused), а не TypeError вне try и не молчаливый skipped.
+ * Поля ответа не доверены: written валидируется по юниону, путь куска
+ * берём из провалидированного гейтом плана, note проходит мин-редакцию. */
 function curatorResult(out: unknown, path: string): PieceResult {
   if (typeof out === "string") {
     try {
@@ -121,15 +127,25 @@ function curatorResult(out: unknown, path: string): PieceResult {
       return { path, written: "refused", note: `куратор вернул строку не-JSON: ${clipDiag(out)}` };
     }
   }
-  if (typeof out !== "object" || out === null) {
+  if (typeof out !== "object" || out === null || Array.isArray(out)) {
     return {
       path,
       written: "refused",
-      note: `куратор вернул ${out === null ? "null" : typeof out}, не объект — кусок не выполнялся`,
+      note: `куратор вернул ${Array.isArray(out) ? "массив" : out === null ? "null" : typeof out}, не объект — кусок не выполнялся`,
     };
   }
   const o = out as Partial<PieceResult>;
-  return { path: o.path ?? path, written: o.written ?? "skipped", note: o.note ?? "" };
+  const writtenOk =
+    o.written === "created" || o.written === "updated" || o.written === "skipped" || o.written === "refused";
+  const note = typeof o.note === "string" ? redactLite(o.note) : "";
+  if (!writtenOk && o.written != null) {
+    return {
+      path,
+      written: "refused",
+      note: `куратор вернул written вне {created, updated, skipped, refused}: ${clipDiag(JSON.stringify(o.written))}`,
+    };
+  }
+  return { path, written: writtenOk ? o.written : "skipped", note };
 }
 
 /** Валидационный гейт набора кусков — общий для плана оператора и декомпозиции
@@ -163,17 +179,21 @@ function piecesGate(src: unknown[], fromBootstrap: boolean) {
     (p) => p.path.startsWith("/") || p.path.split("/").includes("..") || p.path.includes("\\"),
   );
   if (escaping.length > 0) {
+    // Пути — недоверенный литеральный текст плана/декомпозиции: срез после
+    // мин-редакции, как в malformed-ветке (гейт-находка confirm-рана).
+    const esc = clipDiag(escaping.map((p) => p.path).join(", "));
     return abort(
-      `Куски с путём вне корня (абсолютный или с '..') ${srcIn}: ${escaping.map((p) => p.path).join(", ")} — кураторов не запускал.`,
-      `куски вне корня: ${escaping.map((p) => p.path).join(", ")}`,
+      `Куски с путём вне корня (абсолютный или с '..') ${srcIn}: ${esc} — кураторов не запускал.`,
+      `куски вне корня: ${esc}`,
     );
   }
   const paths = checked.map((p) => p.path);
   const dupes = [...new Set(paths.filter((x, i) => paths.indexOf(x) !== i))];
   if (dupes.length > 0) {
+    const dupe = clipDiag([...new Set(dupes)].join(", "));
     return abort(
-      `Дубликаты path ${srcIn} (${[...new Set(dupes)].join(", ")}): кураторы писали бы в один файл параллельно — прогон не начат.`,
-      `дубликаты path: ${dupes.join(", ")}`,
+      `Дубликаты path ${srcIn} (${dupe}): кураторы писали бы в один файл параллельно — прогон не начат.`,
+      `дубликаты path: ${dupe}`,
     );
   }
   if (src.length === 0) {
@@ -210,7 +230,9 @@ if (
       // Same contract as challenger: the abort must carry the parser's message,
       // the received length and the TAIL of the string — truncation (no closing
       // `]}`) and broken syntax (error with a position) are told apart at a glance.
-      const msg = e instanceof Error ? e.message : String(e);
+      // Сообщение парсера идёт через мин-редакцию: V8 встраивает в него первые
+      // ~10 символов недоверенного args.plan (гейт-находка confirm-рана).
+      const msg = redactLite(e instanceof Error ? e.message : String(e));
       const raw = planRaw;
       const head = raw.length > 80 ? `${clipDiag(raw)}…` : "";
       const tail = raw.length > 80 ? `…${redactLite(raw).slice(-80)}` : clipDiag(raw);
@@ -276,7 +298,7 @@ async function kbStat(): Promise<Coverage | null> {
   // беззвучный null (гейт-находка onto-doc-hygiene): coverage {before: null} в
   // отчёте сопровождается log-строкой с причиной.
   if (r.exitCode !== 0) {
-    log(`kbStat: stat упал (exit ${r.exitCode}): ${(r.stdout + r.stderr).trim().slice(0, 80)}`);
+    log(`kbStat: stat упал (exit ${r.exitCode}): ${clipDiag((r.stdout + r.stderr).trim())}`);
     return null;
   }
   try {
@@ -287,12 +309,12 @@ async function kbStat(): Promise<Coverage | null> {
     // Форма ответа проверяется: NaN/undefined — null, а не фиктивный «успешный»
     // замер в coverage-дельте (гейт-находка 13).
     if (![f, c, l].every(Number.isFinite)) {
-      log(`kbStat: числа не конечны (files=${String(s.files)}, chunks=${String(s.chunks)}, links=${String(s.links)})`);
+      log(`kbStat: числа не конечны (files=${clipDiag(String(s.files))}, chunks=${clipDiag(String(s.chunks))}, links=${clipDiag(String(s.links))})`);
       return null;
     }
     return { files: f, chunks: c, links: l };
   } catch (e) {
-    log(`kbStat: ответ не JSON (${e instanceof Error ? e.message : String(e)}): ${r.stdout.slice(0, 80)}`);
+    log(`kbStat: ответ не JSON (${clipDiag(e instanceof Error ? e.message : String(e))}): ${clipDiag(r.stdout)}`);
     return null;
   }
 }
@@ -512,14 +534,16 @@ if (green) {
 if (green) {
   const idx = await world.run("python3", [gm, "--root", root, "index"]);
   const idxOut = `${idx.stdout}\n${idx.stderr}`.trim();
-  log(`index: ${idxOut || "(пусто)"}`);
+  // Вставка вывода — срез после мин-редакции, не полный трейсбек (гейт-находка
+  // confirm-рана).
+  log(`index: ${clipDiag(idxOut) || "(пусто)"}`);
   tailIndexRan = true;
   // exitCode читается зеркально inventory/map (гейт-находка onto-doc-hygiene):
   // сбой роняет green и уходит в notCovered — клейм «gitmark index (world.run)»
   // только за успех; карта при сбое индекса не собирается.
   if (idx.exitCode !== 0) {
     green = false;
-    notCovered.push(`пересборка индекса не удалась (exit ${idx.exitCode}):\n${idxOut}`);
+    notCovered.push(`пересборка индекса не удалась (exit ${idx.exitCode}):\n${clipDiag(idxOut)}`);
   } else {
     tailIndexOk = true;
   }
