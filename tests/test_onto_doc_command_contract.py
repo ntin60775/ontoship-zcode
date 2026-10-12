@@ -1,14 +1,30 @@
 """Командный контракт /onto-doc (onto-doc-canon/02, 2026-10-13).
 
-Матрица правил на текст skills/onto-doc/SKILL.md — контракт команды по канону
+Матрица правил на текст SKILL.md скилла onto-doc — контракт команды по канону
 апстрима (.omp/commands/onto-doc.md: «args: "[scope] (empty → whole repo)"»):
 пустой вызов = весь репо молча (никакого «If empty, ask» и церемоний выбора
 root/режима), бутстрап и пересборка — один прогон, решение о модели прогона
 несёт причину и триггер пересмотра, граница с /doc сохранена. Текст — сам
-артефакт (инструкция агенту на входе), поэтому контракт пиннится якорями
-по нормализованному тексту (пробелы схлопнуты — якорь не зависит от
-переноса строк). Мутационные пробы: каждая правка, ломающая правило,
-обязана зажечь его в нарушениях — якорь без убивающей мутации мёртв.
+артефакт (инструкция агенту на входе), поэтому контракт пиннится якорями.
+
+Два артефакта, один контракт:
+- источник skills/onto-doc/SKILL.md — то, что поставляет deploy.json (маппинг
+  в .zcode/ потребителя); пиннится всегда;
+- самохост-вендор .zcode/skills/onto-doc/SKILL.md — то, что грузит zcode этой
+  репы. В окне между фичей и self-update (шаг деплоя шипа) он байтово отстаёт
+  от источника — штатный дрейф шипа (docs/ops/git-flow.md), этот случай
+  пропускается с явной причиной; когда байты равны (после self-update), вендор
+  пиннится наравне с источником, и матрица больше не слепа к загружаемому
+  тексту (гейт-находка confirm-рана canon/02).
+
+Якоря правил и мутационные пробы работают по нормализованному тексту
+(_norm схлопывает пробелы/переносы) — переформатирование абзаца не роняет ни
+правила, ни пробы. Мутационные пробы: каждая правка, ломающая правило,
+обязана зажечь его в нарушениях; guard единственности проверяет тот же токен,
+по которому ключуется правило, — дрейф якоря диагностируется как дрейф, а не
+как «проба мертва» (гейт-находки confirm-рана canon/02). Якоря решения о
+модели — полярные связные фразы («Do not pass … and do not introduce …»),
+не голые вхождения: инверсия решения роняет матрицу, а не проходит её.
 """
 import re
 from pathlib import Path
@@ -16,7 +32,24 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parent.parent
-SKILL = REPO / "skills" / "onto-doc" / "SKILL.md"
+SOURCE = REPO / "skills" / "onto-doc" / "SKILL.md"
+VENDOR = REPO / ".zcode" / "skills" / "onto-doc" / "SKILL.md"
+
+# Исторические (v0.5.47) и перефразированные формулировки шагов выбора
+# root/режима — бан по подстроке в нижнем регистре (гейт-находка canon/02:
+# точечный бан двух исторических строк пропускал перефраз церемонии).
+ROOT_CEREMONY = [
+    "pick the `root`",
+    "choose the root",
+    "which root to use",
+    "ask for the root",
+]
+MODE_CEREMONY = [
+    "choose the mode",
+    "pick a mode",
+    "select a mode",
+    "which mode to use",
+]
 
 # (правило, предикат по нормализованному тексту) — контракт тикета 02.
 RULES = [
@@ -26,36 +59,42 @@ RULES = [
         and "data, not an instruction" in t
     )),
     ("no-ask-ceremony", lambda t: "ask for the task" not in t.lower()),
-    ("no-root-ceremony", lambda t: "Pick the `root`" not in t),
-    ("no-mode-ceremony", lambda t: "Choose the mode" not in t),
+    ("no-root-ceremony",
+     lambda t: not any(b in t.lower() for b in ROOT_CEREMONY)),
+    ("no-mode-ceremony",
+     lambda t: not any(b in t.lower() for b in MODE_CEREMONY)),
     ("root-default", lambda t: (
         "Root defaults to the current repo" in t
         and "pass `root` only to point the run somewhere" in t
     )),
     ("worktree-recommendation", lambda t: (
         "recommend a dedicated `git worktree`" in t
-        and "unconditionally regenerates" in t
+        and "rewrites `docs/plans/README.md`" in t
         and "uncommitted edits" in t
     )),
-    ("mode-auto", lambda t: "The mode is automatic" in t),
+    ("mode-auto", lambda t: (
+        "The mode is automatic" in t
+        and "no `plan` → the surveyor surveys" in t
+        and "passed as `plan` → one curator per piece" in t
+    )),
     ("same-run", lambda t: (
         "Bootstrap and rebuild/heal of an assembled KB are the same run" in t
     )),
     ("model-decision", lambda t: (
-        "2026-10-12" in t
-        and "chat model" in t
-        and "subagent_model" in t
-        and "curator role" in t
-        and "ship/grilling" in t
-        and "explicit request" in t
+        "operator decision 2026-10-12" in t
+        and "works on the current chat model" in t
+        and "Do not pass `subagent_model` and do not introduce a curator role" in t
+        and "unlike the gated ship/grilling" in t
+        and "only by the operator's explicit request" in t
     )),
     ("doc-boundary", lambda t: (
         "Boundary with `/doc`" in t and "ONE document is `/doc`" in t
     )),
 ]
 
-# Мутации (правило, старое, новое): каждая ломает свой якорь в сыром тексте;
-# замена с проверкой единственности вхождения — якорь дрейфовал, проба знает.
+# Мутации (правило, старое, новое) по нормализованному тексту: каждая ломает
+# якорь своего правила; guard проверяет единственность вхождения старого —
+# токен, по которому ключуется правило, а не более длинную фразу.
 MUTATIONS = [
     ("scope-hint", "Scope hint: `$ARGUMENTS`",
      "Task: `$ARGUMENTS` — If empty, ask for the task."),
@@ -67,13 +106,12 @@ MUTATIONS = [
      "**Choose the mode** — pick one"),
     ("root-default", "pass `root` only to point the run somewhere",
      "the operator must always pass `root`"),
-    ("worktree-recommendation", "the run's tail unconditionally regenerates",
-     "the run's tail regenerates"),
-    ("mode-auto", "**The mode is automatic**",
-     "**The mode is chosen by the operator**"),
+    ("worktree-recommendation", "`gitmark inventory` rewrites `docs/plans/README.md`",
+     "`gitmark inventory` may touch the plan registry"),
+    ("mode-auto", "no `plan` → the surveyor surveys",
+     "the surveyor surveys when the operator says so"),
     ("same-run", "are the same run", "are different runs"),
-    ("model-decision", "operator decision 2026-10-12",
-     "operator decision 2026-10-13"),
+    ("model-decision", "2026-10-12", "2026-10-13"),
     ("doc-boundary", "composing or updating ONE document is `/doc`",
      "composing or updating documents is `/doc`"),
 ]
@@ -92,22 +130,34 @@ def check_contract(text: str) -> list[str]:
 
 
 def _skill_text() -> str:
-    assert SKILL.exists(), f"скилл не найден: {SKILL}"
-    return SKILL.read_text(encoding="utf-8")
+    assert SOURCE.exists(), f"скилл не найден: {SOURCE}"
+    return SOURCE.read_text(encoding="utf-8")
 
 
-def test_real_skill_passes_all_rules():
-    """Живой SKILL.md проходит матрицу целиком — нарушений нет."""
-    violations = check_contract(_skill_text())
-    assert violations == [], f"контракт команды нарушен: {violations}"
+@pytest.mark.parametrize("path", [SOURCE, VENDOR], ids=["source", "vendor"])
+def test_real_skill_passes_all_rules(path: Path):
+    """Оба артефакта проходят матрицу: источник — всегда; самохост-вендор —
+    когда его байты равны источнику. Отставание вендора в окне шипа —
+    единственный допустимый скип, с именованной причиной."""
+    if not path.exists():
+        pytest.skip(f"копии нет: {path}")
+    if path == VENDOR and path.read_bytes() != SOURCE.read_bytes():
+        pytest.skip(
+            "самохост-вендор .zcode/skills/onto-doc/SKILL.md байтово отстаёт от "
+            "источника — окно шипа (вендор догоняет self-update на шаге деплоя); "
+            "контракт загружаемого текста проверяется здесь же после выравнивания"
+        )
+    violations = check_contract(path.read_text(encoding="utf-8"))
+    assert violations == [], f"{path}: контракт команды нарушен: {violations}"
 
 
 @pytest.mark.parametrize("rule,old,new", MUTATIONS,
                          ids=[m[0] for m in MUTATIONS])
 def test_mutation_kills_its_rule(rule: str, old: str, new: str):
     """Каждая мутация зажигает своё правило — якорь живой, а не всегда-true.
-    Диагностика дрейфа: вхождение якоря обязано быть единственным до подмены."""
-    text = _skill_text()
+    Подмена и guard идут по нормализованному тексту (как предикаты правил):
+    перенос строк внутри якоря не роняет пробу и не даёт ложный «дрейф»."""
+    text = _norm(_skill_text())
     assert text.count(old) == 1, (
         f"якорь мутации {rule!r} дрейфовал (count={text.count(old)}): {old[:60]!r}"
     )

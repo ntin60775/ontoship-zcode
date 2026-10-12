@@ -17,10 +17,11 @@ decides, never a setup dialogue.
 
 1. **Root defaults to the current repo** — pass `root` only to point the run somewhere
    else. For a live repo recommend a dedicated `git worktree` (or a fresh clone):
-   curators write only inside `root`, and the run's tail unconditionally regenerates
-   the plan registry (`gitmark inventory` rewrites `docs/plans/README.md`) —
-   uncommitted edits in a live checkout without a worktree are lost. The operator
-   reviews the diff and commits.
+   curators write only inside `root`, and on a green run the tail regenerates the
+   derived registries without asking (`gitmark inventory` rewrites
+   `docs/plans/README.md` whenever it exists) — uncommitted edits in a live
+   checkout without a worktree are lost. The operator reviews the diff and
+   commits.
 2. **The mode is automatic** — nothing to choose: no `plan` → the surveyor surveys the
    repo and decomposes it into doc areas (bootstrap; a repeat run over an existing KB
    is the rebuild/backfill mode). A ready pieces array `[{path, what}]` passed as
@@ -31,8 +32,11 @@ decides, never a setup dialogue.
    (the pieces array) only in the ready-plan mode; pass no `subagent_model` — the run
    rides the chat model (the rule below).
 4. **Read the report** — `{conclusion, green, rounds, pieces, coverage, humanZones,
-   verified, notCovered}`: `green` means `gitmark lint --strict` passed after the healing
-   loop; `notCovered` names what the run did not verify — surface it together with the
+   verified, notCovered}`: `green` means the run landed whole — `gitmark lint
+   --strict` passed after the healing loop and the derived tail (registries, index,
+   map) regenerated; a failure after a green lint is a tail failure that also turns
+   `green` off, and `conclusion` names the real cause — it is not a red lint.
+   `notCovered` names what the run did not verify — surface it together with the
    coverage delta and the surveyor's human zones.
 5. **Committing is the operator's** — the workflow writes files and makes no commits;
    review the diff in `root`, then commit (or drop the worktree to roll back).
