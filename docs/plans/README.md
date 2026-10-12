@@ -31,7 +31,7 @@ regenerate — never edit the table by hand.
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
 | [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
-| [onto-doc-canon/](onto-doc-canon/README.md) | draft | 0/2 |
+| [onto-doc-canon/](onto-doc-canon/README.md) | draft | 1/2 |
 | [onto-doc-command.md](onto-doc-command.md) | archived | — |
 | [onto-doc-hygiene.md](onto-doc-hygiene.md) | archived | — |
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
