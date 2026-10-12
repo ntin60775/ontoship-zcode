@@ -2,8 +2,8 @@
 node_type: ticket
 title: Онто-док — движок пускает голый запуск (task/root опциональны)
 service: _platform
-status: draft
-updated: 2026-10-12
+status: archived
+updated: 2026-10-13
 links:
   part_of: [README.md]
 ---
@@ -19,15 +19,15 @@ required и не абортится телом: бутстрап идёт как
 
 **Blocked by:** None (can start immediately).
 
-- [ ] В хедере `skills/onto-doc/onto-doc.workflow.ts` оба флага —
+- [x] В хедере `skills/onto-doc/onto-doc.workflow.ts` оба флага —
   `task: required: false` и `root: required: false` (факт файла).
-- [ ] Строка «Нужен непустой args.task» в файле отсутствует (grep без
+- [x] Строка «Нужен непустой args.task» в файле отсутствует (grep без
   совпадений); ветка ассерта и комментарий гейт-находки 15 удалены.
-- [ ] Дефолт «весь репозиторий» стоит на входе переменной task и покрывает
+- [x] Дефолт «весь репозиторий» стоит на входе переменной task и покрывает
   оба живых ключа — пропущенный и пустую строку.
-- [ ] Бутстрап-проба на tmp-фикстуре (канон onto-doc-parity) с args без
+- [x] Бутстрап-проба на tmp-фикстуре (канон onto-doc-parity) с args без
   ключа task (root — явный путь фикстуры) принимается хостом и завершается
   green: pieces > 0, lint-гейт зелёный.
-- [ ] Промпты surveyor'а и кураторов не тронуты; hygiene-области тела не
+- [x] Промпты surveyor'а и кураторов не тронуты; hygiene-области тела не
   тронуты.
-- [ ] `pytest` зелёный; `gitmark lint --strict` зелёный.
+- [x] `pytest` зелёный; `gitmark lint --strict` зелёный.
