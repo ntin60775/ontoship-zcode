@@ -38,6 +38,7 @@ regenerate — never edit the table by hand.
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
+| [roles-per-agent/](roles-per-agent/README.md) | draft | 0/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
 <!-- END inventory:plans -->
 
