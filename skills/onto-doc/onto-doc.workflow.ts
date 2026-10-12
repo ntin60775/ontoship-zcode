@@ -69,8 +69,11 @@ interface Coverage {
 
 // Голый запуск — канон апстрима (onto-doc-canon/01): пустой или пропущенный
 // task означает «весь репозиторий» (scope-подсказка surveyor'у), а не abort.
+// Симметрия для root (гейт-находка confirm-рана): «» и «/» после среза
+// хвостовых слэшей — тоже дефолт «.», а не путь /skills с падением на
+// предпрогоне.
 const task = String(args.task ?? "").trim() || "весь репозиторий";
-const root = String(args.root ?? ".").replace(/\/+$/, "");
+const root = String(args.root ?? ".").replace(/\/+$/, "") || ".";
 function abort(conclusion: string, why: string) {
   return {
     conclusion,

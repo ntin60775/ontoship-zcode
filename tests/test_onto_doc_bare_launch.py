@@ -7,10 +7,13 @@
    живой onto-doc.workflow.ts под мок-фасадом хоста запускается без ключа
    task — бутстрап идёт как при явной задаче, дефолт «весь репозиторий»
    доезжает до промптов surveyor'а и кураторов; пустая и пробельная задача
-   дают тот же дефолт; явная задача проходит без подмены. Каждая проба
-   снабжена мутационной: снятие дефолта опустошает задачу в промптах.
+   дают тот же дефолт; явная задача проходит без подмены; голые args и
+   пустой корень («», «/») дают root-дефолт «.» (гейт-находка confirm-рана).
+   Мутационные пробы: снятие task-дефолта пустит задачу в оба промпта,
+   снятие root-дефолта подменит корень на «undefined»; guards мутантов
+   (threw/результат/промпты) держат диагностику «проба мертва» живой.
 Приёмка уровня хоста (required: false принимает args без task на сабмите)
-живой — tmp-фикстура канона onto-doc-parity, см. план тикета.
+живая — tmp-фикстура канона onto-doc-parity, см. план тикета.
 """
 import json
 import re
@@ -131,11 +134,32 @@ def test_task_abort_branch_is_gone():
 
 # ── поведенческие пробы ────────────────────────────────────────────
 
+def assert_green(out: dict, ctx: str = "") -> None:
+    """Ассерт зелёного результата с диагностикой, живой и при res=None
+    (гейт-находка confirm-рана): причина из threw не глушится TypeError
+    на res["conclusion"]."""
+    res = out["result"]
+    why = out["threw"] or (res or {}).get("conclusion", "нет результата")
+    assert res is not None and res["green"], f"{ctx}{why}"
+
+
+def assert_reached_prompts(out: dict, label: str) -> None:
+    """Guard мутационных проб (гейт-находка confirm-рана): мутант обязан
+    дожить до промптов и вернуть результат — иначе IndexError/молчаливый
+    проход подменяет диагностику «проба мертва»."""
+    assert out["threw"] == "" and out["result"] is not None and out["prompts"], (
+        f"{label}: мутант не отработал (threw={out['threw']!r}, "
+        f"result={'нет' if out['result'] is None else 'есть'}, "
+        f"промптов {len(out['prompts'])})"
+    )
+
+
 def test_bare_args_bootstrap_green_with_default_scope():
     """Args без ключа task (и без plan) — бутстрап идёт как при явной задаче:
     зелёный прогон, куски есть, дефолт «весь репозиторий» доезжает до
     промптов surveyor'а и кураторов. Мутационная проба: дефолт снят —
-    задача в промптах пуста, ассерт пробы падает (пин жив)."""
+    задача пустеет в ОБОИХ промптах (surveyor и куратор), т. е. оба пина
+    строки выше живые (гейт-находка confirm-рана про prompts[1])."""
     out = run_flow({"args": {"root": "/tmp/kb"}, "agentAnswer": SURVEY})
     assert out["threw"] == "", f"голый запуск упал: {out['threw']}"
     res = out["result"]
@@ -144,14 +168,36 @@ def test_bare_args_bootstrap_green_with_default_scope():
     assert any("lint" in c for c in out["calls"]), "гейт lint не выполнялся"
     assert "весь репозиторий" in out["prompts"][0], out["prompts"][0][:200]
     assert "весь репозиторий" in out["prompts"][1], out["prompts"][1][:200]
-    # мутационная проба: дефолт снят — задача в промптах пуста
+    # мутационная проба: дефолт снят — задача пустеет в обоих промптах
     mutant = run_flow(
         {"args": {"root": "/tmp/kb"}, "agentAnswer": SURVEY},
         mutations=[('const task = String(args.task ?? "").trim() || "весь репозиторий";',
                     'const task = String(args.task ?? "").trim();')],
     )
-    assert "весь репозиторий" not in mutant["prompts"][0], (
-        "мутация «дефолт снят» всё ещё несёт дефолт в промпт — проба мертва"
+    assert_reached_prompts(mutant, "мутация task-дефолта")
+    assert not any("весь репозиторий" in p for p in mutant["prompts"][:2]), (
+        "мутация «дефолт снят» всё ещё несёт дефолт в промпты surveyor'а/куратора — проба мертва"
+    )
+
+
+def test_bare_args_without_root_use_both_defaults():
+    """Голые args (без task и без root) и пустой корень («» и «/» — гейт-находка
+    confirm-рана): оба дефолта работают поведенчески — «Корень KB: .» и
+    «весь репозиторий» в промптах, прогон зелёный. Мутационная проба:
+    root-дефолт снят — корень подменяется строкой «undefined»."""
+    for args_value in ({}, {"root": ""}, {"root": "/"}):
+        out = run_flow({"args": args_value, "agentAnswer": SURVEY})
+        assert_green(out, ctx=f"args={args_value!r}: ")
+        assert "Корень KB: ." in out["prompts"][0], f"args={args_value!r}: root-дефолт не в промпте"
+        assert "весь репозиторий" in out["prompts"][0], f"args={args_value!r}: task-дефолт не в промпте"
+    mutant = run_flow(
+        {"args": {}, "agentAnswer": SURVEY},
+        mutations=[('const root = String(args.root ?? ".").replace(/\\/+$/, "") || ".";',
+                    'const root = String(args.root).replace(/\\/+$/, "");')],
+    )
+    assert_reached_prompts(mutant, "мутация root-дефолта")
+    assert "Корень KB: undefined" in mutant["prompts"][0], (
+        "мутация «root-дефолт снят» не подменяет корень — проба мертва"
     )
 
 
@@ -161,8 +207,7 @@ def test_empty_and_whitespace_task_fall_back_to_default():
     for task_value in ("", "   "):
         out = run_flow({"args": {"task": task_value, "root": "/tmp/kb"},
                         "agentAnswer": SURVEY})
-        res = out["result"]
-        assert res is not None and res["green"], f"task={task_value!r}: {res['conclusion']}"
+        assert_green(out, ctx=f"task={task_value!r}: ")
         assert "весь репозиторий" in out["prompts"][0], f"task={task_value!r}: дефолт не в промпте"
 
 
@@ -171,7 +216,6 @@ def test_explicit_task_passes_through():
     (после трима), дефолт не вклинивается."""
     out = run_flow({"args": {"task": "  док по API лимитов  ", "root": "/tmp/kb"},
                     "agentAnswer": SURVEY})
-    res = out["result"]
-    assert res is not None and res["green"], res["conclusion"]
+    assert_green(out)
     assert "док по API лимитов" in out["prompts"][0], out["prompts"][0][:200]
     assert "весь репозиторий" not in out["prompts"][0], out["prompts"][0][:200]
