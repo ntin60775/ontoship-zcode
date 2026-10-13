@@ -30,13 +30,17 @@ decides, never a setup dialogue.
    every subagent persona carries `model: "{{ROLE_MODEL:<role>}}"` placeholders, and
    the host rejects the placeholder ids, so the raw template is never launchable
    (fail-closed by design). The general contract is the roles skill's «Two bridges»
-   (bridge №2); the mode-dependent procedure:
-   - **Preflight** — bootstrap (no `plan`) resolves `curator` and `surveyor`; a ready
-     `plan` resolves `curator` alone. Per role: `python3 <roles skill
-     dir>/roles.py resolve --json --root <root>` — a role missing from the output is
-     the same stop as a mismatch (fail-closed, roles skill) — then verify the role's
-     `model$level` against **ListModels** (exists, not disabled, level available).
-     Everything resolves before anything is instantiated.
+   (bridge №2); the procedure:
+   - **Preflight** — resolve **every role whose placeholder the template carries**:
+     `curator` and `surveyor` in every launch, whatever the mode — the template
+     holds the surveyor placeholder unconditionally (the `if (bootstrap)` guard
+     only keeps the surveyor *agent* from running in the ready-plan mode; the
+     instance still needs its literal, or «0 placeholders left» can never hold).
+     Per role: `python3 <roles skill dir>/roles.py resolve --json --root <root>` —
+     a role missing from the output is the same stop as a mismatch (fail-closed,
+     roles skill) — then verify the role's `model$level` against **ListModels**
+     (exists, not disabled, level available). Everything resolves before anything
+     is instantiated.
    - **Instantiate** — copy the template into a **uniquely named** draft under
      `.zcode/workflow-drafts/` (one launch = one new instance; never reuse an old
      one — a stale instance silently carries another run's models), and replace each
@@ -44,8 +48,10 @@ decides, never a setup dialogue.
      literal.
    - **Diff-preflight** — diff(instance, template) must be exactly those
      replacements: ≥ 1 placeholder in the template, 0 placeholders left in the
-     instance, every inserted literal byte-equal to the resolve output. Anything
-     else in the diff — stop and re-instantiate.
+     instance, every inserted literal byte-equal to the resolve output and of the
+     `model$level` shape (letters, digits, `. : / - _`, the `$level` suffix —
+     a quote, a newline or any other character is a stop: it would break out of
+     the string literal). Anything else in the diff — stop and re-instantiate.
    - **Submit** — `CreateWorkflow(path=<the instance>, args={root: "<the root>"})`;
      add `task: "<the scope hint>"` only when there is one; add `plan` (the pieces
      array) only in the ready-plan mode.

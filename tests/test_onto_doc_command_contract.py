@@ -1,5 +1,5 @@
 """Командный контракт /onto-doc (onto-doc-canon/02; модель переписана
-roles-per-agent/02, 2026-10-13).
+roles-per-agent/02, 2026-10-13; гейт-фиксы dwfrun-92e63bc9).
 
 Матрица правил на текст SKILL.md скилла onto-doc — контракт команды по канону
 апстрима (.omp/commands/onto-doc.md: «args: "[scope] (empty → whole repo)"»):
@@ -8,8 +8,10 @@ root/режима), бутстрап и пересборка — один про
 Модель прогона — роли (решение оператора 2026-10-13, пересматривает
 2026-10-12 его же триггером): surveyor → роль `surveyor`, кураторы fan-out и
 healer → роль `curator`, никогда модель чата, фолбэка нет; вход в ран —
-только свежая инстанциация шаблона с режим-зависимым префлайтом
-(resolve+ListModels+absence-стоп) и дифф-префлайтом. Прежний пин «pass no
+только свежая инстанциация шаблона. Префлайт резолвит ВСЕ плейсхолдеры
+шаблона независимо от режима (гейт-находка: плейсхолдер surveyor в файле
+безусловен, if (bootstrap) сторожит лишь исполнение — «резолвить только
+curator в plan-режиме» делало ран незапускаемым). Прежний пин «pass no
 `subagent_model`» снят осознанно — субагенты больше не на модели чата/рана.
 Текст — сам артефакт (инструкция агенту на входе), поэтому контракт пиннится
 якорями.
@@ -27,14 +29,19 @@ healer → роль `curator`, никогда модель чата, фолбэ�
 Якоря правил и мутационные пробы работают по нормализованному тексту
 (_norm схлопывает пробелы/переносы) — переформатирование абзаца не роняет ни
 правила, ни пробы. Мутационные пробы: каждая правка, ломающая правило,
-обязана зажечь его в нарушениях; guard единственности проверяет тот же токен,
-по которому ключуется правило, — дрейф якоря диагностируется как дрейф, а не
-как «проба мертва» (гейт-находки confirm-рана canon/02). Якоря решения о
-модели — полярные связные фразы («never rides the chat model», «runs on the
-`surveyor` role»): инверсия решения роняет матрицу, а не проходит её.
-Уровни ролей ($max/$high) здесь — факты о дефолтах со ссылкой на их дом
-(tests/test_roles.py пиннит записи defaults); контракт скилла — назначение
-ролей и дисциплина запуска, не дубликат реестра.
+обязана зажечь в нарушениях РОВНО своё правило — чужое правило в нарушениях
+значит неадресную пробу (гейт-находка confirm-рана roles-per-agent/02:
+мисадресованный якорь с изготовляющим текстом проходил молча); guard
+единственности проверяет тот же токен, по которому ключуется правило, — дрейф
+якоря диагностируется как дрейф, а не как «проба мертва» (гейт-находки
+confirm-рана canon/02). Якоря решения о модели — полярные связные фразы
+(«never rides the chat model», «runs on the `surveyor` role») ПЛЮС бан-лист
+модели: подменная инверсия роняет presence-якорь, «инверсия добавлением»
+(текст, снова разрешающий модель чата рядом с нетронутыми якорями) —
+бан-лист (гейт-находка: 9 presence-якорей её пропускали). Уровни ролей
+($max/$high) здесь — факты о дефолтах со ссылкой на их дом (tests/
+/test_roles.py пиннит записи defaults); контракт скилла — назначение ролей и
+дисциплина запуска, не дубликат реестра.
 """
 import re
 from pathlib import Path
@@ -59,6 +66,16 @@ MODE_CEREMONY = [
     "pick a mode",
     "select a mode",
     "which mode to use",
+]
+# Бан-лист модели (гейт-находка confirm-рана roles-per-agent/02): текст,
+# снова разрешающий модель чата/subagent_model, роняет model-decision даже
+# при нетронутых presence-якорях — «инверсия добавлением» ловится баном,
+# подменная инверсия — якорями.
+MODEL_BAN = [
+    "pass `subagent_model`",
+    "works on the current chat model",
+    "runs on the current chat model",
+    "rides the chat model when",
 ]
 
 # (правило, предикат по нормализованному тексту) — контракт canon/02 + тикета
@@ -101,11 +118,12 @@ RULES = [
         and "never rides the chat model" in t
         and "no fallback" in t
         and "/roles set curator|surveyor" in t
+        and not any(b in t.lower() for b in MODEL_BAN)
     )),
     ("role-preflight", lambda t: (
         "Launch through a fresh instantiation" in t
-        and "bootstrap (no `plan`) resolves `curator` and `surveyor`" in t
-        and "ready `plan` resolves `curator` alone" in t
+        and "every role whose placeholder the template carries" in t
+        and "the template holds the surveyor placeholder unconditionally" in t
         and "resolve --json" in t
         and "missing from the output is the same stop as a mismatch" in t
         and "ListModels" in t
@@ -115,8 +133,10 @@ RULES = [
         "uniquely named" in t
         and ".zcode/workflow-drafts/" in t
         and "never reuse an old one" in t
+        and "≥ 1 placeholder in the template" in t
         and "0 placeholders left in the instance" in t
         and "byte-equal to the resolve output" in t
+        and "a quote, a newline or any other character is a stop" in t
         and "CreateWorkflow(path=<the instance>" in t
         and "the raw template is never launchable" in t
     )),
@@ -129,14 +149,18 @@ RULES = [
 # якорь своего правила; guard проверяет единственность вхождения старого —
 # токен, по которому ключуется правило, а не более длинную фразу.
 MUTATIONS = [
+    # Пробы адресны: каждая зажигает РОВНО своё правило (assert == [rule] ниже);
+    # тексты new выбраны нейтральными к чужим якорям — «ask for the task»
+    # вводится без разрушения «asks nothing», бан root/режима — без разрушения
+    # якорей root-default/mode-auto (гейт-находка dwfrun-92e63bc9).
     ("scope-hint", "Scope hint: `$ARGUMENTS`",
-     "Task: `$ARGUMENTS` — If empty, ask for the task."),
-    ("no-ask-ceremony", "a bare run starts at once and asks",
-     "a bare run stops and asks: If empty, ask for the task"),
-    ("no-root-ceremony", "**Root defaults to the current repo**",
-     "**Pick the `root`** — the KB project's root"),
-    ("no-mode-ceremony", "**The mode is automatic** — nothing to choose",
-     "**Choose the mode** — pick one"),
+     "Task hint: `$ARGUMENTS`"),
+    ("no-ask-ceremony", "a bare run starts at once",
+     "a bare run stops to ask for the task; nothing else"),
+    ("no-root-ceremony", "For a live repo recommend a dedicated",
+     "For a live repo, pick the `root` first, then recommend a dedicated"),
+    ("no-mode-ceremony", "nothing to choose",
+     "choose the mode manually"),
     ("root-default", "pass `root` only to point the run somewhere",
      "the operator must always pass `root`"),
     ("worktree-recommendation", "`gitmark inventory` rewrites `docs/plans/README.md`",
@@ -146,8 +170,8 @@ MUTATIONS = [
     ("same-run", "are the same run", "are different runs"),
     ("model-decision", "The surveyor runs on the `surveyor` role",
      "The surveyor runs on the current chat model"),
-    ("role-preflight", "bootstrap (no `plan`) resolves `curator` and `surveyor`",
-     "bootstrap (no `plan`) asks the operator to pick the models"),
+    ("role-preflight", "every role whose placeholder the template carries",
+     "whatever roles seem needed at the time"),
     ("fresh-instantiation", "never reuse an old one", "reuse is fine"),
     ("doc-boundary", "composing or updating ONE document is `/doc`",
      "composing or updating documents is `/doc`"),
@@ -191,7 +215,10 @@ def test_real_skill_passes_all_rules(path: Path):
 @pytest.mark.parametrize("rule,old,new", MUTATIONS,
                          ids=[m[0] for m in MUTATIONS])
 def test_mutation_kills_its_rule(rule: str, old: str, new: str):
-    """Каждая мутация зажигает своё правило — якорь живой, а не всегда-true.
+    """Каждая мутация зажигает ровно своё правило — якорь живой, а не
+    всегда-true, и проба адресна: чужое правило в нарушениях означает, что
+    били якорь чужого правила (гейт-находка dwfrun-92e63bc9: мисадресованный
+    old с изготовляющим new проходил молча при членстве вместо равенства).
     Подмена и guard идут по нормализованному тексту (как предикаты правил):
     перенос строк внутри якоря не роняет пробу и не даёт ложный «дрейф»."""
     text = _norm(_skill_text())
@@ -200,6 +227,24 @@ def test_mutation_kills_its_rule(rule: str, old: str, new: str):
     )
     broken = text.replace(old, new)
     violations = check_contract(broken)
-    assert rule in violations, (
-        f"мутация {rule!r} не зажгла правило — проба мертва; нарушения: {violations}"
+    assert violations == [rule], (
+        f"мутация {rule!r} не зажгла ровно своё правило — проба мертва или "
+        f"неадресна; нарушения: {violations}"
     )
+
+
+def test_model_inversion_by_addition_is_banned():
+    """Гейт-находка (confirm dwfrun-92e63bc9): «инверсия добавлением» — текст,
+    снова разрешающий модель чата рядом с нетронутыми presence-якорями, —
+    обязана ронять матрицу, как и подменная инверсия из MUTATIONS; здесь
+    якоря правила остаются целы, срабатывает только бан-лист модели."""
+    text = _norm(_skill_text())
+    anchor = "Steer the cost with `/roles set"
+    assert text.count(anchor) == 1
+    added = text.replace(
+        anchor,
+        "Or for a cheap run pass `subagent_model` (the current chat model). "
+        + anchor)
+    violations = check_contract(added)
+    assert violations == ["model-decision"], (
+        f"бан-лист модели не зажёгся на инверсии добавлением: {violations}")

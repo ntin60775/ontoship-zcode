@@ -115,16 +115,33 @@ def test_grilling_stays_on_challenger():
         "grilling-ран потерял роль challenger")
 
 
+def onto_doc_step3() -> str:
+    """Шаг 3 скилла onto-doc, нормализованный и ограниченный заголовками
+    шагов: дисциплина инстанциации живёт в шаге 3 — пин, заявляющий место,
+    держится внутри него (конвенция файла; гейт-находка dwfrun-92e63bc9 —
+    короткий якорь по всему файлу позволял перенос дисциплины)."""
+    text = norm(REPO / "skills" / "onto-doc" / "SKILL.md")
+    return text[
+        text.index("3. **Launch through a fresh instantiation**"):
+        text.index("4. **Read the report**")
+    ]
+
+
 def test_onto_doc_rides_the_role_bridge_not_the_chat_model():
     """roles-per-agent/02: онто-док — первый потребитель моста №2. Движок —
     шаблон: плейсхолдеры {{ROLE_MODEL:<role>}} строковыми литералами (форма
-    model() запрещена — ломает мок-обёрточные тесты, грилл d6), движок не
+    model( запрещена целиком — любая, не только двойные кавычки), движок не
     принимает модель рана; скилл запускает ран только через свежую
-    инстанциацию с дифф-префлайтом. Уровни ролей — факты реестра, их дом —
-    tests/test_roles.py (записи defaults с явными level); здесь контракт —
-    назначение ролей и дисциплина запуска. Мутационные пробы (подтверждены
-    живьём при отгрузке): смена плейсхолдера surveyor → curator и снятие
-    «never rides the chat model» обязаны краснить этот пин."""
+    инстанциацию с дифф-префлайтом (шаг 3). Структурные инварианты движка:
+    ровно три agent()-вызова и ровно три поля model:, все — плейсхолдеры
+    (четвёртый агент без model: или захардкоженная модель ловятся счётчиками;
+    гейт-находки dwfrun-92e63bc9 — обе мутации оставляли пин зелёным).
+    Движковые пины — регексы по нормализованному тексту: реформат TS
+    (перенос model:, двойной пробел) не роняет пин и не даёт false-green.
+    Уровни ролей — факты реестра, их дом — tests/test_roles.py. Мутационные
+    пробы (живьём при отгрузке): подмена плейсхолдера surveyor → curator,
+    четвёртый agent( и четвёртое захардкоженное model:, снятие «never rides
+    the chat model»."""
     skill = norm(REPO / "skills" / "onto-doc" / "SKILL.md")
     assert "runs on the `surveyor` role" in skill, (
         "surveyor не на своей роли")
@@ -132,16 +149,27 @@ def test_onto_doc_rides_the_role_bridge_not_the_chat_model():
         "кураторы/healer не на роли curator")
     assert "never rides the chat model" in skill, (
         "полярный якорь «никогда модель чата» потерян")
-    assert "uniquely named" in skill and "0 placeholders left in the instance" in skill, (
-        "дисциплина свежей инстанциации с дифф-префлайтом не запинена")
+    step3 = onto_doc_step3()
+    assert "uniquely named** draft under `.zcode/workflow-drafts/`" in step3, (
+        "уникальный черновик инстанциации не запинен в шаге 3")
+    assert "0 placeholders left in the instance" in step3, (
+        "дифф-префлайт (0 плейсхолдеров в инстансе) не запинен в шаге 3")
     engine = (REPO / "skills" / "onto-doc" / "onto-doc.workflow.ts").read_text(
         encoding="utf-8")
-    assert engine.count('model: "{{ROLE_MODEL:curator}}"') == 2, (
-        "плейсхолдер curator должен стоять ровно на кураторе fan-out и healer")
-    assert engine.count('model: "{{ROLE_MODEL:surveyor}}"') == 1, (
-        "плейсхолдер surveyor должен стоять ровно на surveyor")
-    assert 'model("' not in engine, "форма model() в движке запрещена"
-    assert "subagent_model" not in engine, (
+    eng = re.sub(r"\s+", " ", engine)
+    assert len(re.findall(r"\bagent\(", eng)) == 3, (
+        "в движке ровно три agent()-вызова (surveyor, curator fan-out, healer) "
+        "— четвёртый субагент без роли обязан краснить пин")
+    cur = re.findall(r'model: "\{\{ROLE_MODEL:curator\}\}"', eng)
+    sur = re.findall(r'model: "\{\{ROLE_MODEL:surveyor\}\}"', eng)
+    fields = re.findall(r"\bmodel:", eng)
+    assert len(fields) == 3 and len(cur) == 2 and len(sur) == 1, (
+        f"все поля model: — плейсхолдеры ролей: curator ×2 (fan-out + healer), "
+        f"surveyor ×1; факт: полей {len(fields)}, curator {len(cur)}, "
+        f"surveyor {len(sur)}")
+    assert not re.search(r"\bmodel\s*\(", eng), (
+        "форма model( в движке запрещена — любая (литерал, переменная)")
+    assert "subagent_model" not in eng, (
         "движок не принимает модель рана — только плейсхолдеры ролей")
 
 
