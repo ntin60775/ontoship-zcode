@@ -2,8 +2,8 @@
 node_type: plan
 title: Онто-док — канон команды: самодостаточный вход
 service: _platform
-status: draft
-updated: 2026-10-12
+status: archived
+updated: 2026-10-13
 links:
   documents: [../../../skills/onto-doc/SKILL.md, ../../../skills/onto-doc/onto-doc.workflow.ts]
   relates_to: [../onto-doc-command.md, ../onto-doc-hygiene.md]
@@ -15,8 +15,8 @@ links:
 
 | # | Title | Status | Blocked by |
 | --- | --- | --- | --- |
-| 01 | Движок пускает голый запуск (task/root опциональны) | draft | — |
-| 02 | Команда /onto-doc по канону апстрима | draft | 01 |
+| 01 | Движок пускает голый запуск (task/root опциональны) | archived | — |
+| 02 | Команда /onto-doc по канону апстрима | archived | 01 |
 
 ## Goal
 

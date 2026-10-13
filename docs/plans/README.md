@@ -31,13 +31,14 @@ regenerate — never edit the table by hand.
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
 | [lens-substrate-flash.md](lens-substrate-flash.md) | archived | — |
-| [onto-doc-canon/](onto-doc-canon/README.md) | draft | 1/2 |
+| [onto-doc-canon/](onto-doc-canon/README.md) | archived | 2/2 |
 | [onto-doc-command.md](onto-doc-command.md) | archived | — |
 | [onto-doc-hygiene.md](onto-doc-hygiene.md) | archived | — |
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
+| [roles-per-agent/](roles-per-agent/README.md) | draft | 0/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
 <!-- END inventory:plans -->
 
