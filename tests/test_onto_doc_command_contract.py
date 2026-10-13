@@ -1,11 +1,18 @@
-"""Командный контракт /onto-doc (onto-doc-canon/02, 2026-10-13).
+"""Командный контракт /onto-doc (onto-doc-canon/02; модель переписана
+roles-per-agent/02, 2026-10-13).
 
 Матрица правил на текст SKILL.md скилла onto-doc — контракт команды по канону
 апстрима (.omp/commands/onto-doc.md: «args: "[scope] (empty → whole repo)"»):
 пустой вызов = весь репо молча (никакого «If empty, ask» и церемоний выбора
-root/режима), бутстрап и пересборка — один прогон, решение о модели прогона
-несёт причину и триггер пересмотра, граница с /doc сохранена. Текст — сам
-артефакт (инструкция агенту на входе), поэтому контракт пиннится якорями.
+root/режима), бутстрап и пересборка — один прогон, граница с /doc сохранена.
+Модель прогона — роли (решение оператора 2026-10-13, пересматривает
+2026-10-12 его же триггером): surveyor → роль `surveyor`, кураторы fan-out и
+healer → роль `curator`, никогда модель чата, фолбэка нет; вход в ран —
+только свежая инстанциация шаблона с режим-зависимым префлайтом
+(resolve+ListModels+absence-стоп) и дифф-префлайтом. Прежний пин «pass no
+`subagent_model`» снят осознанно — субагенты больше не на модели чата/рана.
+Текст — сам артефакт (инструкция агенту на входе), поэтому контракт пиннится
+якорями.
 
 Два артефакта, один контракт:
 - источник skills/onto-doc/SKILL.md — то, что поставляет deploy.json (маппинг
@@ -23,8 +30,11 @@ root/режима), бутстрап и пересборка — один про
 обязана зажечь его в нарушениях; guard единственности проверяет тот же токен,
 по которому ключуется правило, — дрейф якоря диагностируется как дрейф, а не
 как «проба мертва» (гейт-находки confirm-рана canon/02). Якоря решения о
-модели — полярные связные фразы («Do not pass … and do not introduce …»),
-не голые вхождения: инверсия решения роняет матрицу, а не проходит её.
+модели — полярные связные фразы («never rides the chat model», «runs on the
+`surveyor` role»): инверсия решения роняет матрицу, а не проходит её.
+Уровни ролей ($max/$high) здесь — факты о дефолтах со ссылкой на их дом
+(tests/test_roles.py пиннит записи defaults); контракт скилла — назначение
+ролей и дисциплина запуска, не дубликат реестра.
 """
 import re
 from pathlib import Path
@@ -51,7 +61,8 @@ MODE_CEREMONY = [
     "which mode to use",
 ]
 
-# (правило, предикат по нормализованному тексту) — контракт тикета 02.
+# (правило, предикат по нормализованному тексту) — контракт canon/02 + тикета
+# roles-per-agent/02 (модель на ролях, вход — свежая инстанциация).
 RULES = [
     ("scope-hint", lambda t: (
         "Scope hint: `$ARGUMENTS` — empty = the whole repo" in t
@@ -81,11 +92,33 @@ RULES = [
         "Bootstrap and rebuild/heal of an assembled KB are the same run" in t
     )),
     ("model-decision", lambda t: (
-        "operator decision 2026-10-12" in t
-        and "works on the current chat model" in t
-        and "Do not pass `subagent_model` and do not introduce a curator role" in t
-        and "unlike the gated ship/grilling" in t
-        and "only by the operator's explicit request" in t
+        "operator decision 2026-10-13" in t
+        and "revising the 2026-10-12 chat-model decision" in t
+        and "runs on the `surveyor` role" in t
+        and "the fan-out curators and the healer on the `curator` role" in t
+        and "surveyor GLM-5.3-Flash$max" in t
+        and "curator GLM-5.3-Flash$high" in t
+        and "never rides the chat model" in t
+        and "no fallback" in t
+        and "/roles set curator|surveyor" in t
+    )),
+    ("role-preflight", lambda t: (
+        "Launch through a fresh instantiation" in t
+        and "bootstrap (no `plan`) resolves `curator` and `surveyor`" in t
+        and "ready `plan` resolves `curator` alone" in t
+        and "resolve --json" in t
+        and "missing from the output is the same stop as a mismatch" in t
+        and "ListModels" in t
+        and "Everything resolves before anything is instantiated" in t
+    )),
+    ("fresh-instantiation", lambda t: (
+        "uniquely named" in t
+        and ".zcode/workflow-drafts/" in t
+        and "never reuse an old one" in t
+        and "0 placeholders left in the instance" in t
+        and "byte-equal to the resolve output" in t
+        and "CreateWorkflow(path=<the instance>" in t
+        and "the raw template is never launchable" in t
     )),
     ("doc-boundary", lambda t: (
         "Boundary with `/doc`" in t and "ONE document is `/doc`" in t
@@ -111,7 +144,11 @@ MUTATIONS = [
     ("mode-auto", "no `plan` → the surveyor surveys",
      "the surveyor surveys when the operator says so"),
     ("same-run", "are the same run", "are different runs"),
-    ("model-decision", "2026-10-12", "2026-10-13"),
+    ("model-decision", "The surveyor runs on the `surveyor` role",
+     "The surveyor runs on the current chat model"),
+    ("role-preflight", "bootstrap (no `plan`) resolves `curator` and `surveyor`",
+     "bootstrap (no `plan`) asks the operator to pick the models"),
+    ("fresh-instantiation", "never reuse an old one", "reuse is fine"),
     ("doc-boundary", "composing or updating ONE document is `/doc`",
      "composing or updating documents is `/doc`"),
 ]

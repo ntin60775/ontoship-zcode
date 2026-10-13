@@ -4,7 +4,10 @@ the confirmer's, grilling stays on the challenger; a model-death relaunch goes
 exactly once on the fallback role with the loud note; assembled gate args are
 preflighted before every submit; the fail-closed rule (a model missing from
 ListModels stops before launch — the fallback never masks a configuration
-error) is pinned too. These are text pins over the skill prose — the
+error) is pinned too. С roles-per-agent/02 сюда входит и мост №2: онто-док —
+шаблон с плейсхолдерами {{ROLE_MODEL:<role>}} и запуском только через свежую
+инстанциацию с дифф-префлайтом (никогда модель чата/рана). These are text
+pins over the skill prose — the
 discipline lives at the calling-skill level, not in the workflow scripts.
 Literals are asserted on whitespace-normalized text, so line wrapping in the
 prose cannot flip a pin; template pins are bounded by their own backtick pair,
@@ -110,6 +113,36 @@ def test_grilling_stays_on_challenger():
     text = norm(REPO / "skills" / "grilling" / "SKILL.md")
     assert re.search(r"subagent_model=<challenger role(\$level)?>", text), (
         "grilling-ран потерял роль challenger")
+
+
+def test_onto_doc_rides_the_role_bridge_not_the_chat_model():
+    """roles-per-agent/02: онто-док — первый потребитель моста №2. Движок —
+    шаблон: плейсхолдеры {{ROLE_MODEL:<role>}} строковыми литералами (форма
+    model() запрещена — ломает мок-обёрточные тесты, грилл d6), движок не
+    принимает модель рана; скилл запускает ран только через свежую
+    инстанциацию с дифф-префлайтом. Уровни ролей — факты реестра, их дом —
+    tests/test_roles.py (записи defaults с явными level); здесь контракт —
+    назначение ролей и дисциплина запуска. Мутационные пробы (подтверждены
+    живьём при отгрузке): смена плейсхолдера surveyor → curator и снятие
+    «never rides the chat model» обязаны краснить этот пин."""
+    skill = norm(REPO / "skills" / "onto-doc" / "SKILL.md")
+    assert "runs on the `surveyor` role" in skill, (
+        "surveyor не на своей роли")
+    assert "the fan-out curators and the healer on the `curator` role" in skill, (
+        "кураторы/healer не на роли curator")
+    assert "never rides the chat model" in skill, (
+        "полярный якорь «никогда модель чата» потерян")
+    assert "uniquely named" in skill and "0 placeholders left in the instance" in skill, (
+        "дисциплина свежей инстанциации с дифф-префлайтом не запинена")
+    engine = (REPO / "skills" / "onto-doc" / "onto-doc.workflow.ts").read_text(
+        encoding="utf-8")
+    assert engine.count('model: "{{ROLE_MODEL:curator}}"') == 2, (
+        "плейсхолдер curator должен стоять ровно на кураторе fan-out и healer")
+    assert engine.count('model: "{{ROLE_MODEL:surveyor}}"') == 1, (
+        "плейсхолдер surveyor должен стоять ровно на surveyor")
+    assert 'model("' not in engine, "форма model() в движке запрещена"
+    assert "subagent_model" not in engine, (
+        "движок не принимает модель рана — только плейсхолдеры ролей")
 
 
 def test_args_preflight_pinned_in_ship_and_contour():
