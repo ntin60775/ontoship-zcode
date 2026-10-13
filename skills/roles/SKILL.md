@@ -92,9 +92,12 @@ several different roles ships as a **template**: every role-bearing `agent()`
 call holds `model: "{{ROLE_MODEL:<role>}}"` as a placeholder. The launching
 skill instantiates it:
 
-1. **Mode-dependent preflight.** Resolve only the roles this run actually
-   instantiates (onto-doc: bootstrap → `curator` + `surveyor`; a ready `plan`
-   → `curator` alone). Per role: `roles.py resolve --json`; a role missing
+1. **Preflight.** Resolve **every role whose placeholder the template
+   carries** — the placeholders are unconditional text in the template file,
+   so a mode that will not *run* some agent still needs its literal for the
+   instance (onto-doc: `curator` + `surveyor` in every launch; in the
+   ready-plan mode the `if (bootstrap)` guard keeps the surveyor agent from
+   running). Per role: `roles.py resolve --json`; a role missing
    from the output is the same stop as a mismatch (fail-closed rule below);
    then verify `model$level` against ListModels (exists, not disabled, level
    available). Everything resolves before anything is instantiated — «всё
