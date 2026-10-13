@@ -69,7 +69,18 @@ execution; guessing about a one-way door is a worse one.
    digest already settles.
 7. **Write the contract, run the definition-of-done pass, ask once.** Write `docs/plans/<slug>.md`
    (`node_type: plan`, per `kb-curate`: Goal / Done / Scope / Constraints / Context)
-   and crystallised terms into `CONTEXT.md` / `docs/decisions/`. Run the
+   and crystallised terms into `CONTEXT.md` / `docs/decisions/`. The contract's
+   `Context` carries the **quote carrier** (behavior-reel): a
+   `### Цитаты оператора (дословно)` block with every goal-shaping wording the
+   operator produced in this session, verbatim, one `- «…»` bullet per wording —
+   never reworded, translated, or silently dropped. A topic-run (grilling a
+   bare idea, no document) sources the block from the operator's words in the
+   launch argument. A wording the operator only picked from options you
+   authored is not their verbatim; such a goal enters the block as
+   `- парафраз: …` — the visible marker for every goal with no operator wording
+   to quote. The block is the single carrier: later runs (ticket splitting,
+   the counter-layer) take the goals they quote **only** from it — a quote has
+   no session seam left to die at. Run the
    **definition-of-done pass over the contract**: every `Scope` deliverable is
    covered by a `Done` criterion stating an observable fact a third party can
    verify — a criterion naming an activity or a degree («improve», «clean up»)
