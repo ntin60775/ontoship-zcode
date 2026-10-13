@@ -1,30 +1,72 @@
 ---
 node_type: reference
-title: Роли subagent-моделей (reviewer, confirmer, challenger, fallback)
+title: Роли subagent-моделей и два моста роль→модель
 service: _platform
 status: active
-updated: 2026-10-11
-tags: [roles, subagent, model, resolution, fail-closed, grilling, ship]
+updated: 2026-10-13
+tags: [roles, subagent, model, resolution, fail-closed, grilling, ship, bridges]
 links:
-  documents: [../../defaults/roles.md, ../../skills/roles/roles.py]
-  relates_to: [commands.md, ../ops/install.md]
+  documents: [../../defaults/roles.md, ../../skills/roles/roles.py, ../../skills/roles/SKILL.md]
+  relates_to: [commands.md, dependencies.md, ../ops/install.md, ../plans/roles-per-agent/README.md]
 ---
 
-# Роли subagent-моделей (reviewer, confirmer, challenger, fallback)
+# Роли subagent-моделей и два моста роль→модель
 
 **Роль** — имя, которое говорит, на какой модели выполняется субагентный шаг
-(`subagent_model` в `CreateWorkflow`). Плагин поставляет четыре роли (`defaults/roles.md`):
+(`subagent_model` в `CreateWorkflow` — одноролевой ран; литерал `model` в
+persona после инстанциации — многоролевой, см. «Два моста»). Роли —
+единственный контур LLM субагентов: ран не читает модель сессии, файл
+воркфлоу не хардкодит id моделей. Плагин поставляет роли в
+`defaults/roles.md`:
 
 | роль | потребитель | что делает |
 |---|---|---|
 | `reviewer` | `/ship`, шаг 6 (`skills/ship/SKILL.md`) | независимое read-only ревью дифа тикета |
 | `confirmer` | `/ship`, шаг 6, второй ран (`skills/ship/SKILL.md`) | подтверждение находок ревьюера свежими глазами |
 | `challenger` | grilling (`skills/grilling/SKILL.md`) | red team по черновым решениям |
-| `fallback` | перезапуск рана, умершего по модельной причине (план roles-fallback-substrate) | константа фолбэка, потребителям не назначается |
+| `curator` | `/onto-doc`, fan-out + healer (`skills/onto-doc`) | куратор куска плана и долечиватель lint; `$high` осознанно — ран покупает много параллельных кураторов (решение оператора 2026-10-13) |
+| `surveyor` | `/onto-doc`, бутстрап (`skills/onto-doc`) | обзор репозитория в куски плана до fan-out; имя без коллизии с гейт-агентом `synthesizer` |
+
+Правило записи (roles-per-agent/01): новая роль без специфики вносится как
+GLM-5.3-Flash с **явным** `level: max`; поимённые исключения — confirmer
+`$high` (тикет 14) и curator `$high` (решение оператора 2026-10-13). Пин —
+каждая запись `defaults/roles.md` несёт явный `level`, мутационная проба
+«убрать строку level» краснит сьют (`tests/test_roles.py`).
 
 Смысл ролей в том, что проверяющий шаг работает на **другой** модели, чем сессия:
 ценность независимого ревью и red team исчезает, если шаг молча садится на модель
 автора. Отсюда два правила ниже — слои и fail-closed.
+
+## Два моста роль→модель
+
+Войти в ран роль может ровно двумя мостами, потому что компилятор хоста
+принимает `model` субагента только известным до старта рана (дословная
+диагностика, живая проба 2026-10-13):
+
+> «A subagent's `model` must be known before the run starts: a string
+> literal, a union of string literals, or a ModelRef from model("…")»
+
+Строка, собранная из args, отвергается — протащить роль в persona на рантайме
+нельзя; хардкод литералов в статическом движке мимо ролей запрещён.
+
+- **Мост №1 — одноролевой ран.** Весь ран на одной роли: resolve + ListModels,
+  затем `CreateWorkflow(…, subagent_model=<model$level>)` — хост валидирует
+  на сабмите. Паттерн гейтов: шаг 6 `/ship` гоняет review на `reviewer`,
+  confirm — на `confirmer`. Исключение: сводчик confirm-рана (агент
+  `synthesizer`) едет на модели рана (confirmer) — не роль, решение
+  оператора 2026-10-13; миграция гейтов на мост №2 — отдельный будущий тикет.
+- **Мост №2 — многоролевой движок-шаблон.** Воркфлоу с несколькими ролями
+  поставляется шаблоном: каждый ролевой `agent()` несёт
+  `model: "{{ROLE_MODEL:<role>}}"`. Запускающий скилл: режим-зависимый
+  префлайт (только роли этого запуска; онто-док: бутстрап → curator +
+  surveyor, готовый `plan` → curator) с absence-стопом → инстанциация в
+  уникально именованный черновик `.zcode/workflow-drafts/` строковыми
+  литералами из resolve → дифф-префлайт (diff(инстанс, шаблон) ≡ ровно
+  замены плейсхолдеров: в шаблоне ≥ 1, в инстансе 0, литералы байт-в-байт из
+  resolve) → `CreateWorkflow(path=инстанс)`. Переиспользование инстансов
+  запрещено (уникальное имя на запуск); после сабмита инстанс не удаляется —
+  AmendWorkflow держит scriptPath. Первый потребитель — онто-док
+  (roles-per-agent/02). Полный контракт — скилл roles, «Two bridges».
 
 ## Три слоя разрешения
 
@@ -37,8 +79,9 @@ project          <repo>/.zcode/ontoship/roles.md
 Разрешение — от общего к частному, **слияние по имени роли**: более специфичный слой
 заменяет роль только если сам её определяет; проектный `reviewer` не прячет
 пользовательского `challenger` (`resolve()` в `skills/roles/roles.py`). Plugin-слой —
-это дефолты автора (сейчас хост-план Z.AI, все роли на `GLM-5.3-Flash`: reviewer
-`$max`, confirmer `$high`, challenger `$max`, fallback `$max`);
+это дефолты автора (сейчас хост-план Z.AI, все роли на `GLM-5.3-Flash`:
+reviewer `$max`, confirmer `$high`, challenger `$max`, curator `$high`,
+surveyor `$max`, fallback `$max`);
 user-слой перекрывает их для всех проектов, project-слой — для одного репозитория.
 
 У каждой разрешённой роли есть провенанс — `_source` (`plugin-default` | `user` |
@@ -70,7 +113,7 @@ roles:
   `model` — с файлом;
 - `set` перезаписывает слой канонически: имена ролей по алфавиту, `model` + `level`.
 
-Слои правит только `/roles` (см. `commands.md`), не руками.
+Слои правит только `/roles` (см. commands.md), не руками.
 
 ## Чтение и запись
 
@@ -98,8 +141,10 @@ roles:
 2. **Потребитель роли.** Перед субагентным шагом: `roles.py resolve --json`,
    взять `model$level` роли, сверить с **ListModels**. Любое несовпадение —
    **остановить шаг** с диагностикой (роль, ожидаемый id, файл слоя для правки).
-   **Никогда не откатываться на модель сессии** (`skills/roles/SKILL.md`,
-   fail-closed rule).
+   **Роль, отсутствующая в `resolve --json` целиком, — тот же стоп с той же
+   диагностикой**: опечатка в имени роли обязана падать громко, а не молча
+   резолвиться в дефолт какой-то модели. **Никогда не откатываться на модель
+   сессии** (`skills/roles/SKILL.md`, fail-closed rule).
 
 Диагностика обязана называть fix **с его слоем** (сначала читай `_source`):
 проектный id перестаёт резолвиться на чужом хосте, а голый `/roles set` пишет
@@ -113,6 +158,7 @@ user-слой, который проектный затеняет — фикс �
 
 ## Проверки
 
-Тесты резолвера — `tests/test_roles.py` (11 тестов: приоритет слоёв, слияние по
-имени, битые файлы, set/unset, пин константы `fallback` и её дашборд-пометки);
+Тесты резолвера — `tests/test_roles.py` (13 тестов: приоритет слоёв, слияние по
+имени, битые файлы, set/unset, пин константы `fallback`, записи curator/surveyor
+с провенансом, пин явных `level` во всех записях defaults с мутационной пробой);
 идёт в общем прогоне `python3 -m pytest tests/ -q`.

@@ -1,15 +1,17 @@
 ---
 name: roles
-description: View and reassign the subagent model roles (reviewer, confirmer, challenger, fallback) across three layers — plugin default, user global, per-project. Use when the user runs /roles, says "поменяй модель ревьюера", "назначь модель для ролей", or asks which model reviews their ships. Shows the effective configuration with provenance and shadowing warnings.
+description: View and reassign the subagent model roles (reviewer, confirmer, challenger, curator, surveyor, fallback) across three layers — plugin default, user global, per-project. Use when the user runs /roles, says "поменяй модель ревьюера", "назначь модель для ролей", or asks which model reviews their ships. Shows the effective configuration with provenance and shadowing warnings.
 ---
 
 # /roles — subagent model roles
 
 A **role** names which model a subagent step runs on: `reviewer` (/ship step 6,
 independent diff review), `confirmer` (/ship step 6, second run — confirms the
-reviewer's findings) and `challenger` (grilling red team) by default. The plugin
-also ships `fallback` — a service constant holding the restart model for a run
-that died for a model reason; it is never a step's model (see the dashboard note
+reviewer's findings), `challenger` (grilling red team), `curator` and `surveyor`
+(onto-doc run — fan-out curators with the lint healer, and the bootstrap
+surveyor; bridge 2 below). The plugin
+also ships `fallback` — a service constant holding the restart model for a run that
+died for a model reason; it is never a step's model (see the dashboard note
 below). Resolution
 is three layers, most specific wins, **merged per role name** (a project `reviewer`
 does not hide a user `challenger`):
@@ -65,12 +67,62 @@ Print the layers, the verbs with one example each, and where the roles are used
 (read the role list from `defaults/roles.md` — do not hardcode it here). End with the
 fail-closed rule below, verbatim.
 
+## Two bridges role→model (roles-per-agent/01)
+
+Roles are the only contour for subagent LLMs: a run never reads the session
+model and a workflow file never hardcodes model ids. Getting a role's model
+into a run has exactly two bridges, because the host compiler accepts a
+subagent's `model` only when it is known before the run starts — «A subagent's
+`model` must be known before the run starts: a string literal, a union of
+string literals, or a ModelRef from model("…")»; a string built from args is
+rejected, so a role cannot flow into a persona at runtime (live compiler
+probe, 2026-10-13).
+
+**Bridge 1 — single-role run.** The whole run sits on one role. Resolve the
+role (`roles.py resolve --json`) and verify it against ListModels, then
+`CreateWorkflow(path=<workflow>, …, subagent_model=<model$level>)` — the host
+validates it at submit. Gate pattern: ship step 6 runs the review on
+`reviewer` and the confirm on `confirmer` this way. An exception recorded
+here: the confirm run also has an internal summarizer agent (`synthesizer`)
+that stays on the run's confirmer model — not a role, operator decision
+2026-10-13.
+
+**Bridge 2 — multi-role engine template.** A workflow whose subagents carry
+several different roles ships as a **template**: every role-bearing `agent()`
+call holds `model: "{{ROLE_MODEL:<role>}}"` as a placeholder. The launching
+skill instantiates it:
+
+1. **Mode-dependent preflight.** Resolve only the roles this run actually
+   instantiates (onto-doc: bootstrap → `curator` + `surveyor`; a ready `plan`
+   → `curator` alone). Per role: `roles.py resolve --json`; a role missing
+   from the output is the same stop as a mismatch (fail-closed rule below);
+   then verify `model$level` against ListModels (exists, not disabled, level
+   available). Everything resolves before anything is instantiated — «всё
+   известно заранее».
+2. **Instantiate.** Copy the template into a **uniquely named** draft under
+   `.zcode/workflow-drafts/` — one launch = one new instance; reusing an old
+   instance is forbidden: a stale instance silently carries the models of the
+   run that created it (precedent: a dead reviewer-15 draft has sat in the
+   directory since 2026-10-04). Replace each `{{ROLE_MODEL:<role>}}`
+   placeholder with the resolved `model$level` as a **string literal** — not
+   the `model("…")` form, which breaks the text-level mock tests; a plain
+   literal keeps the instance diffable.
+3. **Diff-preflight.** diff(instance, template) must be **exactly** the
+   placeholder replacements: ≥ 1 placeholder in the template, 0 placeholders
+   left in the instance, every inserted literal byte-equal to the resolve
+   output. A diff showing anything else — stop, re-instantiate.
+4. **Launch.** `CreateWorkflow(path=<instance>)`. Do not delete the instance
+   after submit — AmendWorkflow holds its scriptPath.
+
 ## Fail-closed rule (applies everywhere a role is consumed)
 
 Before running a subagent step on a role: `roles.py resolve --json`, take the role's
 `model$level`, verify it against **ListModels** (exists, not disabled, level available).
 Any mismatch → **stop the step** with a diagnostic naming the role, the expected id,
-and the layer file to fix. **Never fall back to the session model** — the entire value
+and the layer file to fix. A role **missing from the `resolve --json` output
+entirely is the same stop with the same diagnostic** — a typo in a role name
+must fail loudly, never silently resolve to some implicit default model.
+**Never fall back to the session model** — the entire value
 of an assigned role is that a different model does the step.
 
 The diagnostic must name the fix **with its layer**: read the role's `_source` first.
@@ -79,4 +131,6 @@ the user layer — which the project layer shadows, so the fix silently does not
 Correct guidance: `/roles unset <role>` (drop the stale project override) or
 `/roles set <role> <model>$<level> --project` (re-pin the project deliberately).
 Prefer an explicit `$level` in every set — a bare model replaces the whole role record,
-silently dropping any level inherited from a lower layer.
+silently dropping any level inherited from a lower layer. In `defaults/roles.md`
+every record carries an explicit `level` (pinned by `tests/test_roles.py`); a new
+role without specific needs is added as `GLM-5.3-Flash` with `level: max`.

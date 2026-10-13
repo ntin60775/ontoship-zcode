@@ -140,3 +140,37 @@ def test_roles_skill_marks_fallback_as_service_constant():
     assert re.search(
         r"The `fallback` role.*константа фолбэка, потребителям не назначается",
         skill, re.S), "пункт дашборда с пометкой константы фолбэка повреждён"
+
+
+def test_defaults_define_curator_and_surveyor(tmp_path: Path, monkeypatch):
+    """roles-per-agent/01: записи онто-дока — curator $high (кураторы fan-out и
+    healer) и surveyor $max (surveyor), обе из defaults-слоя с провенансом;
+    имя surveyor не коллизирует с гейт-агентом synthesizer (грилл d5/d11).
+    Dropping either record or swapping its level must turn this red."""
+    monkeypatch.setenv("ONTOSHIP_HOME", str(tmp_path / "home"))  # isolate user layer
+    got = roles.resolve(tmp_path)  # project layer missing in tmp_path as well
+    cur = got.get("curator")
+    assert cur, "роль curator не резолвится из defaults-слоя"
+    assert cur["_source"] == "plugin-default", "у curator нет provenance defaults-слоя"
+    assert "GLM-5.3-Flash" in cur["model"], "curator ушёл с GLM-5.3-Flash без тикета"
+    assert cur.get("level") == "high", "у curator не уровень high (решение 2026-10-13)"
+    sur = got.get("surveyor")
+    assert sur, "роль surveyor не резолвится из defaults-слоя"
+    assert sur["_source"] == "plugin-default", "у surveyor нет provenance defaults-слоя"
+    assert "GLM-5.3-Flash" in sur["model"], "surveyor ушёл с GLM-5.3-Flash без тикета"
+    assert sur.get("level") == "max", "у surveyor не уровень max"
+    text = (REPO / "defaults" / "roles.md").read_text("utf-8")
+    assert "synthesizer" in text, "заметка о неколлизии surveyor/synthesizer повреждена"
+
+
+def test_defaults_every_record_carries_explicit_level(tmp_path: Path, monkeypatch):
+    """roles-per-agent/01: пин полноты — каждая запись defaults/roles.md несёт
+    явный level (правило записи: новая роль — GLM-5.3-Flash с level: max,
+    исключения поимённо). Removing the level line of any record (e.g.
+    confirmer) must turn this red — live mutation probe confirmed at ticket
+    time: `sed -i '/^    level: high$/d' defaults/roles.md` → RED → restored."""
+    monkeypatch.setenv("ONTOSHIP_HOME", str(tmp_path / "home"))  # isolate user layer
+    got = roles.resolve(tmp_path)  # effective = defaults only
+    assert got, "defaults-слой пуст — resolve ничего не вернул"
+    missing = sorted(n for n, cfg in got.items() if not cfg.get("level"))
+    assert not missing, f"записи defaults/roles.md без явного level: {missing}"
