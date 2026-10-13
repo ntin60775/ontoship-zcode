@@ -45,6 +45,11 @@ The **least specific layer**: a user overrides these for all projects in
   (skills/ship/confirm.workflow.ts), and a role colliding with it would
   confuse the /roles dashboard.
 
+`curator` and `surveyor` are the **target** assignments of the onto-doc run:
+the wiring itself ships in roles-per-agent/02. Until that ticket lands,
+onto-doc's own skill keeps the run on the chat model and forbids role wiring
+(its 2026-10-12 decision, still in force).
+
 **Record rule** (roles-per-agent/01): a new role without specific needs is
 added as `GLM-5.3-Flash` with an explicit `level: max` — never level-less;
 every record here carries its level, and a missing level line reddens the

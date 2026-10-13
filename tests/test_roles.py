@@ -144,33 +144,65 @@ def test_roles_skill_marks_fallback_as_service_constant():
 
 def test_defaults_define_curator_and_surveyor(tmp_path: Path, monkeypatch):
     """roles-per-agent/01: записи онто-дока — curator $high (кураторы fan-out и
-    healer) и surveyor $max (surveyor), обе из defaults-слоя с провенансом;
-    имя surveyor не коллизирует с гейт-агентом synthesizer (грилл d5/d11).
-    Dropping either record or swapping its level must turn this red."""
+    healer) и surveyor $max (surveyor), обе из defaults-слоя с провенансом и
+    файлом; имя surveyor не коллизирует с гейт-агентом synthesizer (грилл
+    d5/d11); описания потребителей и пометка целевого подключения запинены
+    якорями — «synthesizer» живёт и в абзаце Record rule, голое слово не
+    ловит повреждение заметки. Dropping a record, its level, its description
+    or the collision note must each turn this red."""
     monkeypatch.setenv("ONTOSHIP_HOME", str(tmp_path / "home"))  # isolate user layer
     got = roles.resolve(tmp_path)  # project layer missing in tmp_path as well
     cur = got.get("curator")
     assert cur, "роль curator не резолвится из defaults-слоя"
     assert cur["_source"] == "plugin-default", "у curator нет provenance defaults-слоя"
+    assert cur["_file"].endswith("defaults/roles.md"), "curator резолвится не из defaults/roles.md"
     assert "GLM-5.3-Flash" in cur["model"], "curator ушёл с GLM-5.3-Flash без тикета"
     assert cur.get("level") == "high", "у curator не уровень high (решение 2026-10-13)"
     sur = got.get("surveyor")
     assert sur, "роль surveyor не резолвится из defaults-слоя"
     assert sur["_source"] == "plugin-default", "у surveyor нет provenance defaults-слоя"
+    assert sur["_file"].endswith("defaults/roles.md"), "surveyor резолвится не из defaults/roles.md"
     assert "GLM-5.3-Flash" in sur["model"], "surveyor ушёл с GLM-5.3-Flash без тикета"
     assert sur.get("level") == "max", "у surveyor не уровень max"
     text = (REPO / "defaults" / "roles.md").read_text("utf-8")
-    assert "synthesizer" in text, "заметка о неколлизии surveyor/synthesizer повреждена"
+    assert "Named `surveyor`, not `synthesizer`" in text, "заметка о неколлизии surveyor/synthesizer повреждена"
+    assert "one curator per plan piece" in text, "описание потребителя curator повреждено"
+    assert "surveys the repo into" in text, "описание потребителя surveyor повреждено"
+    assert "roles-per-agent/02" in text, "пометка целевого подключения онто-дока потеряна"
 
 
 def test_defaults_every_record_carries_explicit_level(tmp_path: Path, monkeypatch):
     """roles-per-agent/01: пин полноты — каждая запись defaults/roles.md несёт
     явный level (правило записи: новая роль — GLM-5.3-Flash с level: max,
-    исключения поимённо). Removing the level line of any record (e.g.
-    confirmer) must turn this red — live mutation probe confirmed at ticket
-    time: `sed -i '/^    level: high$/d' defaults/roles.md` → RED → restored."""
+    исключения поимённо). Live probes at ticket and gate time: removing the
+    level line of exactly the confirmer record → only this test red (1
+    failed); the blunter `sed '/^    level: high$/d'` strips both confirmer
+    and curator (both are `level: high`) and reddens both new tests (2
+    failed, confirmer's gate run dwfrun-572c1bde). This pin only sees parse
+    survivors — a record silently dropped by the parser (tab indent) is
+    caught by the strict-format pin below."""
     monkeypatch.setenv("ONTOSHIP_HOME", str(tmp_path / "home"))  # isolate user layer
     got = roles.resolve(tmp_path)  # effective = defaults only
     assert got, "defaults-слой пуст — resolve ничего не вернул"
     missing = sorted(n for n, cfg in got.items() if not cfg.get("level"))
     assert not missing, f"записи defaults/roles.md без явного level: {missing}"
+
+
+def test_defaults_frontmatter_strict_format():
+    """roles-per-agent/01 (gate, dwfrun-572c1bde): каждая непустая
+    не-комментарная строка frontmatter defaults/roles.md обязана совпадать с
+    одной из трёх форм — `roles:`, `  <имя-роли>:`, `    model:|level:
+    <значение>`. Парсер молча выбрасывает нераспознанную строку нулевого
+    отступа (таб даёт indent 0 — отступ считается только по пробелам,
+    parse_roles в skills/roles/roles.py), запись пропадает без RolesError, и
+    пины над resolve её не видят; этот пин читает сырой текст. Мутационная
+    проба живьём (конфирмер гейта): `s/^  confirmer:/\\tconfirmer:/` → RED."""
+    fm = roles._frontmatter((REPO / "defaults" / "roles.md").read_text("utf-8"))
+    bad = [
+        f"строка {i + 2}: {raw!r}"
+        for i, raw in enumerate(fm.splitlines())
+        if raw.strip()
+        and not raw.strip().startswith("#")
+        and not re.fullmatch(r"roles:|  [a-z][a-z0-9-]*:|    (model|level): \S.*", raw)
+    ]
+    assert not bad, f"строки frontmatter вне строгого формата: {bad}"

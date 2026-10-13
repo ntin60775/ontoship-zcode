@@ -24,8 +24,13 @@ persona после инстанциации — многоролевой, см. 
 | `reviewer` | `/ship`, шаг 6 (`skills/ship/SKILL.md`) | независимое read-only ревью дифа тикета |
 | `confirmer` | `/ship`, шаг 6, второй ран (`skills/ship/SKILL.md`) | подтверждение находок ревьюера свежими глазами |
 | `challenger` | grilling (`skills/grilling/SKILL.md`) | red team по черновым решениям |
-| `curator` | `/onto-doc`, fan-out + healer (`skills/onto-doc`) | куратор куска плана и долечиватель lint; `$high` осознанно — ран покупает много параллельных кураторов (решение оператора 2026-10-13) |
-| `surveyor` | `/onto-doc`, бутстрап (`skills/onto-doc`) | обзор репозитория в куски плана до fan-out; имя без коллизии с гейт-агентом `synthesizer` |
+| `curator` | `/onto-doc` (целевое — roles-per-agent/02), fan-out + healer | куратор куска плана и долечиватель lint; `$high` осознанно — ран покупает много параллельных кураторов (решение оператора 2026-10-13) |
+| `surveyor` | `/onto-doc` (целевое — roles-per-agent/02), бутстрап | обзор репозитория в куски плана до fan-out; имя без коллизии с гейт-агентом `synthesizer` |
+| `fallback` | перезапуск рана, умершего по модельной причине (план roles-fallback-substrate) | константа фолбэка, потребителям не назначается |
+
+Записи `curator` и `surveyor` — **целевые** назначения онто-дока: проводка
+уезжает тикетом roles-per-agent/02, до него ран онто-дока идёт на модели
+чата по собственному решению скилла от 2026-10-12 (ещё действует).
 
 Правило записи (roles-per-agent/01): новая роль без специфики вносится как
 GLM-5.3-Flash с **явным** `level: max`; поимённые исключения — confirmer
@@ -72,7 +77,7 @@ GLM-5.3-Flash с **явным** `level: max`; поимённые исключе�
 
 ```
 plugin default   <plugin>/defaults/roles.md      в потребителе: <repo>/.zcode/defaults/roles.md
-user global      ~/.zcode/ontoship/roles.md      (дом переопределяет $ONTOSHIP_HOME)
+user global      ~/.zcode/ontoship/roles.md      (путь переопределяется $ONTOSHIP_HOME)
 project          <repo>/.zcode/ontoship/roles.md
 ```
 
@@ -158,7 +163,9 @@ user-слой, который проектный затеняет — фикс �
 
 ## Проверки
 
-Тесты резолвера — `tests/test_roles.py` (13 тестов: приоритет слоёв, слияние по
+Тесты резолвера — `tests/test_roles.py` (14 тестов: приоритет слоёв, слияние по
 имени, битые файлы, set/unset, пин константы `fallback`, записи curator/surveyor
-с провенансом, пин явных `level` во всех записях defaults с мутационной пробой);
+с провенансом, файлом и якорными пинами описаний и неколлизии, пин явных
+`level` во всех записях defaults и строгий формат frontmatter — мутационные
+пробы подтверждены живьём);
 идёт в общем прогоне `python3 -m pytest tests/ -q`.
