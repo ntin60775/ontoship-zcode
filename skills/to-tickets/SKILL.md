@@ -131,9 +131,15 @@ Act on the return:
 - The hostile cases ride into the quiz (step 3): the operator accepts a case —
   it joins that ticket's Reel as an example; rejects it — the case stays in the
   Reel by name («Отклонено оператором (контрслой): <case>»), so the decision
-  survives into the published ticket.
+  survives into the published ticket. The workflow skips such lines when
+  parsing goals — a rejected case is a record, not a promise.
 - Zero findings arrive named «не найдено» — relay that naming to the operator;
   never paraphrase it as silence.
+
+The paraphrase marker is the drafter's claim, not a verified fact: the machine
+compares only the verbatim goals, names the paraphrase count in its output, and
+flags a reel whose goals are all paraphrases while the carrier has quotes —
+the quiz is where the operator holds that line.
 
 Honest frame, fixed here and not in advertising: the restatization is a catcher
 of internal contradictions, nothing more; with all roles on one model family
