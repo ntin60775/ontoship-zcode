@@ -22,7 +22,7 @@ regenerate — never edit the table by hand.
 <!-- BEGIN inventory:plans -->
 | Plan | Status | Tickets |
 |---|---|---|
-| [behavior-reel/](behavior-reel/README.md) | draft | 2/4 |
+| [behavior-reel/](behavior-reel/README.md) | draft | 3/4 |
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
 | [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
