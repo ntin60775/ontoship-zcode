@@ -69,7 +69,9 @@ run, strictly sequential.
    on `confirmer` (roles-fallback-substrate/02):
    `CreateWorkflow(path=reviewer.workflow.ts next to this SKILL.md, args={ticket:
    "<what + acceptance criteria + touched files; a ticket with a Reel section
-   adds its example lines «Цель → Вход → Наблюдаемый выход» verbatim, a ticket
+   adds its example lines «Цель → Вход → Наблюдаемый выход» verbatim — the
+   workflow redacts secret-looking fragments to [REDACTED] before the lenses
+   see them, the honest degradation its args contract names; a ticket
    without one adds the line «Reel: отсутствует»>", base: "<merge-base ref>",
    root: "<the worktree created in step 3>"}, subagent_model=<reviewer
    role$level>)`
@@ -186,8 +188,11 @@ From the plan contract's `Constraints`, enforced verbatim:
 **Never skippable, with or without a Constraints block:** before merging to `main`
 (step 9; step 7 in the light contour) and before any deploy, ask the operator — one
 `AskUserQuestion` each, stating
-what is about to land as facts (refs, hashes, counts; for a Reel ticket — the step 8
-«обещано → фактически» lines re-derived from the prod run; no diff bodies, same rule as
+what is about to land as facts (refs, hashes, counts; for a Reel ticket — its
+latest «обещано → фактически» lines: the step 8 re-derivation when a prod
+contour ran, the step 5 stop-point lines otherwise — a light contour merges at
+step 7 before step 8, and a ticket with no contour never writes the side from
+memory; no diff bodies, same rule as
 `stop-before-commit`). A "continue" the operator typed earlier in this run covers the
 stop-point it answered, not these two confirmations.
 
