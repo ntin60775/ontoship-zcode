@@ -72,7 +72,9 @@ numbers), acceptance criteria.
 Lifecycle: plan `draft` (written by `grilling`) → `active` (`/ship` started)
 → `archived` (shipped as a single slice, or all tickets done). Tickets: `draft` (written
 by `to-tickets`) → `active` (being shipped) → `archived` (shipped). Only
-`grilling` authors a plan contract and `to-tickets` authors tickets; entry
+`grilling` authors a plan contract and `to-tickets` authors tickets; a
+`/ship` run edits a published ticket only through its drift branch (named
+edits under the post-publish rules — numbering and edges preserved); entry
 skills feed `Context`/`Goal`, never the contract.
 
 ## When EDITING (UPDATE)

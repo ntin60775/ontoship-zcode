@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Ends with a plan contract (docs/plans/<slug>.md) approved via the native plan gate. Use when the user says "погрилл", "grill this", "прогони гриллинг", or runs /grilling.
+description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Ends with a single-slice plan contract (docs/plans/<slug>.md) approved via the native plan gate, or — when the contract declares a multi-slice ticket structure — with the tickets the same session publishes by running /to-tickets in full (the plan gate plus the operator's ticket quiz are the approvals). Use when the user says "погрилл", "grill this", "прогони гриллинг", or runs /grilling.
 ---
 
 # Grilling — autonomous decisions, one approval
@@ -69,7 +69,8 @@ execution; guessing about a one-way door is a worse one.
    digest already settles.
 7. **Write the contract, run the definition-of-done pass, ask once.** Write `docs/plans/<slug>.md`
    (`node_type: plan`, per `kb-curate`: Goal / Done / Scope / Constraints / Context)
-   and crystallised terms into `CONTEXT.md` / `docs/decisions/`. The contract's
+   and crystallised terms into `CONTEXT.md` (if the project keeps one) and
+   `docs/decisions/`. The contract's
    `Context` carries the **quote carrier** (behavior-reel): a
    `### Цитаты оператора (дословно)` block with every goal-shaping wording the
    operator produced in this session, verbatim, one `- «…»` bullet per wording —
@@ -87,8 +88,14 @@ execution; guessing about a one-way door is a worse one.
    is rewritten until it names one. Then present the plan via **ExitPlanMode** —
    the contract plus the digest. The native approval **is** the
    single approval of the whole package: a rejection names the disputed item, you
-   re-decide only that item and re-present. `/ship` is never started by you — the
-   operator launches it by hand.
+   re-decide only that item and re-present. After the approval the flow continues
+   by itself (flow-continuity): a contract that declares a **multi-slice ticket
+   structure continues into a full `/to-tickets` run (steps 0–6) in this same
+   session** — no manual command between the approval and the ticket quiz; a
+   single-slice contract stops here, as before. An interrupted session is the
+   one legitimate gap: the operator then launches `/to-tickets` by hand on the
+   written contract — the documented fallback. `/ship` is never started by you —
+   the operator launches it by hand.
 
 ## Variants
 
