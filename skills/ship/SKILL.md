@@ -68,7 +68,9 @@ run, strictly sequential.
    CreateWorkflows, each on its own role's model — review on `reviewer`, confirm
    on `confirmer` (roles-fallback-substrate/02):
    `CreateWorkflow(path=reviewer.workflow.ts next to this SKILL.md, args={ticket:
-   "<what + acceptance criteria + touched files>", base: "<merge-base ref>",
+   "<what + acceptance criteria + touched files; a ticket with a Reel section
+   adds its example lines «Цель → Вход → Наблюдаемый выход» verbatim, a ticket
+   without one adds the line «Reel: отсутствует»>", base: "<merge-base ref>",
    root: "<the worktree created in step 3>"}, subagent_model=<reviewer
    role$level>)`
    — it ends with raw findings. Then classify the diff by the same map the
@@ -159,8 +161,10 @@ From the plan contract's `Constraints`, enforced verbatim:
   carries one line per example — «обещано → фактически», where «обещано» is the
   example's «Наблюдаемый выход» verbatim and «фактически» is the output a live
   E2E run of the example's «Вход» actually printed (at this stop-point that is
-  the step 5 run; a prod contour re-derives the same line from the step 8 run
-  for the merge-to-main window). The executor's self-report «совпало» — in any
+  the step 5 run; an example without a live case has no step 5 output — run its
+  «Вход» live as a probe, or carry «фактически: живого прогона нет» for the
+  operator to close, and never write the side from memory; a prod contour
+  re-derives the same line from the step 8 run for the merge-to-main window). The executor's self-report «совпало» — in any
   form, including «all M examples matched» — is forbidden: the pair travels
   whole, the operator compares the two sides himself, and a discrepancy between
   them is closed only by the operator (fix the code, fix the Reel, or accept —
