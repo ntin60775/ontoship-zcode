@@ -22,9 +22,11 @@ regenerate — never edit the table by hand.
 <!-- BEGIN inventory:plans -->
 | Plan | Status | Tickets |
 |---|---|---|
+| [behavior-reel/](behavior-reel/README.md) | draft | 0/4 |
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
 | [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
+| [flow-continuity.md](flow-continuity.md) | draft | — |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
 | [gate-risk-scaling.md](gate-risk-scaling.md) | archived | — |
@@ -38,7 +40,7 @@ regenerate — never edit the table by hand.
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
-| [roles-per-agent/](roles-per-agent/README.md) | draft | 1/2 |
+| [roles-per-agent/](roles-per-agent/README.md) | archived | 2/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
 <!-- END inventory:plans -->
 
@@ -84,22 +86,30 @@ regenerate — never edit the table by hand.
    «onto-doc всегда был отдельной командой как и doc», сверка с оригиналом
    Ковальского). Слот «в любой момент»: один файл-план — один слайс,
    с разработочными планами по файлам не пересекается.
-8. **onto-doc-hygiene** — 10 verified дефектов тела онто-дока с гейта шипа
-   onto-doc-command (маскировка секретов в abort-ветках, инъекционные
-   обрамления, exitCode хвоста, нормализация выходов): в том шипе отклонены
-   по констрейнту «тело не меняется» (R100-критерий переезда), здесь констрейнт
-   снят явным перечнем. Один файл — один чурн; слот «в любой момент» после
-   onto-doc-command.
+8. ✅ **onto-doc-hygiene** — отгружен v0.5.48 (гейт 23/23 verified): 10 verified
+   дефектов тела онто-дока с гейта шипа onto-doc-command (маскировка секретов в
+   abort-ветках, инъекционные обрамления, exitCode хвоста, нормализация выходов):
+   в том шипе отклонены по констрейнту «тело не меняется» (R100-критерий переезда),
+   здесь констрейнт снят явным перечнем.
 
-9. **onto-doc-canon** — возврат семантики апстрима команде /onto-doc: пустой
-   вызов = весь репозиторий молча, аргумент = опциональная scope-подсказка;
-   модель прогона = модель чата (решение оператора 2026-10-12, роль curator
-   отвергнута после подготовки). Прогрилен 2026-10-12 (challenger
-   dwfrun-8e44670e: 5 substantial пере-решены находкой required-хедера,
-   2 minor — поправки формулировок). Тикеты линейны 01→02. Едет после
-   onto-doc-hygiene: общий файл onto-doc.workflow.ts, якоря canon лежат
-   выше hygiene-правок и не сдвинутся, обратный порядок сдвигает
-   hygiene-якоря.
+9. ✅ **onto-doc-canon** — отгружен v0.5.49–v0.5.50 целиком (2/2): возврат семантики
+   апстрима команде /onto-doc: пустой вызов = весь репозиторий молча, аргумент =
+   опциональная scope-подсказка; модель прогона = модель чата (решение оператора
+   2026-10-12, роль curator отвергнута после подготовки). Прогрилен 2026-10-12
+   (challenger dwfrun-8e44670e: 5 substantial пере-решены находкой
+   required-хедера, 2 minor — поправки формулировок). Тикеты линейны 01→02;
+   шипался после onto-doc-hygiene: общий файл onto-doc.workflow.ts, якоря canon
+   легли выше hygiene-правок.
+10. **behavior-reel → flow-continuity** — behavior-reel (контракт 2026-10-13;
+   4 линейных тикета: носитель цитат → формат ленты → контрслой+пробы → ship)
+   шипуется первым, разбивка — ручным `/to-tickets` (автоцепочки ещё нет);
+   flow-continuity (контракт 2026-10-14; файл-план одним слайсом: автоцепочка
+   грилл→тике́ты той же сессией + перегрилль тикета по дрейфу в /ship шаг 1)
+   встаёт после behavior-reel 04 включительно — задержка тикетов 03–04
+   решением оператора порядок не меняет. Основание — общие файлы: якоря
+   behavior-reel написаны против текущих текстов, флоу-правка ложится чистым
+   диффом поверх; обратный порядок сдвигал бы зафиксированный контракт
+   behavior-reel.
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.

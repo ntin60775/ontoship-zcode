@@ -2,7 +2,7 @@
 node_type: plan
 title: Роли — единственный контур LLM субагентов (per-agent)
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-13
 links:
   documents: [../../../skills/roles/SKILL.md, ../../../skills/roles/roles.py, ../../../defaults/roles.md]
@@ -16,7 +16,7 @@ links:
 | # | Title | Status | Blocked by |
 | --- | --- | --- | --- |
 | 01 | Реестр + два моста: правило записи, конвенция ROLE_MODEL | archived | — |
-| 02 | Онто-док на роли + перепись матрицы и тестов | draft | 01 |
+| 02 | Онто-док на роли + перепись матрицы и тестов | archived | 01 |
 
 ## Goal
 
