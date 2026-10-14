@@ -34,8 +34,11 @@ If the target is already a folder, skip this step.
 
 ### 1. Gather context
 
-Read the plan contract (`Goal`, `Done`, `Scope`, `Context`) and the `Context` it
-points at. Search the KB (`gitmark search`) for related docs and decisions. If you
+Read the plan contract (`Goal`, `Done`, `Scope`, `Constraints`, `Context`) and the `Context` it
+points at. Read the plan's **quote carrier** — the `### Цитаты оператора (дословно)`
+block in its `Context` (behavior-reel/01): every Reel `Цель` in the tickets below
+quotes **only** this block, verbatim; a goal with no operator wording to quote is a
+marked paraphrase. Search the KB (`gitmark search`) for related docs and decisions. If you
 have not explored the codebase, do so to understand the current state. Ticket titles
 and descriptions use the project's vocabulary and respect the decisions in
 `docs/decisions/`.
@@ -52,6 +55,10 @@ Break the work into **tracer bullet** tickets.
 - A completed slice is demoable or verifiable on its own.
 - Each slice is sized to fit in a single fresh context window — one `/ship` run.
 - Any prefactoring should be its own first ticket.
+- Each ticket with observable behavior carries its **Reel** — the behavior examples
+  the ticket promises («Цель → Вход → Наблюдаемый выход», minimum two: normal and
+  edge/error; the section lands with the template in step 4). Draft it with the
+  slice, not after the quiz.
 
 **Granularity criteria — apply while drafting, not after.** The operator quiz (step 3)
 stays, but by the time it runs "too coarse" means these criteria were not carried to
@@ -98,6 +105,9 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
+- **Reel**: every example «Цель → Вход → Наблюдаемый выход», normal and edge — the
+  operator approves the behavior the ticket promises, not only its title; a `Цель`
+  that is a paraphrase shows its marker here too
 
 Ask — one `AskUserQuestion`, then iterate until the operator approves the
 breakdown. The operator may take a while to answer; that is not a decline and
@@ -108,6 +118,8 @@ is no reason to skip the quiz or proceed unilaterally:
 - Are the blocking edges correct: does each ticket only depend on tickets that
   genuinely gate it?
 - Should any tickets be merged or split further?
+- Do the Reel examples carry the promised behavior — each criterion's observable
+  fact presentable as the triple, quotes verbatim where the carrier has them?
 
 ### 4. Publish the tickets
 
@@ -124,6 +136,14 @@ not the launch itself: a green rc nobody read is still activity, not a fact. Ste
 this pass checks what its «done» says. A fix that reshapes the breakdown
 (split, merge, rewired edges) goes back through the quiz (step 3) before any
 file is written.
+
+**Every criterion has an example.** The same pass walks each ticket's Reel:
+every acceptance criterion is illustrated by at least one of the ticket's
+examples. The class «не иллюстрируемо» does not exist — a criterion that
+produced no example means the ticket is not finished being drafted: an
+observable fact a third party can verify is presentable as
+«Цель → Вход → Наблюдаемый выход» by definition (precedent: the redact matrix).
+Rework the criterion — or the slice — until the example exists.
 
 Write one file per ticket under the plan folder, numbered in dependency order
 (blockers first): `docs/plans/<slug>/NN-<slug>.md`. A fresh folder numbers from
@@ -155,7 +175,26 @@ start immediately)".
 
 - [ ] Acceptance criterion 1
 - [ ] Acceptance criterion 2
+
+## Reel
+
+The behavior this ticket promises, by example — the acceptance reference. Each
+`Цель` is quoted **verbatim** from the plan's quote carrier block
+(`### Цитаты оператора (дословно)` in its `Context`); a goal with no operator
+wording to quote carries the visible marker `Цель (парафраз): …`. Minimum two
+examples: the normal path and an edge/error path.
+
+- Цель (дословно: «…») → Вход: … → Наблюдаемый выход: …
+- Цель (дословно: «…») → Вход: … (краевой/ошибочный) → Наблюдаемый выход: …
 ```
+
+**The Reel is detachable — masking of the counter-layer input.** The
+counter-layer run (behavior-reel/03) restores «what the system will do» from
+ticket bodies it has not seen illustrated: its input is the published tickets
+**without the `## Reel` section**, while the reel itself and the quote
+reference (the plan's quote carrier block) are fed as **separate inputs** —
+visible in the run's args. Write every section so the removal is clean: no
+criterion, promise, or dependency lives only inside the Reel.
 
 Then update the plan's `README.md` (the parent contract — the migrated file, or the
 existing folder README): a **table** (not a prose listing) with columns `#`, `Title`,
