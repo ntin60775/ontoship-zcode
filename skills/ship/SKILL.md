@@ -127,7 +127,11 @@ run, strictly sequential.
    straight to `main`, no dev merge and no release; suite + `lint --strict`
    before the push.
 8. **Prod checks** — E2E/smoke against the real contour when one exists; skip only when
-   the plan's `Constraints` say so or no contour exists (say which).
+   the plan's `Constraints` say so or no contour exists (say which). For a ticket with
+   a `## Reel` section the live E2E runs every example's «Вход» against the real
+   contour — the observed outputs re-derive the «обещано → фактически» lines of the
+   merge-to-main window (the form and the «совпало» ban live in the stop-points
+   section; the stop-before-commit line already carries the step 5 outputs).
 9. **Ship** — merge to `main` (a light-contour ticket merged it in step 7
    already) and deploy per the plan's deploy procedure (a doc-only ticket has
    no deploy — `deploy.json` maps no `docs/` path); mark the
@@ -150,11 +154,23 @@ From the plan contract's `Constraints`, enforced verbatim:
 
 - `stop-before-commit` — after the review (step 6: both gate runs done and the
   verified findings addressed) stop and wait for the operator's "continue",
-  reporting facts only — refs and hashes, touched files, counts, gate verdicts.
-  Never paste diff bodies into stop-points or confirmation windows: the operator
-  reads diffs himself, when he considers it necessary (docs/ops/git-flow.md,
-  «Режим»); show the diff only on his explicit request. **Default when the
-  contract names nothing.**
+  reporting facts only — refs and hashes, touched files, counts, gate verdicts,
+  and the Reel diff line (behavior-reel/04): a ticket with a `## Reel` section
+  carries one line per example — «обещано → фактически», where «обещано» is the
+  example's «Наблюдаемый выход» verbatim and «фактически» is the output a live
+  E2E run of the example's «Вход» actually printed (at this stop-point that is
+  the step 5 run; a prod contour re-derives the same line from the step 8 run
+  for the merge-to-main window). The executor's self-report «совпало» — in any
+  form, including «all M examples matched» — is forbidden: the pair travels
+  whole, the operator compares the two sides himself, and a discrepancy between
+  them is closed only by the operator (fix the code, fix the Reel, or accept —
+  his call, never the executor's). A ticket without a `## Reel` section carries
+  the line «Reel: отсутствует» instead. Never paste diff bodies into stop-points
+  or confirmation windows: the operator reads diffs himself, when he considers
+  it necessary (docs/ops/git-flow.md, «Режим»); show the diff only on his
+  explicit request. The «фактически» side is a command's observed output, not a
+  diff body — the ban covers source diffs, not live E2E output.
+  **Default when the contract names nothing.**
 - `stop-after-mr` — after step 7, stop for the operator's review.
 - `no-deploy` — skip the deploy in step 9; the rolling-snapshot write still
   happens (it is not part of the deploy).
