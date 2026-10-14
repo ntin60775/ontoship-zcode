@@ -169,7 +169,11 @@ From the plan contract's `Constraints`, enforced verbatim:
   whole, the operator compares the two sides himself, and a discrepancy between
   them is closed only by the operator (fix the code, fix the Reel, or accept —
   his call, never the executor's). A ticket without a `## Reel` section carries
-  the line «Reel: отсутствует» instead. Never paste diff bodies into stop-points
+  the line «Reel: отсутствует» instead. A Reel-carrying ticket whose diff
+  brought no test files carries the named line «лента без живых кейсов в
+  диффе: tests-линза не стартовала» — lens routing is path-only (the
+  operator's invariant), the gap is named here for the operator to close,
+  not left silent. Never paste diff bodies into stop-points
   or confirmation windows: the operator reads diffs himself, when he considers
   it necessary (docs/ops/git-flow.md, «Режим»); show the diff only on his
   explicit request. The «фактически» side is a command's observed output, not a
@@ -182,7 +186,8 @@ From the plan contract's `Constraints`, enforced verbatim:
 **Never skippable, with or without a Constraints block:** before merging to `main`
 (step 9; step 7 in the light contour) and before any deploy, ask the operator — one
 `AskUserQuestion` each, stating
-what is about to land as facts (refs, hashes, counts; no diff bodies, same rule as
+what is about to land as facts (refs, hashes, counts; for a Reel ticket — the step 8
+«обещано → фактически» lines re-derived from the prod run; no diff bodies, same rule as
 `stop-before-commit`). A "continue" the operator typed earlier in this run covers the
 stop-point it answered, not these two confirmations.
 
