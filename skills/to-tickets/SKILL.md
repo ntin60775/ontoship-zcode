@@ -34,7 +34,7 @@ If the target is already a folder, skip this step.
 
 ### 1. Gather context
 
-Read the plan contract (`Goal`, `Done`, `Scope`, `Context`) and the `Context` it
+Read the plan contract (`Goal`, `Done`, `Scope`, `Constraints`, `Context`) and the `Context` it
 points at. Read the plan's **quote carrier** — the `### Цитаты оператора (дословно)`
 block in its `Context` (behavior-reel/01): every Reel `Цель` in the tickets below
 quotes **only** this block, verbatim; a goal with no operator wording to quote is a
