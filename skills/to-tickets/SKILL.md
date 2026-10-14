@@ -98,6 +98,51 @@ the end:
 Give each ticket its **blocking edges**: the other tickets that must complete before
 it can start. A ticket with no blockers can start immediately.
 
+### 2a. Counter-layer — the blind run before the quiz
+
+Every run whose plan carries a contract runs the **counter-layer** over the
+drafts BEFORE the quiz (operator decision 2026-10-13: the counter-layer is
+mandatory on every run with a contract). A topic-run without a contract does
+not start it — there every `Цель` is a marked paraphrase by the step 1 rule.
+
+Assemble the run's three inputs — the masking is visible in the run's args:
+
+- `tickets` — every draft's body **without** its `## Reel` section; each block
+  opened by the marker line `=== ТИКЕТ NN: <title> ===`;
+- `reels` — the `## Reel` sections of the same drafts, the same markers, the
+  same `NN` set;
+- `quotes` — the plan's quote carrier block (`### Цитаты оператора (дословно)`
+  with its bullets), verbatim from the contract's `Context`.
+
+Resolve the `challenger` role (`roles.py resolve --json`, roles skill) and
+verify it against **ListModels**: a missing/disabled model or an absent level
+stops the run with a diagnostic naming the role and the layer file to fix
+(fail-closed — never run the counter-layer on your own model). Then launch:
+
+`CreateWorkflow(path=skills/to-tickets/back-translation.workflow.ts, args={plan:
+"<slug>", tickets: "<masked bodies>", reels: "<reel sections>", quotes:
+"<carrier block>"}, subagent_model=<challenger role$level>)`
+
+Act on the return:
+
+- Named discrepancies of both classes (`restatement` — internal contradictions,
+  `quote-mismatch` — formulation substitutions) are **fixed in the drafts**, not
+  argued away; a fix that reshapes the breakdown goes back to step 2 drafting.
+- The hostile cases ride into the quiz (step 3): the operator accepts a case —
+  it joins that ticket's Reel as an example; rejects it — the case stays in the
+  Reel by name («Отклонено оператором (контрслой): <case>»), so the decision
+  survives into the published ticket.
+- Zero findings arrive named «не найдено» — relay that naming to the operator;
+  never paraphrase it as silence.
+
+Honest frame, fixed here and not in advertising: the restatization is a catcher
+of internal contradictions, nothing more; with all roles on one model family
+the interpretive substitution operator→ticket is machine-prefiltered **only**
+by the character-level quote comparison — the full power of the counter-layer
+arrives with a second model family in the role registry. The seeding probe
+(lens-substrate-flash canon) certified this run once, at the shipping of
+behavior-reel/03; a regular /to-tickets run does not repeat it.
+
 ### 3. Quiz the operator
 
 Present the proposed breakdown as a numbered list. For each ticket, show:
@@ -108,6 +153,9 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Reel**: every example «Цель → Вход → Наблюдаемый выход», normal and edge — the
   operator approves the behavior the ticket promises, not only its title; a `Цель`
   that is a paraphrase shows its marker here too
+- **Hostile cases of the counter-layer** (step 2a): each proposed case is offered
+  to the operator — accepted joins the Reel, rejected stays in it by name; a case
+  the operator rejected is a recorded decision, not a dropped suggestion
 
 Ask — one `AskUserQuestion`, then iterate until the operator approves the
 breakdown. The operator may take a while to answer; that is not a decline and
@@ -186,15 +234,20 @@ examples: the normal path and an edge/error path.
 
 - Цель (дословно: «…») → Вход: … → Наблюдаемый выход: …
 - Цель (дословно: «…») → Вход: … (краевой/ошибочный) → Наблюдаемый выход: …
+
+Отклонённые случаи контрслоя: нет — или по строке «Отклонено оператором
+(контрслой): <случай>» на каждый случай, отклонённый в шаге 2a (решение
+оператора переживает публикацию).
 ```
 
 **The Reel is detachable — masking of the counter-layer input.** The
-counter-layer run (behavior-reel/03) restores «what the system will do» from
-ticket bodies it has not seen illustrated: its input is the published tickets
-**without the `## Reel` section**, while the reel itself and the quote
+counter-layer run (step 2a, behavior-reel/03) restores «what the system will
+do» from ticket bodies it has not seen illustrated: its input is the draft
+tickets **without the `## Reel` section**, while the reel itself and the quote
 reference (the plan's quote carrier block) are fed as **separate inputs** —
 visible in the run's args. Write every section so the removal is clean: no
-criterion, promise, or dependency lives only inside the Reel.
+criterion, promise, or dependency lives only inside the Reel; the
+rejected-cases lines above are part of the Reel and travel with it.
 
 Then update the plan's `README.md` (the parent contract — the migrated file, or the
 existing folder README): a **table** (not a prose listing) with columns `#`, `Title`,
