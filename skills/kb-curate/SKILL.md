@@ -93,11 +93,15 @@ never the contract.
 ## Always at the end
 
 ```bash
-python3 <kb-search-skill-dir>/gitmark.py lint     # invariants I1–I9
+python3 <kb-search-skill-dir>/gitmark.py lint     # invariants I1–I10
 python3 <kb-search-skill-dir>/gitmark.py index    # rebuild search
 ```
-`lint` flags: missing/broken frontmatter, type outside vocabulary, orphans (0 links),
-broken links, folder without README. Fix until clean.
+`lint` flags (I1–I10): missing frontmatter on a load-bearing doc; vocabulary violations
+(`node_type`/`service`/`status`); orphans (0 links); broken body and frontmatter links;
+`docs/**` folders without README; `supersedes` target not deprecated/archived; command
+registry out of sync with the payload; ontology model drift (project vs package copy);
+card-schema violations (required fields, allowed values); README index chain unreachable.
+Fix until clean.
 
 ## Vocabularies (don't invent values)
 
