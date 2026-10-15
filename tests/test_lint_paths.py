@@ -5,14 +5,15 @@
 строкой ни с одним rel — каталог, «./»-префикс, абсолютный, gitignored,
 пустая строка («путь не выбирает ни одного файла KB»). CLI печатает отказ в
 stderr с exit 2 (usage-класс, отделён от exit 1 = ERR при --strict) и вырезает
-C0/DEL из сообщения (argv — недоверенный текст на границе вывода).
+управляющие из сообщения: C0/DEL и C1 U+0080–U+009F, включая переводы строк
+(argv — недоверенный текст на границе вывода).
 
-Семантика фильтра запинена представителями обеих семей: per-file I1/I2/I3
-сужаются выборкой, сквозные I4/I5/I7/I10 и счётчик checked всегда весь KB
-(I6 — тот же per-file цикл, что I1–I3; I8/I9 — те же вне-выборочные вызовы,
-что I7/I10). Ловушки на мутации — ассертами точных сообщений: снятие первого
-guard'а меняет текст на idle-вариант, снятие второго краснит кейсы
-каталога/«./»/пустой строки; живые мутации обоих guard'ов прогнаны в тикете.
+Семантика фильтра запинена представителями обеих семей: per-file I1/I2/I3/I6
+сужаются выборкой, сквозные I4/I5/I7/I9/I10 и счётчик checked всегда весь KB.
+I8 не пинится кейсом: требует онтологию-близнеца пакета, в tmp-фикстуре
+структурно недостижим; его семья вне-выборочных вызовов закрыта I7/I9/I10.
+Ловушки на мутации — ассертами точных сообщений и поведенческим кейсом
+except-оговорки CLI; живые мутации обоих guard'ов прогнаны в тикете.
 """
 from __future__ import annotations
 
@@ -36,6 +37,7 @@ def kb(tmp_path: Path) -> Path:
     (docs / "reference").mkdir(parents=True)
     (docs / "ops").mkdir()
     (docs / "notes").mkdir()
+    (docs / "services").mkdir()
     (docs / "README.md").write_text(
         "---\nnode_type: index\ntitle: KB\n---\n\n# KB\n", encoding="utf-8")
     (docs / "reference" / "README.md").write_text(
@@ -43,17 +45,32 @@ def kb(tmp_path: Path) -> Path:
     # aa — карта с I2 (node_type вне словаря): единственный выбранный файл
     (docs / "reference" / "aa.md").write_text(
         "---\nnode_type: bogus_type\ntitle: AA\n---\n\n# AA\n", encoding="utf-8")
-    # bb — та же I2 вне выборки: per-file проверки скрыты sel-фильтром
+    # bb — I2 + I6 (supersedes aa, тот не deprecated) вне выборки: per-file
     (docs / "reference" / "bb.md").write_text(
-        "---\nnode_type: bogus_type\ntitle: BB\n---\n\n# BB\n", encoding="utf-8")
+        "---\nnode_type: bogus_type\ntitle: BB\nlinks:\n  supersedes: [aa.md]\n---\n\n# BB\n",
+        encoding="utf-8")
     # cc — битая ссылка (I4, сквозная) и сирота (I3, per-file): один файл
     # демонстрирует обе семьи сразу
     (docs / "reference" / "cc.md").write_text(
         "---\nnode_type: reference\ntitle: CC\n---\n\n[битая](./nope.md)\n", encoding="utf-8")
+    # dd — gitignored: существует на диске, но iter_md его не выдаёт (fallback
+    # чтает .gitignore) — единственная форма, отличающая rel-индекс от диска
+    (docs / "reference" / "dd.md").write_text(
+        "---\nnode_type: reference\ntitle: DD\n---\n\n# DD\n", encoding="utf-8")
+    (tmp_path / ".gitignore").write_text("docs/reference/dd.md\n", encoding="utf-8")
     # xx — I1: несущий docs/ops/ без frontmatter (per-file)
     (docs / "ops" / "xx.md").write_text("# XX без frontmatter\n", encoding="utf-8")
     # notes/ без README — I5 (сквозная) для обеих папок без индекса
     (docs / "notes" / "n1.md").write_text("# N1\n", encoding="utf-8")
+    # карточка вне списка значений схемы — I9 (сквозная), невыбираемая выборкой
+    (docs / "services" / "_schema.md").write_text(
+        "---\nnode_type: schema\ncard_type: card\nrequired: [env]\n"
+        "values: env: prod|stage\nlinks:\n  relates_to: [../README.md]\n---\n\n# Схема\n",
+        encoding="utf-8")
+    (docs / "services" / "cards.md").write_text(
+        "---\nnode_type: card\ntitle: Карточка\nservice: demo\nstatus: active\n"
+        "card_type: card\nenv: bogus_env\nlinks:\n  relates_to: [../README.md]\n---\n\n# Карточка\n",
+        encoding="utf-8")
     return tmp_path
 
 
@@ -79,6 +96,28 @@ def test_refusal_class_is_not_catch_all_valueerror():
     assert gm.LintPathError is not ValueError
 
 
+def test_cli_catches_only_lintpatherror_behaviorally(kb: Path, monkeypatch, capsys):
+    """Поведенческий мутант-ловушка на except-оговорку main: плоский ValueError
+    из тела lint обязан вылететь трейсбеком (внутренняя ошибка), а не стать
+    «gitmark: …» exit 2; LintPathError — обязан стать SystemExit(2)."""
+    def _boom(root, paths=None):
+        raise ValueError("внутренняя проба: симуляция будущего бага в теле lint")
+
+    monkeypatch.setattr(gm, "cmd_lint", _boom)
+    with pytest.raises(ValueError, match="внутренняя проба"):
+        gm.main(["--root", str(kb), "lint", "docs/reference/aa.md"])
+    out = capsys.readouterr()
+    assert "gitmark:" not in out.err, "плоский ValueError переклассифицирован в usage-отказ"
+
+    def _refuse(root, paths=None):
+        raise gm.LintPathError("путь не найден: docs/reference/aa.md")
+
+    monkeypatch.setattr(gm, "cmd_lint", _refuse)
+    with pytest.raises(SystemExit) as ei:
+        gm.main(["--root", str(kb), "lint", "docs/reference/aa.md"])
+    assert ei.value.code == 2
+
+
 # ── отказ по существующему, но невыбираемому пути (второй guard) ────
 
 
@@ -87,11 +126,20 @@ def test_refusal_class_is_not_catch_all_valueerror():
     ("./docs/reference/aa.md", "./docs/reference/aa.md"),  # «./»-префикс
     ("/etc/passwd", "/etc/passwd"),                # абсолютный путь вне KB
     ("", "(пустой аргумент)"),                     # пустая строка (существует как root)
+    ("docs/reference/dd.md", "docs/reference/dd.md"),  # gitignored: на диске есть, в iter_md нет
 ])
 def test_existing_but_unselectable_path_refuses(kb: Path, bad: str, shown: str):
     with pytest.raises(gm.LintPathError, match="не выбирает ни одного файла KB") as ei:
         gm.cmd_lint(kb, [bad])
     assert shown in str(ei.value)
+
+
+def test_whitespace_only_argument_gets_placeholder(kb: Path):
+    """Вырожденный аргумент guard 1 — та же заглушка, что у guard 2: без неё
+    C0-стрип делал бы имя невидимым («путь не найден: » с табом)."""
+    with pytest.raises(gm.LintPathError) as ei:
+        gm.cmd_lint(kb, ["\t"])
+    assert "(пустой аргумент)" in str(ei.value)
 
 
 def test_mixed_paths_refuse_naming_only_missing(kb: Path):
@@ -111,20 +159,23 @@ def test_canonical_path_does_not_refuse(kb: Path):
 
 
 def test_selection_narrows_only_per_file_checks(kb: Path):
-    """Per-file I1/I2/I3 сужаются выборкой; сквозные I4/I5/I7/I10 и счётчик
-    checked идут по всему KB; сводка считает весь KB и при выборке."""
+    """Per-file I1/I2/I3/I6 сужаются выборкой; сквозные I4/I5/I7/I9/I10 и
+    счётчик checked идут по всему KB; сводка считает весь KB и при выборке."""
     r = gm.cmd_lint(kb, ["docs/reference/aa.md"])
     codes = lambda rel, code: any(i[2] == rel and i[1] == code for i in r["issues"])
-    # выбранный файл проверен; невыбранные per-file скрыты
+    # выбранный файл проверен; невыбранные per-file (I1/I2/I3/I6) скрыты
     assert codes("docs/reference/aa.md", "I2"), "выбранный файл не проверен"
     assert not codes("docs/reference/bb.md", "I2"), "I2 вышел за выборку"
     assert not codes("docs/ops/xx.md", "I1"), "I1 вышел за выборку"
     assert not codes("docs/reference/cc.md", "I3"), "I3 вышел за выборку"
+    assert not codes("docs/reference/bb.md", "I6"), "I6 вышел за выборку"
     # сквозные — по всему KB, включая невыбранные файлы
     assert codes("docs/reference/cc.md", "I4"), "I4 граф обязан идти по всему KB"
     assert any(i[1] == "I5" and i[2] in ("docs/notes/", "docs/ops/") for i in r["issues"]), \
         "I5 README папок обязан идти по всему KB"
     assert any(i[1] == "I7" for i in r["issues"]), "I7 реестр обязан идти по всему KB"
+    assert any(i[1] == "I9" and i[2] == "docs/services/cards.md" for i in r["issues"]), \
+        "I9 схема карточек обязана идти по всему KB"
     assert any(i[1] == "I10" for i in r["issues"]), "I10 цепочка индексов — весь KB"
     assert r["checked"] == len(list(gm.iter_md(kb))), \
         "сводка обязана считать весь KB и при выборке"
@@ -136,6 +187,7 @@ def test_full_run_reports_all_per_file_issues(kb: Path):
     codes = lambda rel, code: any(i[2] == rel and i[1] == code for i in r["issues"])
     assert codes("docs/reference/aa.md", "I2") and codes("docs/reference/bb.md", "I2")
     assert codes("docs/ops/xx.md", "I1") and codes("docs/reference/cc.md", "I3")
+    assert codes("docs/reference/bb.md", "I6")
 
 
 # ── CLI E2E: exit-коды, каналы вывода, гигиена сообщения ────────────
@@ -181,15 +233,17 @@ def test_cli_mixed_paths_exit2(kb: Path):
 
 
 def test_cli_control_chars_stripped_from_refusal(kb: Path):
-    """argv-путь — недоверенный текст на границе вывода: C0/DEL вырезаются из
-    сообщения (ESC-инъекция экрана, подделка строки отчёта через \\n)."""
+    """argv-путь — недоверенный текст на границе вывода: C0/DEL и C1-управляющие
+    вырезаются из сообщения (ESC-инъекция экрана, 8-битный CSI U+009B,
+    подделка строки отчёта через \\n, DEL \\x7f)."""
     r = subprocess.run(
         [sys.executable, str(_GITMARK), "--root", str(kb), "lint",
-         "docs/\x1b[2Jfake\nERR I9 подделка-nope"],
+         "docs/\x1b[2J\x7f\u009bfake\nERR I9 подделка-nope"],
         capture_output=True, timeout=60,
     )
     assert r.returncode == 2
-    assert b"\x1b" not in r.stderr, "ESC-байт дошёл до stderr"
+    for raw, name in ((b"\x1b", "ESC"), (b"\x7f", "DEL"), ("\u009b".encode(), "C1 CSI")):
+        assert raw not in r.stderr, f"{name}-байт дошёл до stderr"
     assert r.stderr.count(b"\n") == 1, "перевод строки подделал вторую строку"
     assert b"\nERR" not in r.stderr, "подделанная строка отчёта встала началом строки"
 
