@@ -1,9 +1,9 @@
 ---
 name: grilling
-description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Ends with a plan contract (docs/plans/<slug>.md) approved via the native plan gate. Use when the user says "погрилл", "grill this", "прогони гриллинг", or runs /grilling.
+description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Ends with a single-slice plan contract (docs/plans/<slug>.md) approved via the native plan gate, or — when the contract's Done promises more than one independently shippable deliverable (multi-slice) — with the tickets the same session publishes by running /to-tickets in full (the plan gate plus the operator's ticket quiz are the approvals). Use when the user says "погрилл", "grill this", "прогони гриллинг", or runs /grilling.
 ---
 
-# Grilling — autonomous decisions, one approval
+# Grilling — autonomous decisions, one approval gate
 
 The operator brings a plan, decision, or half-formed idea. You turn it into a resolved
 design and a plan contract — **deciding most of it yourself**, not interviewing them
@@ -67,9 +67,11 @@ execution; guessing about a one-way door is a worse one.
    challenger-contested items, as a single `AskUserQuestion` batch (≤4 questions per
    call, recommended option first, previews for visual forks). Never re-ask what the
    digest already settles.
-7. **Write the contract, run the definition-of-done pass, ask once.** Write `docs/plans/<slug>.md`
+7. **Write the contract, run the definition-of-done pass, present for
+   approval.** Write `docs/plans/<slug>.md`
    (`node_type: plan`, per `kb-curate`: Goal / Done / Scope / Constraints / Context)
-   and crystallised terms into `CONTEXT.md` / `docs/decisions/`. The contract's
+   and crystallised terms into `CONTEXT.md` (if the project keeps one) and
+   `docs/decisions/`. The contract's
    `Context` carries the **quote carrier** (behavior-reel): a
    `### Цитаты оператора (дословно)` block with every goal-shaping wording the
    operator produced in this session, verbatim, one `- «…»` bullet per wording —
@@ -85,10 +87,21 @@ execution; guessing about a one-way door is a worse one.
    covered by a `Done` criterion stating an observable fact a third party can
    verify — a criterion naming an activity or a degree («improve», «clean up»)
    is rewritten until it names one. Then present the plan via **ExitPlanMode** —
-   the contract plus the digest. The native approval **is** the
-   single approval of the whole package: a rejection names the disputed item, you
-   re-decide only that item and re-present. `/ship` is never started by you — the
-   operator launches it by hand.
+   the contract plus the digest. The native approval covers the whole package
+   — nothing in it is re-asked afterwards: a rejection names the disputed
+   item, you re-decide only that item and re-present. After the approval the
+   flow continues by itself (flow-continuity): a **multi-slice contract
+   continues into a full `/to-tickets` run (steps 0–6) in this same
+   session** — no manual command between the approval and the ticket quiz
+   (for that package the approvals are two: this gate plus the ticket quiz).
+   Multi-slice is decided from the contract you have just written, not left
+   to a later reader: its `Done` promises **more than one independently
+   shippable deliverable** — each would become its own ticket; the natural
+   test is «would this ship as one `/ship` slice?». Exactly one deliverable —
+   a single-slice contract — stops here, as before. An interrupted session is
+   the one legitimate gap: the operator then launches `/to-tickets` by hand
+   on the written contract — the documented fallback. `/ship` is never
+   started by you — the operator launches it by hand.
 
 ## Variants
 
