@@ -22,7 +22,7 @@ regenerate — never edit the table by hand.
 <!-- BEGIN inventory:plans -->
 | Plan | Status | Tickets |
 |---|---|---|
-| [behavior-reel/](behavior-reel/README.md) | draft | 3/4 |
+| [behavior-reel/](behavior-reel/README.md) | archived | 4/4 |
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
 | [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
@@ -39,6 +39,7 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
+| [queue-3/](queue-3/README.md) | draft | 0/2 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
 | [roles-per-agent/](roles-per-agent/README.md) | archived | 2/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
@@ -110,6 +111,13 @@ regenerate — never edit the table by hand.
    behavior-reel написаны против текущих текстов, флоу-правка ложится чистым
    диффом поверх; обратный порядок сдвигал бы зафиксированный контракт
    behavior-reel.
+
+11. **queue-3 — парковка хвостов и продуктов шипов** (решение оператора
+   2026-10-15): стартовые тикеты — redactLite (из roles-per-agent/02) и
+   валидация path-аргумента lint (из behavior-reel/04); проблемы шипа
+   `flow-continuity` едут в эту очередь первыми по правилу пополнения
+   (тикет в день находки, с источником). Тикеты очереди независимы, если не
+   объявят `Blocked by` сами.
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.

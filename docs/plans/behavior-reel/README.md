@@ -2,8 +2,8 @@
 node_type: plan
 title: Поведенческая лента — утверждение оператора примерами поведения до кода
 service: _platform
-status: draft
-updated: 2026-10-14
+status: archived
+updated: 2026-10-15
 links:
   documents: [../../../skills/grilling/SKILL.md, ../../../skills/to-tickets/SKILL.md, ../../../skills/ship/SKILL.md]
   relates_to: [../../reference/evidence-hierarchy.md, ../../decisions/invariant-moratorium.md]
@@ -18,7 +18,7 @@ links:
 | 01 | Носитель цитат — дословные формулировки оператора в контракте | archived | — |
 | 02 | Лента в тикетах — секция Reel, квиз на примерах, маскирование входа контрслоя | archived | 01 |
 | 03 | Контрслой — обратный перевод, сверка цитат, враждебные примеры, пробы посева | archived | 02 |
-| 04 | Ship — дифф ленты фактами E2E, tests-линза, ветка отсутствия, фикстурная проба | draft | 03 |
+| 04 | Ship — дифф ленты фактами E2E, tests-линза, ветка отсутствия, фикстурная проба | archived | 03 |
 
 ## Goal
 
