@@ -2,7 +2,7 @@
 node_type: ticket
 title: 'redactLite — редакция секретов в выводе lint/inventory/map'
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-15
 links:
   part_of: [README.md]

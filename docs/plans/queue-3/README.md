@@ -15,7 +15,7 @@ links:
 
 | # | Title | Status | Blocked by |
 | --- | --- | --- | --- |
-| 01 | redactLite — редакция секретов в выводе lint/inventory/map | draft | — |
+| 01 | redactLite — редакция секретов в выводе lint/inventory/map | archived | — |
 | 02 | lint: несуществующий path-аргумент молча даёт полный прогон | draft | — |
 | 03 | kb-curate: комментарий к lint занижает покрытие — I1–I9 вместо I1–I10 | draft | — |
 | 04 | onto-doc-матрица: проба порядка redact → срез мертва (секрет за границей среза) | draft | — |
