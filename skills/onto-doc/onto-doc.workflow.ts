@@ -102,13 +102,15 @@ function redactLite(s: string): string {
     // перед ней: python-repr {'password': '…'} и экранированные \"-формы
     // диагностик матчатся тем же правилом (гейт-находки confirm-рана), а
     // значение пересекает экранированные кавычки — (?:[^"\\]|\\.), не [^"].
-    // (?![a-z]) — граница ключа: auth не должен матчить честное author.
-    .replace(/(\\?["'][\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z])[\w.-]*\\?["']\s*:\s*)\\?["'](?:[^"\\]|\\.){4,}\\?["']/gi, '$1"[REDACTED]"')
+    // Граница ключа (?![a-z][a-z]) — гейт r2: author-слова блокируются
+    // продолжением из 2+ букв, множественные формы ключей (одна буква)
+    // маскируются; KEY + 2+ букв (camelCase) — задокументированный пропуск.
+    .replace(/(\\?["'][\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z][a-z])[\w.-]*\\?["']\s*:\s*)\\?["'](?:[^"\\]|\\.){4,}\\?["']/gi, '$1"[REDACTED]"')
     // Кавыченное значение после некавыченного ключа (YAML password: "…",
     // формат «поле …: значение '…'») — queue-3/01, синхронно с gitmark.py:
     // key=value-правило не может начаться с кавычки в значении.
-    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z])[\w.-]*\s*[:=]\s*)(?:[^\s'"]{1,32}\s+)?['"][^'"]{4,}['"]/gi, "$1[REDACTED]")
-    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z])[\w.-]*\s*[:=]\s*)[^\s,;}"']{4,}/gi, "$1[REDACTED]")
+    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z][a-z])[\w.-]*\s*[:=]\s*)(?:[^\s'"]{1,64}\s+)?['"][^'"]{4,}['"]/gi, "$1[REDACTED]")
+    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z][a-z])[\w.-]*\s*[:=]\s*)[^\s,;}"']{4,}/gi, "$1[REDACTED]")
     .replace(/\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,})\b/g, "[REDACTED]");
 }
 

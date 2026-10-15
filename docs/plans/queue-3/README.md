@@ -18,6 +18,8 @@ links:
 | 01 | redactLite — редакция секретов в выводе lint/inventory/map | draft | — |
 | 02 | lint: несуществующий path-аргумент молча даёт полный прогон | draft | — |
 | 03 | kb-curate: комментарий к lint занижает покрытие — I1–I9 вместо I1–I10 | draft | — |
+| 04 | onto-doc-матрица: проба порядка redact → срез мертва (секрет за границей среза) | draft | — |
+| 05 | onto-doc: сырые String(e) исключений в abort-ветках — мимо redactLite | draft | — |
 
 ## Goal
 

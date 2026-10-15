@@ -61,10 +61,15 @@ REDACT_CASES = [
     (True, "ключ с цифровым суффиксом (аффикс)",
      "password1=FAKEp1secret", "FAKEp1secret"),
     (True, "ключ с суффиксом _key", "secret_key=FAKEsk22key", "FAKEsk22key"),
+    (True, "мн. число ключа — одна буква после KEY (гейт r2)",
+     "secrets: FAKEplural123", "FAKEplural123"),
+    (True, "мн. число tokens", "tokens: FAKEplural456", "FAKEplural456"),
     # формат живой пробы I9 (инвентарь тикета): средний токен «значение» —
     # служебное слово формата движка, съедается вместе с секретом
     (True, "I9: значение поля карточки вне списка",
      "поле token: значение 'FAKEprobe1' вне списка", "FAKEprobe1"),
+    (True, "I9: средний токен 64 символа (длинный путь)",
+     "password: " + "p" * 64 + " 'FAKElongtail9'", "FAKElongtail9"),
     (True, "basic-литерал с padding =", "basic RkFLRXVzZXI6RkFLRXBhc3N3b3Jk=", "RkFLRXVzZXI6RkFLRXBhc3N3b3Jk="),
     (True, "basic-литерал с цифрой внутри", "basic RkFLRXVzZXI6RkFLRXBhc3N3b3Jk", "RkFLRXVzZXI6RkFLRXBhc3N3b3Jk"),
     (True, "vendor sk-", "ключ sk-FAKEa1b2c3d4e5f6", "FAKEa1b2c3d4e5f6"),
@@ -78,6 +83,12 @@ REDACT_CASES = [
     (False, "короткое значение — пропуск", "token=abc", ""),
     (False, "auth в прозе (короткое значение) — пропуск", "заголовок auth: см. документацию", ""),
     (False, "author — честное слово, auth не матчит (KEY-граница)", "author: Пушкин", ""),
+    (False, "authorized — KEY + 2+ букв, граница держит", "authorized: client-id-12345", ""),
+    (False, "camelCase ключ — задокументированный пропуск (KEY + 2+ букв)",
+     "tokenValue: значение 'abc12345def' вне списка", ""),
+    (False, "authKey — задокументированный пропуск", "authKey: s3cr3tv4lue", ""),
+    (False, "чисто буквенный bearer-токен — трейд-офф lookahead",
+     "bearer Zxqwvutsrqponm", ""),
     (False, "basic authentication — проза, не токен (lookahead)", "схема basic authentication запрещена", ""),
     (False, "кириллический ключ — вне словаря lite (задокументированный пропуск)",
      "токен стенда: hunter2go99", ""),
@@ -95,22 +106,26 @@ def test_redact_matrix(should_mask, name, inp, secret):
     assert (out != inp) == should_mask, f"[{name}] => {out!r}"
     if should_mask:
         assert secret not in out, f"УТЕЧКА [{name}]: секрет остался в выводе"
+        # маскировка состоялась, а не «функция стёрла строку» / частично
+        assert "[REDACTED]" in out, f"[{name}]: маркер маскировки не в выводе"
     assert gm.redact_lite(out) == out, f"НЕ ИДЕМПОТЕНТНО [{name}]"
 
 
 def test_mutation_every_rule_has_a_trap(monkeypatch):
     """Мутационная проба: у каждого правила есть кейс-ловушка — отключение
     правила (любого одного, через подмену gm._REDACT_RULES в шипуемой
-    redact_lite) оставляет секрет хотя бы в одном выводе."""
+    redact_lite) оставляет секрет хотя бы в одном выводе. Оригинал снимается
+    до цикла: «восстановление» чтением атрибута накапливало мутантов и
+    пропускало нечётные правила (гейт r2, подтверждено трассировкой)."""
+    orig = list(gm._REDACT_RULES)
     positives = [c for c in REDACT_CASES if c[0]]
-    for i in range(len(gm._REDACT_RULES)):
-        monkeypatch.setattr(gm, "_REDACT_RULES",
-                            gm._REDACT_RULES[:i] + gm._REDACT_RULES[i + 1:])
+    for i in range(len(orig)):
+        monkeypatch.setattr(gm, "_REDACT_RULES", orig[:i] + orig[i + 1:])
         traps = [
             name for _, name, inp, secret in positives
             if secret and secret in gm.redact_lite(inp)
         ]
-        monkeypatch.setattr(gm, "_REDACT_RULES", gm._REDACT_RULES)  # восстановить к следующей i
+        monkeypatch.setattr(gm, "_REDACT_RULES", orig)
         assert traps, (
             f"правило #{i} не ловится матрицей: без него ни один кейс не утекает — "
             "матрица не проверяет это правило"
@@ -199,8 +214,9 @@ def test_gitignore_warning_redacted(tmp_path):
         capture_output=True, text=True, timeout=60,
     )
     assert r.returncode == 0, f"gitmark упал: {r.stderr[-500:]}"
-    assert "FAKEkey456789" not in r.stderr, "секрет из .gitignore утёк в предупреждение"
-    assert "[REDACTED]" in r.stderr
+    combined = r.stdout + r.stderr
+    assert "FAKEkey456789" not in combined, "секрет из .gitignore утёк (stdout/stderr)"
+    assert "[REDACTED]" in combined
 
 
 # ── контракты точек применения, недостижимых живой пробой формата ──
