@@ -39,7 +39,7 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
-| [queue-3/](queue-3/README.md) | draft | 0/5 |
+| [queue-3/](queue-3/README.md) | draft | 1/6 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
 | [roles-per-agent/](roles-per-agent/README.md) | archived | 2/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
