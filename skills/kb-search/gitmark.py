@@ -161,15 +161,52 @@ def git_md_files(root: Path):
     return sorted(out)
 
 
+# ─────────────────────────── redact (маскировка секретов в выводе) ───────────────────────────
+# Лёгкая редакция строк, покидающих процесс через stdout/stderr (queue-3/01):
+# пять правил redactLite из onto-doc.workflow.ts (onto-doc-hygiene) — eyJ-формы,
+# bearer/basic, словарные ключи с кавычками (JSON/python-repr) и без, vendor-литералы.
+# Полная матрица redact() гейт-воркфлоу не копируется: вывод lint/inventory —
+# одиночные строки диагностики, PEM-блоки и url-креды в фактический формат не
+# входят (документированные пропуски — как у полной матрицы). Порядок важен:
+# eyJ и bearer/basic — до key=value, иначе словарное правило съедает слово
+# Bearer/Basic и оставляет значение открытым.
+_REDACT_KEY = r"(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)"
+_REDACT_RULES: list = [
+    (re.compile(r"\beyJ[A-Za-z0-9_+/-]+(?:\.[A-Za-z0-9_+/-]+){1,4}=*"), "[REDACTED]"),
+    (re.compile(r"\b(bearer|basic)\s+[A-Za-z0-9+/=_-]{8,}", re.IGNORECASE), r"\1 [REDACTED]"),
+    # Каноническая JSON-форма с кавычками вокруг ключа и значения — иначе
+    # проскакивает мимо password: x / password=x. Кавычка — класс ["'] с
+    # опциональным бэкслешем: python-repr {'password': '…'} и экранированные
+    # \\"-формы матчатся тем же правилом, а значение пересекает экранированные
+    # кавычки — (?:[^"\\]|\\.), не [^"] (гейт-находки confirm-ранов hygiene).
+    (re.compile(r"(\\?[\"'][\\w.-]*" + _REDACT_KEY + r"[\\w.-]*\\?[\"']\s*:\s*)"
+                r"\\?[\"'](?:[^\"\\]|\\.){4,}\\?[\"']", re.IGNORECASE), r'\1"[REDACTED]"'),
+    (re.compile(r"([\\w.-]*" + _REDACT_KEY + r"[\\w.-]*\s*[:=]\s*)[^\s,;}\"']{4,}", re.IGNORECASE),
+     r"\1[REDACTED]"),
+    (re.compile(r"\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,})\b"),
+     "[REDACTED]"),
+]
+
+
+def redact_lite(s: str) -> str:
+    """Мин-редакция секретов для диагностики, покидающей ран: msg строк вывода,
+    не пути и не счётчики (они обязаны остаться честными)."""
+    for rx, sub in _REDACT_RULES:
+        s = rx.sub(sub, s)
+    return s
+
+
 def gitignore_warnings(root: Path) -> list:
     """Неподдержанные правила фолбэка — вслух.
 
     На основном пути (git) подмножество не задействовано, поэтому предупреждать не о чем.
+    Правило .gitignore — недоверенный текст репозитория: мин-редакция, как всякая
+    диагностика, покидающая ран.
     """
     if git_md_files(root) is not None:
         return []
     _, _, _, unsupported = parse_gitignore(root)
-    return [f"правило '{s}' не поддержано фолбэком (нет git) — файлы под него попадут в индекс"
+    return [f"правило '{redact_lite(s)}' не поддержано фолбэком (нет git) — файлы под него попадут в индекс"
             for s in unsupported]
 
 
@@ -1265,7 +1302,9 @@ def main(argv=None):
         for lvl, code, path, msg in sorted(r["issues"], key=lambda x: (order[x[0]], x[1], x[2])):
             codes[code] = codes.get(code, 0) + 1
             col = "\033[31m" if lvl == "ERR" else "\033[33m"
-            print(f"{col}{lvl}\033[0m \033[90m{code}\033[0m {path} — {msg}")
+            # msg несёт значения полей и href из недоверенного KB (I2/I4/I9) —
+            # мин-редакция на границе вывода; path остаётся честным
+            print(f"{col}{lvl}\033[0m \033[90m{code}\033[0m {path} — {redact_lite(msg)}")
         ne, nw = len(r["errors"]), len(r["warnings"])
         summary = " · ".join(f"{c}×{n}" for c, n in sorted(codes.items())) or "—"
         mark = "\033[32m✓ чисто\033[0m" if ne == 0 and nw == 0 else f"\033[31m{ne} ERR\033[0m · \033[33m{nw} WARN\033[0m"
@@ -1277,7 +1316,7 @@ def main(argv=None):
         if a.check:
             if r["issues"]:
                 for path, msg in r["issues"]:
-                    print(f"\033[31mERR\033[0m \033[90mI7\033[0m {path} — {msg}")
+                    print(f"\033[31mERR\033[0m \033[90mI7\033[0m {path} — {redact_lite(msg)}")
                 print(f"\n\033[31mрассинхрон: {len(r['issues'])}\033[0m — `gitmark inventory`")
                 sys.exit(1)
             print(f"\033[32m✓ реестры синхронны\033[0m  ({r['commands']} команд · "

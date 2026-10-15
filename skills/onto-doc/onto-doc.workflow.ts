@@ -375,10 +375,13 @@ if (bootstrap) {
       `всё — выход surveyor'а без pieces: ${clipDiag(JSON.stringify(sv))}`,
     );
   }
+  // Зоны — недоверенный текст surveyor'а (читает репозиторий), уезжающий
+  // в отчёт рана без дальнейшей обработки: мин-редакция, как у всякой
+  // диагностики (queue-3/01; источник-проба — confirm dwfrun-92e63bc9).
   humanZones = Array.isArray(sv.humanZones)
     ? (sv.humanZones as unknown[]).filter(
         (z): z is string => typeof z === "string" && z.trim() !== "",
-      )
+      ).map((z) => redactLite(z))
     : [];
   pieces = sv.pieces as Piece[];
   log(`Surveyor: кусков ${pieces.length}, зон для человека ${humanZones.length}`);
