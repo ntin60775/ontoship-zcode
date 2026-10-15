@@ -779,12 +779,44 @@ def index_chain_issues(root: Path) -> list:
     return issues
 
 
+class LintPathError(ValueError):
+    """Именованный отказ lint по path-аргументам: несуществующий путь или путь,
+    не выбирающий ни одного файла KB. Только этот класс ловится CLI как
+    usage-отказ (exit 2) — прочие ValueError тела lint остаются внутренними
+    ошибками и не переклассифицируются."""
+
+
 def cmd_lint(root: Path, paths: list | None = None) -> dict:
     """Проверка инвариантов онтологии I1–I10. Возвращает {errors, warnings, checked}."""
-    for warning in gitignore_warnings(root):
-        print(f"[WARN] gitignore: {warning}", file=sys.stderr)
     docs = list(iter_md(root))
     rels = [p.relative_to(root).as_posix() for p in docs]
+    if paths:
+        # guard 1 — несуществующий путь иначе молча даёт пустую выборку: per-file
+        # проверки I1/I2/I3/I6 пропускаются, сквозные I4/I5/I7–I10 идут по всему
+        # KB — на чистом KB это неотличимо от полного прогона («✓ чисто», exit 0).
+        # stat-отказ (EACCES) — не «не найден»: решение остаётся за guard 2
+        missing = []
+        for p in paths:
+            try:
+                ok = (root / p).exists()
+            except OSError:
+                ok = True
+            if not ok:
+                missing.append(p)
+        if missing:
+            raise LintPathError("путь не найден: " +
+                                ", ".join(p if p.strip() else "(пустой аргумент)" for p in missing))
+        # guard 2 — второй край того же вреда: путь существует, но строкой не
+        # совпадает ни с одним rel — каталог, «./»-префикс, абсолютный, gitignored
+        # или пустая строка; выборка пуста, per-file проверки были бы молча
+        # пропущены. rels_set — один раз, не по разу на каждый argv-путь
+        rels_set = set(rels)
+        idle = [p for p in paths if p not in rels_set]
+        if idle:
+            raise LintPathError("путь не выбирает ни одного файла KB: " +
+                                ", ".join(p if p.strip() else "(пустой аргумент)" for p in idle))
+    for warning in gitignore_warnings(root):
+        print(f"[WARN] gitignore: {warning}", file=sys.stderr)
     known = {_nfc(r) for r in rels}
     # граф связей: кто на кого ссылается (для I3 — сироты)
     out_links: dict = {}
@@ -1302,7 +1334,7 @@ def main(argv=None):
     stp = sub.add_parser("stat", help="статистика")
     stp.add_argument("--json", action="store_true", help="машинный вывод (files/chunks/links/…)")
     lp = sub.add_parser("lint", help="проверить онтологию (I1–I10)")
-    lp.add_argument("paths", nargs="*", help="ограничить файлами (по умолчанию — все docs/)")
+    lp.add_argument("paths", nargs="*", help="ограничить файлами; несуществующий или не выбирающий ни одного файла путь — отказ с exit 2 (по умолчанию — все docs/)")
     lp.add_argument("--strict", action="store_true", help="exit 1 при любых ERR")
     inv = sub.add_parser("inventory", help="перегенерировать сводные таблицы реестров: команд/навыков и планов")
     inv.add_argument("--check", action="store_true", help="только доложить рассинхрон (exit 1)")
@@ -1343,7 +1375,24 @@ def main(argv=None):
         print(f"GitMark · {s['files']} файлов · {s['areas']} папок · {s['chunks']} чанков · "
               f"{s['links']} ссылок · {s['bytes']//1024} KB · trigram={'on' if s['trigram'] else 'off'}")
     elif a.cmd == "lint":
-        r = cmd_lint(root, a.paths or None)
+        try:
+            r = cmd_lint(root, a.paths or None)
+        except LintPathError as e:
+            # именованный отказ по path-аргументу: exit 2 (класс usage-ошибки
+            # argparse), отдельный от exit 1 = ERR онтологии при --strict.
+            # argv-путь — недоверенный текст на границе вывода: как и соседние
+            # печати msg, проходит redact_lite (секрет в пути — ghp_/eyJ/…
+            # masкируется, не утекает в stderr), затем управляющие заменяются
+            # видимым маркером — C0/DEL, C1 (U+0080–U+009F: 8-битные CSI/OSC/
+            # NEL доживают до UTF-8-терминала) и bidi/формат-символы
+            # (U+200B–U+200F, U+2028–U+202E: RLO-подделка отображения,
+            # Unicode-разделители строк), включая переводы строк (ESC-инъекция
+            # и подделка строки отчёта). Замена, не вырезание: удаление
+            # склеивало бы путь в другой («docs/README\n.md» → «README.md»)
+            msg = re.sub(r"[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202e]", "·",
+                         redact_lite(str(e)))
+            print(f"gitmark: {msg}", file=sys.stderr)
+            sys.exit(2)
         order = {"ERR": 0, "WARN": 1}
         codes = {}
         for lvl, code, path, msg in sorted(r["issues"], key=lambda x: (order[x[0]], x[1], x[2])):

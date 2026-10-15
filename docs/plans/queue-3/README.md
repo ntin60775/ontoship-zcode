@@ -3,7 +3,7 @@ node_type: plan
 title: Очередь 3 — хвосты и продукты шипов
 service: _platform
 status: draft
-updated: 2026-10-15
+updated: 2026-10-16
 tags: [plan, queue-3, followups]
 links:
   relates_to: [../flow-continuity.md, ../roles-per-agent/02-onto-doc-roles.md, ../behavior-reel/04-ship-reel.md, ../README.md]
@@ -16,7 +16,7 @@ links:
 | # | Title | Status | Blocked by |
 | --- | --- | --- | --- |
 | 01 | redactLite — редакция секретов в выводе lint/inventory/map | archived | — |
-| 02 | lint: несуществующий path-аргумент молча даёт полный прогон | draft | — |
+| 02 | lint: несуществующий path-аргумент молча даёт полный прогон | archived | — |
 | 03 | kb-curate: комментарий к lint занижает покрытие — I1–I9 вместо I1–I10 | draft | — |
 | 04 | onto-doc-матрица: проба порядка redact → срез мертва (секрет за границей среза) | draft | — |
 | 05 | onto-doc: сырые String(e) исключений в abort-ветках — мимо redactLite | draft | — |
