@@ -107,9 +107,9 @@ the end:
    The three places that fix an edge must agree: frontmatter `links.depends_on`,
    the `Blocked by:` line in the ticket body, the `Blocked by` column of the plan's
    README table.
-8. **Post-publish edit:** an edit to a published ticket (a `/ship` run's drift
-   mini-grill is the live case) keeps its number and its blocking edges —
-   only the affected text changes, and every reference to the changed text
+8. **Post-publish edit:** an edit to a published ticket (a `/ship` run's
+   drift mini-grill is the live case) keeps its number and its blocking edges
+   — only the affected text changes, and every reference to the changed text
    (`depends_on`, the `Blocked by:` lines, the README table) is rewritten to
    match. A change that must renumber tickets or rewire edges is a
    post-publish split (item 6), not an edit.
@@ -313,8 +313,10 @@ commit, not a follow-up.
 piece**: the promoted contract (`README.md`), every ticket, the
 execution-order change, and this session's crystallised terms
 (`docs/decisions/`) land in a single commit — a multi-slice split leaves
-nothing uncommitted. (A single-slice contract never reaches this skill: from
-`grilling` it stays written-but-uncommitted until its `/ship` — that window
-is kept on purpose, and it is why the nothing-uncommitted claim is scoped to
-multi-slice splits.) Report the ticket list and **stop**. Do NOT launch
+nothing uncommitted. (The auto-chain never brings a single-slice contract
+here — from `grilling` it stays written-but-uncommitted until its `/ship`, a
+window kept on purpose, and that is why the nothing-uncommitted claim is
+scoped to multi-slice splits. A manual run on any plan — single-slice
+included — is a run like any other: it promotes, publishes, and commits by
+the same one-piece rule.) Report the ticket list and **stop**. Do NOT launch
 `/ship` — the operator starts it by hand, one ticket at a time.
