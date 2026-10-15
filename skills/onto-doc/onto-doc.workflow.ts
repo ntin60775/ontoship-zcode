@@ -93,15 +93,22 @@ function abort(conclusion: string, why: string) {
 function redactLite(s: string): string {
   return s
     .replace(/\beyJ[A-Za-z0-9_+/-]+(?:\.[A-Za-z0-9_+/-]+){1,4}=*/g, "[REDACTED]")
-    .replace(/\b(bearer|basic)\s+[A-Za-z0-9+/=_-]{8,}/gi, "$1 [REDACTED]")
+    // lookahead полной матрицы — значение несёт цифру/=/_/-, иначе маскировалась
+    // бы проза «basic authentication» (queue-3/01, синхронно с gitmark.py)
+    .replace(/\b(bearer|basic)\s+(?=[A-Za-z0-9+/=_-]*[0-9=/_-])[A-Za-z0-9+/=_-]{8,}/gi, "$1 [REDACTED]")
     // Каноническая JSON-форма — кавычки вокруг ключа и значения (гейт-находка
     // onto-doc-hygiene): {"password": "…"} иначе проскакивает мимо формы
     // password: x / password=x. Кавычка — класс ["'] с опциональным бэкслешем
     // перед ней: python-repr {'password': '…'} и экранированные \"-формы
     // диагностик матчатся тем же правилом (гейт-находки confirm-рана), а
     // значение пересекает экранированные кавычки — (?:[^"\\]|\\.), не [^"].
-    .replace(/(\\?["'][\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)[\w.-]*\\?["']\s*:\s*)\\?["'](?:[^"\\]|\\.){4,}\\?["']/gi, '$1"[REDACTED]"')
-    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)[\w.-]*\s*[:=]\s*)[^\s,;}"']{4,}/gi, "$1[REDACTED]")
+    // (?![a-z]) — граница ключа: auth не должен матчить честное author.
+    .replace(/(\\?["'][\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z])[\w.-]*\\?["']\s*:\s*)\\?["'](?:[^"\\]|\\.){4,}\\?["']/gi, '$1"[REDACTED]"')
+    // Кавыченное значение после некавыченного ключа (YAML password: "…",
+    // формат «поле …: значение '…'») — queue-3/01, синхронно с gitmark.py:
+    // key=value-правило не может начаться с кавычки в значении.
+    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z])[\w.-]*\s*[:=]\s*)(?:[^\s'"]{1,32}\s+)?['"][^'"]{4,}['"]/gi, "$1[REDACTED]")
+    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z])[\w.-]*\s*[:=]\s*)[^\s,;}"']{4,}/gi, "$1[REDACTED]")
     .replace(/\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,})\b/g, "[REDACTED]");
 }
 
