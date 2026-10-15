@@ -2,8 +2,8 @@
 node_type: ticket
 title: 'lint: несуществующий path-аргумент молча даёт полный прогон'
 service: _platform
-status: draft
-updated: 2026-10-15
+status: archived
+updated: 2026-10-16
 links:
   part_of: [README.md, ../../../skills/kb-search/gitmark.py, ../../../tests/test_lint_paths.py]
 ---
