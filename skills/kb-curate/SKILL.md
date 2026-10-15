@@ -6,7 +6,7 @@ description: 'Rules for maintaining a markdown knowledge base (GitMark) — appl
 # kb-curate — how to maintain the knowledge base (GitMark ontology)
 
 Full model: `ontology.md` **next to this SKILL.md** — it travels with the plugin. If the
-project has its own `docs/ontology.md`, its `service` vocabulary and its agreements take
+project has its own `docs/ontology.md`, its `node_type` vocabulary and its agreements take
 precedence. This skill is the operational checklist. Principle:
 **md+git is the source of truth, with an ontology on top** (object types / properties /
 links — inspired by Palantir Foundry/Gotham, but for documentation over code).
