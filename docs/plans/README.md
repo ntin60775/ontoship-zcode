@@ -23,6 +23,7 @@ regenerate — never edit the table by hand.
 | Plan | Status | Tickets |
 |---|---|---|
 | [behavior-reel/](behavior-reel/README.md) | archived | 4/4 |
+| [checks-profile.md](checks-profile.md) | draft | — |
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
 | [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
@@ -118,6 +119,12 @@ regenerate — never edit the table by hand.
    `flow-continuity` едут в эту очередь первыми по правилу пополнения
    (тикет в день находки, с источником). Тикеты очереди независимы, если не
    объявят `Blocked by` сами.
+
+12. **checks-profile — профиль проверок проекта** (решение оператора
+   2026-10-15, разговор о подъёме онтошипа в «ЕРП мини»): бутстрапп спрашивает и
+   записывает, что в проекте значат «проверки»; файл-план варианта 3
+   (профиль-файл + вопрос init) собран без грилла по прецеденту
+   external-dependencies. Порядок относительно queue-3 не назначен.
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.
