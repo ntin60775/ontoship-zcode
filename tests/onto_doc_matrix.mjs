@@ -124,8 +124,11 @@ const REDACT_CASES = [
   [true, "YAML: кавыченное значение, некавыченный ключ (queue-3/01)", 'password: "FAKEkey12345"', "FAKEkey12345"],
   [true, "формат «поле …: значение '…'» — средний токен (queue-3/01, канал I9 gitmark)", "поле token: значение 'FAKEprobe1' вне списка", "FAKEprobe1"],
   [true, "средний токен 64 символа (гейт r2)", "password: " + "p".repeat(64) + " 'FAKElongtail9'", "FAKElongtail9"],
+  [true, "I9: raw-двойная кавычка в одинарном значении (гейт r3)", "поле token: значение 'ab\"cd' вне списка", "ab\"cd"],
+  [true, "YAML: экранированная кавычка в двойном значении (гейт r3)", 'password: "se\\"cret123"', "cret123"],
+  [true, "basic read/write — /-lookahead, задокументированный FP-трейд-офф", "basic read/write", ""],
   [true, "bearer-литерал без словарного ключа (ловушка правила)", "hdr bearer FAKEabc123-def456=", "FAKEabc123-def456="],
-  [true, "basic-литерал с padding = (lookahead queue-3/01)", "basic RkFLRXVzZXI6RkFLRXBhc3N3b3Jk=", "RkFLRXVzZXI6RkFLRXBhc3N3b3Jk="],
+  [true, "basic-литерал с валидным padding = (гейт r3: фикстура — настоящий b64-пад)", "basic RkFLRXVzZXI6RkFLRXBhc3N3b3I=", "RkFLRXVzZXI6RkFLRXBhc3N3b3I="],
   [true, "basic-литерал с цифрой внутри", "basic RkFLRXVzZXI6RkFLRXBhc3N3b3Jk", "RkFLRXVzZXI6RkFLRXBhc3N3b3Jk"],
   [true, "eyJ JWS целиком", "токен eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.FAKESIG123456 в логе", "FAKESIG123456"],
   [true, "vendor sk-", "ключ sk-FAKEa1b2c3d4e5f6", "FAKEa1b2c3d4e5f6"],
@@ -140,6 +143,10 @@ const REDACT_CASES = [
   [false, "camelCase ключ — задокументированный пропуск (KEY + 2+ букв)", "tokenValue: значение 'abc12345def' вне списка", ""],
   [false, "authKey — задокументированный пропуск", "authKey: s3cr3tv4lue", ""],
   [false, "чисто буквенный bearer-токен — трейд-офф lookahead", "bearer Zxqwvutsrqponm", ""],
+  [false, "authorization: bearer <буквенный> — маркер не имитирует маскировку (гейт r3)", "authorization: bearer abcdefgh", ""],
+  [false, "мультилайн: цитата ниже ключа не съедается (мост [ \\t]+, гейт r3)", "password: x\n\n'FAKEquote99 не тронуто'", ""],
+  [false, "незакрытая кавычка — пропуск (битый формат)", "password: 'FAKEunclosed9", ""],
+  [false, "кавыченное значение <4 символов — порог lite (гейт r3)", 'password = "abc"', ""],
   [false, "basic authentication — проза, не токен (lookahead queue-3/01)", "схема basic authentication запрещена", ""],
   [false, "кириллический ключ — вне словаря lite (задокументированный пропуск)", "токен стенда: hunter2go99", ""],
   [false, "service вне словаря без секрет-формы (диагностика I2 честна)", "service='demo' вне словаря", ""],
@@ -160,6 +167,9 @@ for (const [shouldMask, name, input, secret] of REDACT_CASES) {
     // маскировка состоялась, а не «функция стёрла строку» / частично (гейт r2)
     if (!out.includes("[REDACTED]")) {
       fail(`БЕЗ МАРКЕРА redactLite ${name}: [REDACTED] не в выводе => ${JSON.stringify(out.slice(0, 120))}`);
+    }
+    if (!out.replace(/\[REDACTED\]|\s/g, "")) {
+      fail(`ПЕРЕЖОГ redactLite ${name}: не-секретная часть не выжила => ${JSON.stringify(out.slice(0, 120))}`);
     }
   }
   if (redactLite(out) !== out) {

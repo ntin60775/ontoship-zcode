@@ -70,7 +70,16 @@ REDACT_CASES = [
      "поле token: значение 'FAKEprobe1' вне списка", "FAKEprobe1"),
     (True, "I9: средний токен 64 символа (длинный путь)",
      "password: " + "p" * 64 + " 'FAKElongtail9'", "FAKElongtail9"),
-    (True, "basic-литерал с padding =", "basic RkFLRXVzZXI6RkFLRXBhc3N3b3Jk=", "RkFLRXVzZXI6RkFLRXBhc3N3b3Jk="),
+    # кавычки в значениях — по типу кавычки (гейт r3): в одинарных raw-двойная
+    # легальна (формат I9), в двойных экранированная \" — JSON-эскейп
+    (True, "I9: raw-двойная кавычка в одинарном значении (гейт r3)",
+     "поле token: значение 'ab\"cd' вне списка", "ab\"cd"),
+    (True, "YAML: экранированная кавычка в двойном значении (гейт r3)",
+     'password: "se\\"cret123"', "cret123"),
+    (True, "basic read/write — /-lookahead, задокументированный FP-трейд-офф",
+     "basic read/write", ""),
+    (True, "basic-литерал с валидным padding = (гейт r3: фикстура — настоящий b64-пад)",
+     "basic RkFLRXVzZXI6RkFLRXBhc3N3b3I=", "RkFLRXVzZXI6RkFLRXBhc3N3b3I="),
     (True, "basic-литерал с цифрой внутри", "basic RkFLRXVzZXI6RkFLRXBhc3N3b3Jk", "RkFLRXVzZXI6RkFLRXBhc3N3b3Jk"),
     (True, "vendor sk-", "ключ sk-FAKEa1b2c3d4e5f6", "FAKEa1b2c3d4e5f6"),
     (True, "vendor AKIA", "aws AKIAFAKE12345678 key", "AKIAFAKE12345678"),
@@ -89,6 +98,14 @@ REDACT_CASES = [
     (False, "authKey — задокументированный пропуск", "authKey: s3cr3tv4lue", ""),
     (False, "чисто буквенный bearer-токен — трейд-офф lookahead",
      "bearer Zxqwvutsrqponm", ""),
+    (False, "authorization: bearer <буквенный> — маркер не имитирует маскировку (гейт r3)",
+     "authorization: bearer abcdefgh", ""),
+    (False, "мультилайн: цитата ниже ключа не съедается (мост [ \\t]+, гейт r3)",
+     "password: x\n\n'FAKEquote99 не тронуто'", ""),
+    (False, "незакрытая кавычка — пропуск (битый формат)",
+     "password: 'FAKEunclosed9", ""),
+    (False, "кавыченное значение <4 символов — порог lite (гейт r3)",
+     'password = "abc"', ""),
     (False, "basic authentication — проза, не токен (lookahead)", "схема basic authentication запрещена", ""),
     (False, "кириллический ключ — вне словаря lite (задокументированный пропуск)",
      "токен стенда: hunter2go99", ""),
@@ -105,10 +122,39 @@ def test_redact_matrix(should_mask, name, inp, secret):
     out = gm.redact_lite(inp)
     assert (out != inp) == should_mask, f"[{name}] => {out!r}"
     if should_mask:
-        assert secret not in out, f"УТЕЧКА [{name}]: секрет остался в выводе"
+        if secret:
+            assert secret not in out, f"УТЕЧКА [{name}]: секрет остался в выводе"
         # маскировка состоялась, а не «функция стёрла строку» / частично
         assert "[REDACTED]" in out, f"[{name}]: маркер маскировки не в выводе"
+        assert re.sub(r"\[REDACTED\]|\s", "", out), f"[{name}]: пережог — не-секретная часть не выжила"
     assert gm.redact_lite(out) == out, f"НЕ ИДЕМПОТЕНТНО [{name}]"
+
+
+def test_middle_token_cap_pins_upper_bound():
+    """Кап {1,64} моста: 65+ символов — задокументированный пропуск (инверсия
+    на границе 64/65, гейт r3): токен съедается key=value, кавыченный секрет
+    остаётся; расширение капа до unbounded этот тест краснит."""
+    out = gm.redact_lite("password: " + "p" * 65 + " 'FAKEover64x'")
+    assert "FAKEover64x" in out, "кап моста расширен — обнови пропуск в тикете"
+    assert "p" * 65 not in out, "токен должен съедаться key=value-правилом"
+
+
+def test_c0_control_chars_stripped():
+    """Управляющие C0/DEL из недоверенного msg не доходят до терминала
+    (гейт r3): ESC-инъекция вырезается, видимый текст остаётся."""
+    out = gm.redact_lite("node_type='x\x1b[2Jy' вне словаря")
+    assert "\x1b" not in out
+    assert "[2J" in out  # видимый текст без ESC-байта не теряется
+
+
+def test_no_quadratic_hang():
+    """Анти-квадратичность (гейт r3): ключ + 100 КБ одним прогоном — доля
+    секунды, не минуты (замер с запасом ×10 против регрессии к O(L²))."""
+    import time
+    payload = "y" * 50000 + "token" + "y" * 50000
+    t0 = time.monotonic()
+    gm.redact_lite(payload)
+    assert time.monotonic() - t0 < 10, "квадратичный бэктрекинг вернулся"
 
 
 def test_mutation_every_rule_has_a_trap(monkeypatch):
@@ -196,10 +242,12 @@ def test_lint_stdout_redacted(probe_kb):
     for secret in ("FAKEprobe12345", "FAKETOKEN12345", "FAKESIG99", "eyJhbGci"):
         assert secret not in out, f"секрет {secret!r} утёк в вывод lint"
     assert out.count("[REDACTED]") >= 3, "маскировка не применилась к каналам I2/I4/I9"
-    # путь и хвост формата I9 честны; средний токен «значение» съеден вместе
-    # с секретом (служебное слово формата, трейд-офф правила 4b)
+    # путь и хвосты формата честны на всех трёх каналах (гейт r3: мутант-вайп
+    # I2/I4 проходил); средний токен «значение» съеден вместе с секретом
     assert "docs/services/cards.md" in out
     assert "поле token: [REDACTED] вне списка" in out
+    assert "service='[REDACTED]' вне словаря" in out
+    assert "./nope.md?token=[REDACTED]" in out
 
 
 def test_gitignore_warning_redacted(tmp_path):
