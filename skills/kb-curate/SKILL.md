@@ -105,6 +105,6 @@ Fix until clean.
 
 ## Vocabularies (don't invent values)
 
-- `node_type`: service|reference|runbook|gotcha|decision|plan|ticket|guide|report|index
+- `node_type`: service|reference|runbook|gotcha|decision|plan|ticket|guide|report|index|schema
 - `status`: active|draft|deprecated|archived
 - `service`: your project's controlled vocabulary (define it in `docs/ontology.md`)
