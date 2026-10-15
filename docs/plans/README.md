@@ -26,7 +26,7 @@ regenerate — never edit the table by hand.
 | [crossreview-adoption/](crossreview-adoption/README.md) | archived | 3/3 |
 | [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
-| [flow-continuity.md](flow-continuity.md) | draft | — |
+| [flow-continuity.md](flow-continuity.md) | archived | — |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
 | [gate-risk-scaling.md](gate-risk-scaling.md) | archived | — |
@@ -39,7 +39,7 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
-| [queue-3/](queue-3/README.md) | draft | 0/2 |
+| [queue-3/](queue-3/README.md) | draft | 0/3 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
 | [roles-per-agent/](roles-per-agent/README.md) | archived | 2/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
@@ -101,16 +101,16 @@ regenerate — never edit the table by hand.
    required-хедера, 2 minor — поправки формулировок). Тикеты линейны 01→02;
    шипался после onto-doc-hygiene: общий файл onto-doc.workflow.ts, якоря canon
    легли выше hygiene-правок.
-10. **behavior-reel → flow-continuity** — behavior-reel (контракт 2026-10-13;
-   4 линейных тикета: носитель цитат → формат ленты → контрслой+пробы → ship)
-   шипуется первым, разбивка — ручным `/to-tickets` (автоцепочки ещё нет);
-   flow-continuity (контракт 2026-10-14; файл-план одним слайсом: автоцепочка
-   грилл→тике́ты той же сессией + перегрилль тикета по дрейфу в /ship шаг 1)
-   встаёт после behavior-reel 04 включительно — задержка тикетов 03–04
-   решением оператора порядок не меняет. Основание — общие файлы: якоря
-   behavior-reel написаны против текущих текстов, флоу-правка ложится чистым
-   диффом поверх; обратный порядок сдвигал бы зафиксированный контракт
-   behavior-reel.
+10. ✅ **behavior-reel → flow-continuity** — оба отгружены: behavior-reel
+   v0.5.53–v0.5.56 (4/4, разбивка тогда — ручным `/to-tickets`, автоцепочки
+   ещё не было); flow-continuity v0.5.57 (файл-план одним слайсом: автоцепочка
+   грилл→тике́ты той же сессией с определённым предикатом многослайсности,
+   шаг 0 tracked/untracked, one-piece коммит разбивки, drift mini-grill в
+   /ship шаг 1 с соседним каскадом; гейт 3 раунда 15 verified/0/0, финал
+   чист; план отгружен одним срезом — ручная разбивка не понадобилась).
+   Порядок «behavior-reel первым» держался: якоря ленты легли на тексты до
+   флоу-правки; хвост гейта (kb-curate:96 «I1–I9» при движке I1–I10) —
+   тикетом queue-3/03.
 
 11. **queue-3 — парковка хвостов и продуктов шипов** (решение оператора
    2026-10-15): стартовые тикеты — redactLite (из roles-per-agent/02) и
