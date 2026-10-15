@@ -20,6 +20,7 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -142,6 +143,39 @@ def test_whitespace_only_argument_gets_placeholder(kb: Path):
     assert "(пустой аргумент)" in str(ei.value)
 
 
+def test_stat_failure_hands_decision_to_guard2(kb: Path, monkeypatch):
+    """EACCES/stat-отказ по argv-пути: guard 1 не называет путь «не найден» и
+    не крашится — решение уходит guard 2 по rel-индексу (ловушка на мутанты
+    ok=True→ok=False и снятый try/except)."""
+    orig = gm.Path.exists
+
+    def raising(self, _orig=orig):
+        if self.as_posix().endswith("docs/secret.md"):
+            raise PermissionError(13, "Permission denied")
+        return _orig(self)
+
+    monkeypatch.setattr(gm.Path, "exists", raising)
+    with pytest.raises(gm.LintPathError, match="не выбирает ни одного файла KB") as ei:
+        gm.cmd_lint(kb, ["docs/secret.md"])
+    assert "docs/secret.md" in str(ei.value)
+
+
+def test_unicode_forms_are_byte_exact(kb: Path):
+    """Выборка байт-точная — как sel-фильтр до правки: NFD-имя на диске
+    выбирается своей формой; NFC-форма того же слова — честный отказ guard 1
+    (файла с такими байтами на ФС нет). Нормализация argv — именованное
+    ограничение: отказ с именем пути вместо молчаливой пустоты."""
+    word_nfd = unicodedata.normalize("NFD", "ёмкость")  # е + U+0308
+    (kb / "docs" / "notes" / (word_nfd + ".md")).write_text("# Ё\n", encoding="utf-8")
+    nfd = "docs/notes/" + word_nfd + ".md"
+    nfc = "docs/notes/" + unicodedata.normalize("NFC", "ёмкость") + ".md"
+    r = gm.cmd_lint(kb, [nfd])
+    assert isinstance(r, dict), "байт-в-байт совпавшая форма обязана выбирать"
+    with pytest.raises(gm.LintPathError, match="путь не найден") as ei:
+        gm.cmd_lint(kb, [nfc])
+    assert nfc in str(ei.value)
+
+
 def test_mixed_paths_refuse_naming_only_missing(kb: Path):
     with pytest.raises(gm.LintPathError) as ei:
         gm.cmd_lint(kb, ["docs/reference/aa.md", "docs/nope.md"])
@@ -246,6 +280,10 @@ def test_cli_control_chars_stripped_from_refusal(kb: Path):
         assert raw not in r.stderr, f"{name}-байт дошёл до stderr"
     assert r.stderr.count(b"\n") == 1, "перевод строки подделал вторую строку"
     assert b"\nERR" not in r.stderr, "подделанная строка отчёта встала началом строки"
+    # печатный остаток argv пережил стрип — ловушка на мутантов условной
+    # перезачистки «при наличии управляющих» (заглушка/класс, сносящий кириллицу)
+    assert b"docs/" in r.stderr and b"fake" in r.stderr, "ASCII-остаток снесён"
+    assert "подделка".encode() in r.stderr, "кириллица остатка снесена"
 
 
 def test_cli_existing_path_keeps_previous_exit_and_channels(kb: Path):
