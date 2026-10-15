@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table, and embedded into the global execution order (docs/plans/README.md «Порядок выполнения»). Launched by grilling right after the plan approval — the full run, steps 0–6, in the same session — or by hand on any plan; use when the user says "разбей на тикеты" or runs /to-tickets. /ship consumes one ticket per run and is never started by this skill.
+description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table, and embedded into the global execution order (docs/plans/README.md «Порядок выполнения»). Launched by grilling right after the plan approval of a multi-slice contract — the full run, steps 0–6, in the same session — or by hand on any plan; use when the user says "разбей на тикеты" or runs /to-tickets. /ship consumes one ticket per run and is never started by this skill.
 ---
 
 # /to-tickets — break a plan into tickets
@@ -10,9 +10,11 @@ slices, each declaring the tickets that **block** it.
 
 Two entry modes: **by hand** — the operator names the plan in the argument —
 or **chained from grilling**: the same session that just got a multi-slice
-contract approved runs this skill on it in full, with no manual command in
-between (flow-continuity). The chain changes who starts the run, nothing
-else — every step below runs the same way.
+contract approved (its `Done` promises more than one independently shippable
+deliverable — the predicate is defined in grilling step 7) runs this skill on
+it in full, with no manual command in between (flow-continuity). The chain
+changes who starts the run, nothing else — every step below runs the same
+way.
 
 Argument: `$ARGUMENTS` — a plan path (`docs/plans/<slug>.md`, `docs/plans/<slug>/`, or
 its `README.md`) or a topic. **Empty** → the most recent plan (a file
@@ -105,6 +107,12 @@ the end:
    The three places that fix an edge must agree: frontmatter `links.depends_on`,
    the `Blocked by:` line in the ticket body, the `Blocked by` column of the plan's
    README table.
+8. **Post-publish edit:** an edit to a published ticket (a `/ship` run's drift
+   mini-grill is the live case) keeps its number and its blocking edges —
+   only the affected text changes, and every reference to the changed text
+   (`depends_on`, the `Blocked by:` lines, the README table) is rewritten to
+   match. A change that must renumber tickets or rewire edges is a
+   post-publish split (item 6), not an edit.
 
 Give each ticket its **blocking edges**: the other tickets that must complete before
 it can start. A ticket with no blockers can start immediately.
@@ -305,7 +313,8 @@ commit, not a follow-up.
 piece**: the promoted contract (`README.md`), every ticket, the
 execution-order change, and this session's crystallised terms
 (`docs/decisions/`) land in a single commit — a multi-slice split leaves
-nothing uncommitted. A single-slice contract may sit written-but-uncommitted
-until its `/ship` — that window is kept on purpose. Report the ticket list
-and **stop**. Do NOT launch `/ship` — the operator starts it by hand, one
-ticket at a time.
+nothing uncommitted. (A single-slice contract never reaches this skill: from
+`grilling` it stays written-but-uncommitted until its `/ship` — that window
+is kept on purpose, and it is why the nothing-uncommitted claim is scoped to
+multi-slice splits.) Report the ticket list and **stop**. Do NOT launch
+`/ship` — the operator starts it by hand, one ticket at a time.

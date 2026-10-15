@@ -51,8 +51,10 @@ If the topic already exists — **edit the existing doc**, don't create a second
 
 A plan is a **file** `docs/plans/<slug>.md` (`node_type: plan`) until it is broken into
 tickets. `to-tickets` is the only step that creates the **folder form**
-`docs/plans/<slug>/`: it moves the file to `docs/plans/<slug>/README.md` (`git mv`,
-history preserved, links rewritten for the extra depth) and adds the **tickets**
+`docs/plans/<slug>/`: it moves the file to `docs/plans/<slug>/README.md` (a
+tracked file by `git mv`, history preserved; a fresh untracked contract — the
+auto-chain's normal case — by `mv` + `git add`; links rewritten for the extra
+depth) and adds the **tickets**
 (`NN-<ticket>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
 the tickets that block it. `/ship` executes one ticket at a time, strictly sequentially;
 a file plan is shipped as a single slice.
@@ -73,9 +75,10 @@ Lifecycle: plan `draft` (written by `grilling`) → `active` (`/ship` started)
 → `archived` (shipped as a single slice, or all tickets done). Tickets: `draft` (written
 by `to-tickets`) → `active` (being shipped) → `archived` (shipped). Only
 `grilling` authors a plan contract and `to-tickets` authors tickets; a
-`/ship` run edits a published ticket only through its drift branch (named
-edits under the post-publish rules — numbering and edges preserved); entry
-skills feed `Context`/`Goal`, never the contract.
+`/ship` run edits a published ticket only through its drift mini-grill (ship
+step 1 — named edits under the post-publish edit rules, `to-tickets` step 2
+item 8: numbering and edges preserved); entry skills feed `Context`/`Goal`,
+never the contract.
 
 ## When EDITING (UPDATE)
 

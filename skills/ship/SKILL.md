@@ -35,8 +35,8 @@ run, strictly sequential.
    provisions, each with evidence (grilling:36-38 — evidence or escalate, no
    third option); a one-way call goes to the operator (`AskUserQuestion`)
    before the run continues; the ticket is edited under the **post-publish
-   rules** (`to-tickets` step 2, item 6 — the number and the blocking edges
-   stay, every reference to the changed text is rewritten) — and the run
+   edit rules** (`to-tickets` step 2, item 8 — the number and the blocking
+   edges stay, every reference to the changed text is rewritten) — and the run
    continues. The mini-grill also names the **neighbouring tickets** the drift
    touches (`depends_on` edges, shared anchors) and re-checks them in the same
    pass: no silent cascading drift.
