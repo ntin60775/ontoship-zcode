@@ -99,9 +99,10 @@ python3 <kb-search-skill-dir>/gitmark.py index    # rebuild search
 ```
 `lint` flags (I1–I10): missing frontmatter on a load-bearing doc; vocabulary violations
 (`node_type`/`service`/`status`); orphans (0 links); broken body and frontmatter links;
-`docs/**` folders without README; `supersedes` target not deprecated/archived; command
-registry out of sync with the payload; ontology model drift (project vs package copy);
-card-schema violations (required fields, allowed values); README index chain unreachable.
+`docs/**` folders without README; `supersedes` target not deprecated/archived; generated
+registries out of sync (commands/skills tables, plans index); ontology model drift
+(project vs package copy); card-schema violations (required fields, allowed values);
+README index chain unreachable.
 Fix until clean.
 
 ## Vocabularies (don't invent values)
