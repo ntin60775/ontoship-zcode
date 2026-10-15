@@ -781,6 +781,13 @@ def index_chain_issues(root: Path) -> list:
 
 def cmd_lint(root: Path, paths: list | None = None) -> dict:
     """Проверка инвариантов онтологии I1–I10. Возвращает {errors, warnings, checked}."""
+    if paths:
+        # несуществующий путь иначе молча даёт пустую выборку: per-file проверки
+        # I1/I2/I3/I6 пропускаются, сквозные I4/I5/I7–I10 идут по всему KB —
+        # на чистом KB это неотличимо от полного прогона («✓ чисто», exit 0)
+        missing = [p for p in paths if not (root / p).exists()]
+        if missing:
+            raise ValueError("путь не найден: " + ", ".join(missing))
     for warning in gitignore_warnings(root):
         print(f"[WARN] gitignore: {warning}", file=sys.stderr)
     docs = list(iter_md(root))
@@ -1302,7 +1309,7 @@ def main(argv=None):
     stp = sub.add_parser("stat", help="статистика")
     stp.add_argument("--json", action="store_true", help="машинный вывод (files/chunks/links/…)")
     lp = sub.add_parser("lint", help="проверить онтологию (I1–I10)")
-    lp.add_argument("paths", nargs="*", help="ограничить файлами (по умолчанию — все docs/)")
+    lp.add_argument("paths", nargs="*", help="ограничить файлами; несуществующий путь — отказ с exit 2 (по умолчанию — все docs/)")
     lp.add_argument("--strict", action="store_true", help="exit 1 при любых ERR")
     inv = sub.add_parser("inventory", help="перегенерировать сводные таблицы реестров: команд/навыков и планов")
     inv.add_argument("--check", action="store_true", help="только доложить рассинхрон (exit 1)")
@@ -1343,7 +1350,13 @@ def main(argv=None):
         print(f"GitMark · {s['files']} файлов · {s['areas']} папок · {s['chunks']} чанков · "
               f"{s['links']} ссылок · {s['bytes']//1024} KB · trigram={'on' if s['trigram'] else 'off'}")
     elif a.cmd == "lint":
-        r = cmd_lint(root, a.paths or None)
+        try:
+            r = cmd_lint(root, a.paths or None)
+        except ValueError as e:
+            # именованный отказ по path-аргументу: exit 2 (класс usage-ошибки
+            # argparse), отдельный от exit 1 = ERR онтологии при --strict
+            print(f"gitmark: {e}", file=sys.stderr)
+            sys.exit(2)
         order = {"ERR": 0, "WARN": 1}
         codes = {}
         for lvl, code, path, msg in sorted(r["issues"], key=lambda x: (order[x[0]], x[1], x[2])):
