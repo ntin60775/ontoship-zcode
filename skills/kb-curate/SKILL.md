@@ -21,7 +21,8 @@ If the topic already exists — **edit the existing doc**, don't create a second
 ## When ADDING knowledge (CREATE)
 
 1. **Pick a `node_type`**: `service` · `reference` · `runbook` · `gotcha` · `decision`
-   · `plan` · `ticket` · `guide` · `report` · `index`. Unsure → spec = `reference`, how-to = `guide`.
+   · `plan` · `ticket` · `guide` · `report` · `index` · `schema` (a card schema for its
+   folder's cards — I9). Unsure → spec = `reference`, how-to = `guide`.
    Ephemeral output (diagnoses, reviews, handoffs, prototypes) goes to `.scratch/` or
    OS temp — no `node_type`, not indexed as KB.
 2. **Put it in the right folder** (type → folder): service-specific →
@@ -107,4 +108,5 @@ Fix until clean.
 
 - `node_type`: service|reference|runbook|gotcha|decision|plan|ticket|guide|report|index|schema
 - `status`: active|draft|deprecated|archived
-- `service`: your project's controlled vocabulary (define it in `docs/ontology.md`)
+- `service`: your project's controlled vocabulary — folder names under `docs/`
+  (`docs/services/<svc>` or a grouping folder); `_platform` for cross-cutting
