@@ -161,15 +161,99 @@ def git_md_files(root: Path):
     return sorted(out)
 
 
+# ─────────────────────────── redact (маскировка секретов в выводе) ───────────────────────────
+# Лёгкая редакция строк, покидающих процесс через stdout/stderr (queue-3/01):
+# правила redactLite, поведенчески синхронные с TS-копией в onto-doc.workflow.ts —
+# eyJ-формы, bearer/basic, словарные ключи с кавычками (JSON/python-repr) и без,
+# кавыченное значение после некавыченного ключа, vendor-литералы. Три расширения
+# сверх onto-doc-hygiene (bearer-lookahead, KEY-граница (?![a-z]), кавыченное
+# значение) внесены синхронно в обе копии гейт-находками ревью-рана
+# (dwfrun-a3de02af/99cd0897). Полная матрица redact() гейт-воркфлоу не
+# копируется: вывод lint/inventory — одиночные строки диагностики, PEM-блоки и
+# url-креды в фактический формат не входят (документированные пропуски — как у
+# полной матрицы). Порядок важен: eyJ и bearer/basic — до словарных правил,
+# иначе key=value съедает слово Bearer/Basic и оставляет значение открытым.
+_REDACT_KEY = r"(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)"
+# Граница ключа (?![a-z][a-z]) — компромисс гейта r2: автор-слова (author,
+# authorized, authentication) блокируются продолжением из 2+ букв, множественные
+# формы ключей (secrets/tokens/passwords/apikeys — одна буква) остаются
+# замаскированными; KEY + 2+ букв (tokenValue, authKey, authkey, passwordHash) —
+# задокументированный пропуск. Под re.IGNORECASE класс [a-z] матчит и заглавные.
+_REDACT_KEY_GUARD = r"(?![a-z][a-z])"
+# Значение в кавычках — по типу кавычки (гейт r3): в одинарных raw-двойная
+# легальна ('ab"cd' — формат I9), в двойных экранированная \\" — JSON-эскейп;
+# единый класс [^'"] рвал оба. Мост [ \t]+ (не \s+) — не переходит перевод
+# строки: мультилайн-цитата ниже ключа не съедается.
+_REDACT_QUOTED = r"(?:'(?:[^']|\\.){4,}'|\"(?:[^\"]|\\.){4,}\")"
+# Анти-квадратичность (гейт r3): голый жадный [\w.-]* даёт O(L²) на прогоне
+# без совпадения — 100 КБ-поле подвешивало lint на минуты. Граница слева
+# (односимвольный lookbehind) отсекает внутренние стартовые позиции прогона,
+# капы {0,64} — префикс/суффикс ключа реальных форматов короче.
+_REDACT_HEAD = r"(?<![\w.-])[\w.-]{0,64}"
+_REDACT_RULES: list = [
+    (re.compile(r"\beyJ[A-Za-z0-9_+/-]+(?:\.[A-Za-z0-9_+/-]+){1,4}=*"), "[REDACTED]"),
+    # lookahead полной матрицы: значение обязано нести цифру/=/_//-, иначе
+    # маскировалась бы проза «basic authentication» (гейт-находка confirm-рана);
+    # обратная сторона — чисто буквенные base64-креды без padding — пропуск
+    (re.compile(r"\b(bearer|basic)\s+(?=[A-Za-z0-9+/=_-]*[0-9=/_-])[A-Za-z0-9+/=_-]{8,}",
+                re.IGNORECASE), r"\1 [REDACTED]"),
+    (re.compile(r"\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,})\b"),
+     "[REDACTED]"),
+    # Каноническая JSON-форма с кавычками вокруг ключа и значения — иначе
+    # проскакивает мимо password: x / password=x. Кавычка — класс ["'] с
+    # опциональным бэкслешем: python-repr {'password': '…'} и экранированные
+    # \\"-формы матчатся тем же правилом, а значение пересекает экранированные
+    # кавычки — (?:[^"\\]|\\.), не [^"] (гейт-находки confirm-ранов hygiene).
+    (re.compile(r"(\\?[\"'][\w.-]*" + _REDACT_KEY + _REDACT_KEY_GUARD + r"[\w.-]*\\?[\"']\s*:\s*)"
+                r"\\?[\"'](?:[^\"\\]|\\.){4,}\\?[\"']", re.IGNORECASE), r'\1"[REDACTED]"'),
+    # Кавыченное значение после некавыченного ключа — формат I9
+    # «поле token: значение '…' вне списка» и YAML password: "…": значение
+    # не может начаться с кавычки в key=value-правиле. Опциональный средний
+    # токен съедается вместе со значением (у I9 это служебное слово «значение»
+    # формата движка, не проза пользователя); до 64 символов — типовой путь.
+    (re.compile("(" + _REDACT_HEAD + _REDACT_KEY + _REDACT_KEY_GUARD + r"[\w.-]{0,64}\s*[:=]\s*)"
+                r"(?:[^\s'\"]{1,64}[ \t]+)?" + _REDACT_QUOTED, re.IGNORECASE),
+     r"\1[REDACTED]"),
+    # Значение не есть само слово bearer/basic (гейт r3): иначе на пропущенном
+    # lookahead-ом креде строка получала маркер рядом с открытым секретом.
+    (re.compile("(" + _REDACT_HEAD + _REDACT_KEY + _REDACT_KEY_GUARD + r"[\w.-]{0,64}\s*[:=]\s*)"
+                r"(?!(?:bearer|basic)\b)[^\s,;}\"']{4,}",
+                re.IGNORECASE), r"\1[REDACTED]"),
+]
+# Быстрый предфильтр словарного слова (гейт r3): словарные правила с жадными
+# [\w.-]-прогонами квадратичны на длинном поле без ключа (100 КБ одним
+# прогоном — минуты CPU); без ключа в строке они не могут матчиться вовсе.
+_REDACT_KEY_HINT = re.compile(_REDACT_KEY, re.IGNORECASE)
+# Управляющие C0/DEL из недоверенного msg не доходят до терминала (гейт r3):
+# таб и переводы строк сохраняются — это формат текста, не инъекция.
+_REDACT_C0 = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def redact_lite(s: str) -> str:
+    """Мин-редакция секретов для диагностики, покидающей ран: msg строк вывода,
+    не пути и не счётчики (они обязаны остаться честными)."""
+    s = _REDACT_C0.sub("", s)
+    if not _REDACT_KEY_HINT.search(s):
+        # быстрый путь: бесконтекстные eyJ / bearer-basic / vendor (правила 1–3)
+        for rx, sub in _REDACT_RULES[:3]:
+            s = rx.sub(sub, s)
+        return s
+    for rx, sub in _REDACT_RULES:
+        s = rx.sub(sub, s)
+    return s
+
+
 def gitignore_warnings(root: Path) -> list:
     """Неподдержанные правила фолбэка — вслух.
 
     На основном пути (git) подмножество не задействовано, поэтому предупреждать не о чем.
+    Правило .gitignore — недоверенный текст репозитория: мин-редакция, как всякая
+    диагностика, покидающая ран.
     """
     if git_md_files(root) is not None:
         return []
     _, _, _, unsupported = parse_gitignore(root)
-    return [f"правило '{s}' не поддержано фолбэком (нет git) — файлы под него попадут в индекс"
+    return [f"правило '{redact_lite(s)}' не поддержано фолбэком (нет git) — файлы под него попадут в индекс"
             for s in unsupported]
 
 
@@ -1265,7 +1349,9 @@ def main(argv=None):
         for lvl, code, path, msg in sorted(r["issues"], key=lambda x: (order[x[0]], x[1], x[2])):
             codes[code] = codes.get(code, 0) + 1
             col = "\033[31m" if lvl == "ERR" else "\033[33m"
-            print(f"{col}{lvl}\033[0m \033[90m{code}\033[0m {path} — {msg}")
+            # msg несёт значения полей и href из недоверенного KB (I2/I4/I9) —
+            # мин-редакция на границе вывода; path остаётся честным
+            print(f"{col}{lvl}\033[0m \033[90m{code}\033[0m {path} — {redact_lite(msg)}")
         ne, nw = len(r["errors"]), len(r["warnings"])
         summary = " · ".join(f"{c}×{n}" for c, n in sorted(codes.items())) or "—"
         mark = "\033[32m✓ чисто\033[0m" if ne == 0 and nw == 0 else f"\033[31m{ne} ERR\033[0m · \033[33m{nw} WARN\033[0m"
@@ -1277,7 +1363,7 @@ def main(argv=None):
         if a.check:
             if r["issues"]:
                 for path, msg in r["issues"]:
-                    print(f"\033[31mERR\033[0m \033[90mI7\033[0m {path} — {msg}")
+                    print(f"\033[31mERR\033[0m \033[90mI7\033[0m {path} — {redact_lite(msg)}")
                 print(f"\n\033[31mрассинхрон: {len(r['issues'])}\033[0m — `gitmark inventory`")
                 sys.exit(1)
             print(f"\033[32m✓ реестры синхронны\033[0m  ({r['commands']} команд · "

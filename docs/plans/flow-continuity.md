@@ -2,8 +2,8 @@
 node_type: plan
 title: Непрерывность флоу — автоцепочка грилл→тике́ты и перегрилль тикета по дрейфу
 service: _platform
-status: draft
-updated: 2026-10-14
+status: archived
+updated: 2026-10-15
 links:
   documents: [../../skills/grilling/SKILL.md, ../../skills/to-tickets/SKILL.md, ../../skills/ship/SKILL.md, ../../skills/kb-curate/SKILL.md]
   relates_to: [behavior-reel/README.md, ../decisions/invariant-moratorium.md]

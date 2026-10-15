@@ -89,20 +89,53 @@ function abort(conclusion: string, why: string) {
 
 /** Мин-редакция секретов для диагностических хвостов args.plan (гейт-находка 19):
  * диагностический контракт (голова/хвост битого JSON) остаётся, секретные формы
- * маскируются до попадания в conclusion abort'а. */
+ * маскируются до попадания в conclusion abort'а. Управляющие C0/DEL вырезаются,
+ * словарные правила — только при словарном слове в строке (анти-квадратичность,
+ * гейт r3 queue-3/01 — синхронно с gitmark.py). */
 function redactLite(s: string): string {
-  return s
+  const key = "(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)";
+  // Значение в кавычках — по типу кавычки (гейт r3): в одинарных raw-двойная
+  // легальна, в двойных экранированная \" — единый класс [^'"] рвал оба.
+  // Мост [ \t]+ (не \s+) — не переходит перевод строки: мультилайн-цитата
+  // ниже ключа не съедается. Граница слева + капы {0,64} — анти-квадратичность
+  // (гейт r3): голый жадный [\w.-]* давал O(L²) на длинном прогоне.
+  const head = "(?<![\\w.-])[\\w.-]{0,64}";
+  const quoted = new RegExp(
+    `(${head}${key}(?![a-z][a-z])[\\w.-]{0,64}\\s*[:=]\\s*)(?:[^\\s'"]{1,64}[ \\t]+)?` +
+      `(?:'(?:[^']|\\\\.){4,}'|"(?:[^"]|\\\\.){4,}")`,
+    "gi",
+  );
+  // Значение не есть само слово bearer/basic (гейт r3): иначе на пропущенном
+  // lookahead-ом креде строка получала маркер рядом с открытым секретом.
+  const plain = new RegExp(
+    `(${head}${key}(?![a-z][a-z])[\\w.-]{0,64}\\s*[:=]\\s*)(?!(?:bearer|basic)\\b)[^\\s,;}"']{4,}`,
+    "gi",
+  );
+  const t = s
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "")
     .replace(/\beyJ[A-Za-z0-9_+/-]+(?:\.[A-Za-z0-9_+/-]+){1,4}=*/g, "[REDACTED]")
-    .replace(/\b(bearer|basic)\s+[A-Za-z0-9+/=_-]{8,}/gi, "$1 [REDACTED]")
+    // lookahead полной матрицы — значение несёт цифру/=/_//-, иначе маскировалась
+    // бы проза «basic authentication» (queue-3/01, синхронно с gitmark.py);
+    // обратная сторона — чисто буквенные base64-креды без padding — пропуск
+    .replace(/\b(bearer|basic)\s+(?=[A-Za-z0-9+/=_-]*[0-9=/_-])[A-Za-z0-9+/=_-]{8,}/gi, "$1 [REDACTED]")
+    .replace(/\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,})\b/g, "[REDACTED]");
+  if (!new RegExp(key, "i").test(t)) return t;
+  return t
     // Каноническая JSON-форма — кавычки вокруг ключа и значения (гейт-находка
     // onto-doc-hygiene): {"password": "…"} иначе проскакивает мимо формы
     // password: x / password=x. Кавычка — класс ["'] с опциональным бэкслешем
     // перед ней: python-repr {'password': '…'} и экранированные \"-формы
     // диагностик матчатся тем же правилом (гейт-находки confirm-рана), а
     // значение пересекает экранированные кавычки — (?:[^"\\]|\\.), не [^"].
-    .replace(/(\\?["'][\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)[\w.-]*\\?["']\s*:\s*)\\?["'](?:[^"\\]|\\.){4,}\\?["']/gi, '$1"[REDACTED]"')
-    .replace(/([\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)[\w.-]*\s*[:=]\s*)[^\s,;}"']{4,}/gi, "$1[REDACTED]")
-    .replace(/\b(?:sk-[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{8,})\b/g, "[REDACTED]");
+    // Граница ключа (?![a-z][a-z]) — гейт r2: author-слова блокируются
+    // продолжением из 2+ букв, множественные формы ключей (одна буква)
+    // маскируются; KEY + 2+ букв (camelCase) — задокументированный пропуск.
+    .replace(/(\\?["'][\w.-]*(?:password|passwd|secret|token|apikey|api[_-]?key|authorization|auth)(?![a-z][a-z])[\w.-]*\\?["']\s*:\s*)\\?["'](?:[^"\\]|\\.){4,}\\?["']/gi, '$1"[REDACTED]"')
+    // Кавыченное значение после некавыченного ключа (YAML password: "…",
+    // формат «поле …: значение '…'») — queue-3/01, синхронно с gitmark.py:
+    // key=value-правило не может начаться с кавычки в значении.
+    .replace(quoted, "$1[REDACTED]")
+    .replace(plain, "$1[REDACTED]");
 }
 
 /** Срез диагностической вставки: сначала мин-редакция, потом ограничение длины
@@ -375,10 +408,13 @@ if (bootstrap) {
       `всё — выход surveyor'а без pieces: ${clipDiag(JSON.stringify(sv))}`,
     );
   }
+  // Зоны — недоверенный текст surveyor'а (читает репозиторий), уезжающий
+  // в отчёт рана без дальнейшей обработки: мин-редакция, как у всякой
+  // диагностики (queue-3/01; источник-проба — confirm dwfrun-92e63bc9).
   humanZones = Array.isArray(sv.humanZones)
     ? (sv.humanZones as unknown[]).filter(
         (z): z is string => typeof z === "string" && z.trim() !== "",
-      )
+      ).map((z) => redactLite(z))
     : [];
   pieces = sv.pieces as Piece[];
   log(`Surveyor: кусков ${pieces.length}, зон для человека ${humanZones.length}`);
