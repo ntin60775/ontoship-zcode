@@ -23,7 +23,23 @@ run, strictly sequential.
 ## The loop — track it as a TodoWrite checklist from step 1
 
 1. **Research** — facts, not guesses: read the code, logs, traces; reproduce before
-   fixing. The ticket's acceptance criteria are the spec.
+   fixing. The ticket's acceptance criteria are the spec — first check they are
+   not **drifted**: premises written against a tree that has since moved. The
+   triggers are verifiable, none of them a vibe: (i) an **anchor** the ticket
+   names (a `file:line`, a heading, a literal) is not found in the current
+   tree; (ii) a **verbatim operator thesis** from the contract's `Context`
+   quote carrier (behavior-reel) no longer holds of the repo by a checkable
+   command you actually run and quote; (iii) the operator flags the drift
+   explicitly. No trigger — no re-grill: always-on re-grilling is rejected. A
+   triggered drift opens a **drift mini-grill**: re-decide only the affected
+   provisions, each with evidence (grilling:36-38 — evidence or escalate, no
+   third option); a one-way call goes to the operator (`AskUserQuestion`)
+   before the run continues; the ticket is edited under the **post-publish
+   edit rules** (`to-tickets` step 2, item 8 — the number and the blocking
+   edges stay, every reference to the changed text is rewritten) — and the run
+   continues. The drift mini-grill also names the **neighbouring tickets**
+   the drift touches (`depends_on` edges, shared anchors) and re-checks them
+   in the same pass: no silent cascading drift.
 2. **Goal** — restate the ticket's `What to build` + acceptance criteria as the
    TodoWrite goal line (or the plan's `Goal`/`Done` for a file plan).
 3. **Isolate** — dedicated **`git worktree`**: `git worktree add ../<repo>-ship-<nn> -b
