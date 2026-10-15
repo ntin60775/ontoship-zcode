@@ -58,7 +58,8 @@ def kb(tmp_path: Path) -> Path:
     # чтает .gitignore) — единственная форма, отличающая rel-индекс от диска
     (docs / "reference" / "dd.md").write_text(
         "---\nnode_type: reference\ntitle: DD\n---\n\n# DD\n", encoding="utf-8")
-    (tmp_path / ".gitignore").write_text("docs/reference/dd.md\n", encoding="utf-8")
+    (tmp_path / ".gitignore").write_text(
+        "docs/reference/dd.md\n**/*.tmp\n", encoding="utf-8")  # вторая — unsupported: WARN-поток не пуст, пин порядка «guard'ы до WARN» не вакуумный
     # xx — I1: несущий docs/ops/ без frontmatter (per-file)
     (docs / "ops" / "xx.md").write_text("# XX без frontmatter\n", encoding="utf-8")
     # notes/ без README — I5 (сквозная) для обеих папок без индекса
@@ -189,6 +190,31 @@ def test_canonical_path_does_not_refuse(kb: Path):
     assert isinstance(r, dict) and r["checked"] > 0
 
 
+def test_root_md_selection_is_scoped_not_empty(tmp_path: Path):
+    """Существующий md вне docs/ (гейт r4): выборка НЕ пустая — выбранный файл
+    проверяется применимыми к нему инвариантами (I4 по его ссылкам), но
+    per-file I1–I3/I6 остаются docs/-scoped — как и в полном прогоне. Это
+    документированная семантика фильтра, не «молчаливая пустая выборка»:
+    доказательство — I4 по выбранному корневому файлу ловится."""
+    docs = tmp_path / "docs"
+    (docs / "reference").mkdir(parents=True)
+    (docs / "README.md").write_text(
+        "---\nnode_type: index\ntitle: KB\n---\n\n# KB\n", encoding="utf-8")
+    (docs / "reference" / "README.md").write_text(
+        "---\nnode_type: index\ntitle: Reference\n---\n\n# Reference\n", encoding="utf-8")
+    (docs / "reference" / "aa.md").write_text(
+        "---\nnode_type: bogus_type\ntitle: AA\n---\n\n# AA\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text(
+        "# Root с битой ссылкой [x](./nope.md)\n", encoding="utf-8")
+    r = gm.cmd_lint(tmp_path, ["README.md"])
+    codes = lambda rel, code: any(i[2] == rel and i[1] == code for i in r["issues"])
+    assert codes("README.md", "I4"), "выбранный корневой файл не проверен I4 — выборка не пуста"
+    assert not codes("docs/reference/aa.md", "I2"), "per-file вне выборки скрыт (docs/-scoped)"
+    full = gm.cmd_lint(tmp_path)
+    assert any(i[2] == "docs/reference/aa.md" and i[1] == "I2" for i in full["issues"]), \
+        "полный прогон видит per-file грязь"
+
+
 # ── семантика фильтра по существующим путям, представителями семей ──
 
 
@@ -267,23 +293,74 @@ def test_cli_mixed_paths_exit2(kb: Path):
 
 
 def test_cli_control_chars_stripped_from_refusal(kb: Path):
-    """argv-путь — недоверенный текст на границе вывода: C0/DEL и C1-управляющие
-    вырезаются из сообщения (ESC-инъекция экрана, 8-битный CSI U+009B,
-    подделка строки отчёта через \\n, DEL \\x7f)."""
+    """argv-путь — недоверенный текст на границе вывода: управляющие
+    заменяются маркером «·», не вырезаются (вырезание склеивало бы путь в
+    другой: «docs/README\\n.md» → «README.md»); C0/DEL, C1, bidi/формат
+    (U+202E, U+2028, U+200B) — плюс секрет masкируется redact_lite."""
     r = subprocess.run(
         [sys.executable, str(_GITMARK), "--root", str(kb), "lint",
-         "docs/\x1b[2J\x7f\u009bfake\nERR I9 подделка-nope"],
+         "docs/\x1b[2J\x7f\u009b\u202efake строка\nERR I9 подделка-nope"],
         capture_output=True, timeout=60,
     )
     assert r.returncode == 2
-    for raw, name in ((b"\x1b", "ESC"), (b"\x7f", "DEL"), ("\u009b".encode(), "C1 CSI")):
-        assert raw not in r.stderr, f"{name}-байт дошёл до stderr"
+    raws = [(b"\x1b", "ESC"), (b"\x7f", "DEL"), ("\u009b".encode(), "C1 CSI"),
+            ("\u202e".encode(), "bidi RLO"), ("\u2028".encode(), "LSEP"),
+            ("\u200b".encode(), "ZWSP")]
+    for raw, name in raws:
+        assert raw not in r.stderr, f"{name} дошёл до stderr"
     assert r.stderr.count(b"\n") == 1, "перевод строки подделал вторую строку"
     assert b"\nERR" not in r.stderr, "подделанная строка отчёта встала началом строки"
-    # печатный остаток argv пережил стрип — ловушка на мутантов условной
-    # перезачистки «при наличии управляющих» (заглушка/класс, сносящий кириллицу)
+    assert b"[WARN]" not in r.stderr, "WARN напечатан до отказа — порядок сломан"
+    # печатный остаток argv пережил стрип — ловушка на мутантов перезачистки:
+    # заглушка/класс [^\\x20-\\x7e] и байтовая форма (continuation-байты
+    # кириллицы р–я = D1 80–8F попадают в байтовый диапазон 80–9F)
     assert b"docs/" in r.stderr and b"fake" in r.stderr, "ASCII-остаток снесён"
     assert "подделка".encode() in r.stderr, "кириллица остатка снесена"
+    assert "строка".encode() in r.stderr, "кириллица р–я побита байтовым стрипом"
+    assert "·".encode() in r.stderr, "маркер замены не появился"
+
+
+def test_cli_refusal_replaces_controls_without_gluing(kb: Path):
+    """Вырезание без замены склеивало путь в существующий другой файл:
+    «docs/README\\n.md» → «путь не найден: docs/README.md» (тот существует).
+    Замена маркером называет путь, которого нет."""
+    r = subprocess.run(
+        [sys.executable, str(_GITMARK), "--root", str(kb), "lint",
+         "docs/README\n.md"],
+        capture_output=True, timeout=60,
+    )
+    assert r.returncode == 2
+    assert "docs/README·.md".encode() in r.stderr
+    assert b"README.md" not in r.stderr.replace("README\xc2\xb7".encode(), b""), \
+        "склеенный путь выглядит как существующий файл"
+
+
+def test_cli_refusal_masks_secret_in_path(kb: Path):
+    """Отказ редактируется redact_lite, как соседние печати msg: секрет в
+    argv-пути (docs/x?token=ghp_…) не утекает в stderr открытым текстом."""
+    r = subprocess.run(
+        [sys.executable, str(_GITMARK), "--root", str(kb), "lint",
+         "docs/x?token=ghp_FAKETOKEN12345"],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert r.returncode == 2
+    assert "ghp_FAKETOKEN12345" not in r.stderr, "секрет из argv-пути утёк"
+    assert "[REDACTED]" in r.stderr
+
+
+def test_cli_guard2_message_also_strips_controls(kb: Path):
+    """Стрип — свойство печати отказа, не только guard 1: существующий
+    невыбираемый путь (каталог) с ESC в имени тоже печатается вычищенным."""
+    (kb / "docs" / "e\x1bsc").mkdir()
+    r = subprocess.run(
+        [sys.executable, str(_GITMARK), "--root", str(kb), "lint",
+         "--strict", "docs/e\x1bsc"],
+        capture_output=True, timeout=60,
+    )
+    assert r.returncode == 2
+    assert b"\x1b" not in r.stderr, "ESC из guard-2-пути дошёл до stderr"
+    assert b"[WARN]" not in r.stderr, "WARN напечатан до отказа"
+    assert "не выбирает ни одного файла KB".encode() in r.stderr
 
 
 def test_cli_existing_path_keeps_previous_exit_and_channels(kb: Path):
