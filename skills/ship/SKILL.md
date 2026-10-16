@@ -192,7 +192,10 @@ the check does not apply to it.
    merge, main merge, release; a doc-only ticket has neither dev merge nor release —
    the snapshot writes «доковый мерж, без dev-hash» and the short hashes of the doc
    commits in main), the plan's Open, concrete Next, and the **count of open
-   issues** — `ls .zcode/ontoship/issues/*.md`, a missing folder counts as
+   issues** — `grep -LF "Статус.** Закрыт" .zcode/ontoship/issues/*.md`
+   (files without a closed-status block count as open; a plain `ls`
+   overcounts closed migrants, which triage never removes), a missing folder
+   counts as
    zero — named in the snapshot's `Open` (the issue contour's between-runs
    visibility). A shift that ended on
    a closed ticket still hands the next session a current snapshot; this write is
@@ -212,7 +215,10 @@ recording, but not to be fixed inside this plan — is written as an
 outside the KB (the KB invariants stay untouched), the body in three blocks —
 **наблюдаемое поведение** (what was observed), **источник** (where it came
 from: this run, a review lens, the operator), **почему отложено** (why it is
-deferred, not fixed here). `NN` continues from the folder's max; no folder
+deferred, not fixed here). A file migrated from a retired ticket plan
+carries two extra blocks — **критерии приёмки** and **статус**; a status
+reading «Закрыт» is an archive entry, not open work, and never returns to
+planning. `NN` continues from the folder's max; no folder
 yet — start at `01`. Issues return to planning through triage: grilling
 sweeps `.zcode/ontoship/issues/` at its entry (the «триаж ишью» input), a
 triaged issue's content moves into the contract and its file is deleted

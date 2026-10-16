@@ -3,7 +3,7 @@ node_type: index
 title: Plans
 service: _platform
 status: active
-updated: 2026-10-15
+updated: 2026-10-16
 links:
   part_of: [../README.md]
   relates_to: [../ontology.md]
@@ -126,7 +126,8 @@ regenerate — never edit the table by hand.
    2026-10-15, разговор о подъёме онтошипа в «ЕРП мини»): бутстрапп спрашивает и
    записывает, что в проекте значат «проверки»; файл-план варианта 3
    (профиль-файл + вопрос init) собран без грилла по прецеденту
-   external-dependencies. Порядок относительно queue-3 не назначен.
+   external-dependencies. Порядок не назначен (очередь queue-3 упразднена
+   2026-10-16 — п. 11).
 
 13. **flow-semantics — семантика планирования** (решение оператора
    2026-10-16): план ⇒ грилл (гарантию несёт артефакт, провенанс в Context),
