@@ -140,7 +140,8 @@ consumes:
 - `Scope` — files/services touched (required)
 - `Constraints` — stop-points: `stop-before-commit`, `stop-after-mr`, `no-deploy`
 - `Context` — what the entry phase already established (root cause, prototype verdict,
-  resolved design-tree branches), plus exactly one **provenance line** — the grill
+  resolved design-tree branches), the quote carrier (`### Цитаты оператора (дословно)`
+  — behavior-reel), plus exactly one **provenance line** — the grill
   trace (`Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`) or the operator's explicit
   opt-out (`Провенанс: opt-out оператора — отклонено: <пассы>`); `to-tickets`
   (step 0) refuses a plan without it by name (flow-semantics)

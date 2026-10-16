@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table, and embedded into the global execution order (docs/plans/README.md «Порядок выполнения»). Launched by grilling right after the plan approval of a contract whose unit is built by more than one slice — the full run, steps 0–6, in the same session — or by hand on a plan that carries its provenance record in Context (a grill trace or the operator's explicit opt-out); a plan without the record is refused at entry by name, the breakdown does not start. Use when the user says "разбей на тикеты" or runs /to-tickets. /ship consumes one ticket per run and is never started by this skill.
+description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket-slug>.md plus a README table, and embedded into the global execution order (docs/plans/README.md «Порядок выполнения»). Launched by grilling right after the plan approval of a contract whose unit is built by more than one slice — the full run, steps 0–6, in the same session — or by hand on a plan that carries its provenance record in Context (a grill trace or the operator's explicit opt-out); a plan without the record is refused at entry by name, the breakdown does not start. Use when the user says "разбей на тикеты" or runs /to-tickets. /ship consumes one ticket per run and is never started by this skill.
 ---
 
 # /to-tickets — break a plan into tickets
@@ -250,7 +250,7 @@ observable fact a third party can verify is presentable as
 Rework the criterion — or the slice — until the example exists.
 
 Write one file per ticket under the plan folder, numbered in dependency order
-(blockers first): `docs/plans/<slug>/NN-<slug>.md`. A fresh folder numbers from
+(blockers first): `docs/plans/<slug>/NN-<ticket-slug>.md`. A fresh folder numbers from
 `01`; a folder that already has tickets continues from `max(NN)+1` — never restart
 the numbering (a duplicated `NN-` prefix is exactly what `gitmark lint` does not
 catch). One ticket per file, never a single combined file.
