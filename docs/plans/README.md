@@ -28,7 +28,7 @@ regenerate — never edit the table by hand.
 | [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
 | [flow-continuity.md](flow-continuity.md) | archived | — |
-| [flow-semantics/](flow-semantics/README.md) | draft | 0/3 |
+| [flow-semantics/](flow-semantics/README.md) | draft | 1/3 |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
 | [gate-risk-scaling.md](gate-risk-scaling.md) | archived | — |
