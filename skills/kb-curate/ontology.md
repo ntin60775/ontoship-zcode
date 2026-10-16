@@ -25,7 +25,7 @@ Each document has exactly one `node_type` — its "table" in the ontology.
 | `gotcha` | a pitfall + how to avoid it | `docs/ops/` |
 | `decision` | an architectural/product decision (ADR) | `docs/decisions/` |
 | `plan` | a plan/design before implementation — the ship contract | `docs/plans/<slug>.md` (file; `to-tickets` promotes it to `docs/plans/<slug>/README.md`) |
-| `ticket` | a tracer-bullet vertical slice of a plan, one `/ship` run each | `docs/plans/<slug>/NN-<ticket>.md` |
+| `ticket` | a tracer-bullet vertical slice of a plan, one `/ship` run each | `docs/plans/<slug>/NN-<ticket-slug>.md` |
 | `guide` | how to use something (clients, public API) | varies |
 | `index` | a folder's table of contents | any `README.md` |
 | `schema` | a card schema: the required fields and allowed values of the cards in its folder | the cards' folder, next to them |
@@ -113,7 +113,7 @@ A plan is a **file** `docs/plans/<slug>.md` (`node_type: plan`) until it is brok
 tickets. `to-tickets` is the only step that creates the **folder form**
 `docs/plans/<slug>/`: it moves the file to the folder's `README.md` (history
 preserved, links rewritten for the extra depth) and adds the **tickets**
-(`NN-<ticket>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
+(`NN-<ticket-slug>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
 the tickets that block it.
 
 The plan contract carries the fields the entry skills produce and the dev-flow

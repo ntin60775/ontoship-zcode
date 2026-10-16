@@ -28,7 +28,7 @@ If the topic already exists — **edit the existing doc**, don't create a second
 2. **Put it in the right folder** (type → folder): service-specific →
    `docs/services/<svc>/`; cross-cutting → `docs/reference/`; ops procedure →
    `docs/ops/`; plan → `docs/plans/<slug>.md` (a file; `to-tickets` promotes it to
-   the folder `docs/plans/<slug>/` with `README.md` + `NN-<ticket>.md`); decision →
+   the folder `docs/plans/<slug>/` with `README.md` + `NN-<ticket-slug>.md`); decision →
    `docs/decisions/`.
 3. **Add frontmatter** (min `node_type`; for load-bearing docs also `title`, `service`,
    `status: active`, `updated: YYYY-MM-DD`):
@@ -56,7 +56,7 @@ tickets. `to-tickets` is the only step that creates the **folder form**
 tracked file by `git mv`, history preserved; a fresh untracked contract — the
 auto-chain's normal case — by `mv` + `git add`; links rewritten for the extra
 depth) and adds the **tickets**
-(`NN-<ticket>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
+(`NN-<ticket-slug>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
 the tickets that block it. `/ship` executes one ticket at a time, strictly sequentially;
 a file plan is shipped as a single slice.
 
