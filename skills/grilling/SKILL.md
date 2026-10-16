@@ -31,7 +31,10 @@ execution; guessing about a one-way door is a worse one.
 2. **Research the frontier.** Expand the idea into the questions that must be answered
    before code exists. For each: `kb-search`'s gitmark search, read the code, run cheap
    read-only commands. Facts you find are yours to use. Every entry sweeps the open
-   issues — list `.zcode/ontoship/issues/*.md` (a missing folder means nothing to
+   issues — list `.zcode/ontoship/issues/*.md`, skipping files whose status line
+   reads «Закрыт» (`**Статус.** Закрыт` — archive entries of migrated tickets,
+   nothing to plan; the spelling ship's issue contour fixes) (a missing folder
+   means nothing to
    sweep; the flow runs on): an open issue is frontier input like any other finding,
    the «триаж ишью» entry is this sweep named as the door. A triaged issue's content
    moves into the contract and its file is deleted (git keeps the history); an issue
