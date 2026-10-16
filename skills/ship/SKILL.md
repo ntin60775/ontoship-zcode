@@ -201,10 +201,12 @@ the check does not apply to it.
 
 ## Findings outside the plan's bounds — issue files, not tickets
 
-A ship-run never creates tickets: tickets come only from plans
-(flow-semantics). A finding the run can and should fix within the plan's
-bounds is fixed in the run — the review's verified findings (step 6) are
-exactly this class. A finding outside them — observed behavior worth
+A ship-run never creates tickets outside its own plan: tickets come only
+from plans (flow-semantics); the one in-plan exception is the acceptance
+chord's repair ticket (step 9). A finding the run can and should fix within
+the plan's bounds is fixed in the run — the review's verified findings
+(step 6) are exactly this class. A finding outside them — observed behavior
+worth
 recording, but not to be fixed inside this plan — is written as an
 **issue file** `.zcode/ontoship/issues/NN-<slug>.md`: no frontmatter,
 outside the KB (the KB invariants stay untouched), the body in three blocks —
