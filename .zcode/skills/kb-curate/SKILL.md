@@ -6,7 +6,7 @@ description: 'Rules for maintaining a markdown knowledge base (GitMark) — appl
 # kb-curate — how to maintain the knowledge base (GitMark ontology)
 
 Full model: `ontology.md` **next to this SKILL.md** — it travels with the plugin. If the
-project has its own `docs/ontology.md`, its `service` vocabulary and its agreements take
+project has its own `docs/ontology.md`, its `node_type` vocabulary and its agreements take
 precedence. This skill is the operational checklist. Principle:
 **md+git is the source of truth, with an ontology on top** (object types / properties /
 links — inspired by Palantir Foundry/Gotham, but for documentation over code).
@@ -21,7 +21,8 @@ If the topic already exists — **edit the existing doc**, don't create a second
 ## When ADDING knowledge (CREATE)
 
 1. **Pick a `node_type`**: `service` · `reference` · `runbook` · `gotcha` · `decision`
-   · `plan` · `ticket` · `guide` · `report` · `index`. Unsure → spec = `reference`, how-to = `guide`.
+   · `plan` · `ticket` · `guide` · `report` · `index` · `schema` (a card schema for its
+   folder's cards — I9). Unsure → spec = `reference`, how-to = `guide`.
    Ephemeral output (diagnoses, reviews, handoffs, prototypes) goes to `.scratch/` or
    OS temp — no `node_type`, not indexed as KB.
 2. **Put it in the right folder** (type → folder): service-specific →
@@ -93,14 +94,20 @@ never the contract.
 ## Always at the end
 
 ```bash
-python3 <kb-search-skill-dir>/gitmark.py lint     # invariants I1–I9
+python3 <kb-search-skill-dir>/gitmark.py lint     # invariants I1–I10
 python3 <kb-search-skill-dir>/gitmark.py index    # rebuild search
 ```
-`lint` flags: missing/broken frontmatter, type outside vocabulary, orphans (0 links),
-broken links, folder without README. Fix until clean.
+`lint` flags (I1–I10): missing frontmatter on a load-bearing doc; vocabulary violations
+(`node_type`/`service`/`status`); orphans (0 links); broken body and frontmatter links;
+`docs/**` folders without README; `supersedes` target not deprecated/archived; generated
+registries out of sync (commands/skills tables, plans index); ontology model drift
+(project vs package copy); card-schema violations (required fields, allowed values);
+README index chain unreachable.
+Fix until clean.
 
 ## Vocabularies (don't invent values)
 
-- `node_type`: service|reference|runbook|gotcha|decision|plan|ticket|guide|report|index
+- `node_type`: service|reference|runbook|gotcha|decision|plan|ticket|guide|report|index|schema
 - `status`: active|draft|deprecated|archived
-- `service`: your project's controlled vocabulary (define it in `docs/ontology.md`)
+- `service`: your project's controlled vocabulary — folder names under `docs/`
+  (`docs/services/<svc>` or a grouping folder); `_platform` for cross-cutting

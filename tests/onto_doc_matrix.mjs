@@ -178,18 +178,32 @@ for (const [shouldMask, name, input, secret] of REDACT_CASES) {
 }
 
 // ── clipDiag: порядок redact → срез. Проба обязана краснеть и на инверсии
-// порядка, и на полном снятии redact (гейт-находка confirm-рана): JSON-форма
-// со закрывающей кавычкой за позицией 80 при срезе раньше маскировки не
-// матчится ни JSON-, ни двоеточной формой — фрагмент секрета течёт; полный
-// литерал в ассерте не нужен, запрещён любой FAKE-фрагмент.
+// порядка, и на полном снятии redact (гейт-находка confirm-рана; queue-3/04:
+// прежний payload держал секрет на 84–99, целиком за границей среза — ассерт
+// был зелёный при любом порядке). Секретный литерал стоит на индексах 74–89:
+// FAKE-префикс 74–77 попадает в срез 80, закрывающая кавычка значения (90) и
+// `}` (91) — за срезом, поэтому усечённая форма не матчится ни JSON-, ни кавыченной, ни двоеточной формой
+// redactLite — фрагмент течёт; полный литерал в ассерте не нужен, запрещён
+// любой FAKE-фрагмент.
 {
-  const payload = "y".repeat(70) + `{"password": "FAKEjsonsecret99"}`;
+  const payload = "y".repeat(60) + `{"password": "FAKEjsonsecret99"}`;
   const out = clipDiag(payload);
   if (/FAKE/.test(out)) {
     fail(`УТЕЧКА clipDiag: фрагмент секрета в срезе (${JSON.stringify(out)}) — порядок redact → срез сломан или redact снят`);
   }
   if (out.length !== 80) {
     fail(`clipDiag: длина среза ${out.length}, ожидалось 80`);
+  }
+  // мутационные пробы самой пробы (канон гигиены: проба обязана краснеть):
+  // обе мутации обязаны оставлять FAKE-фрагмент в срезе — иначе ассерт выше
+  // зелёный и на сломанном порядке, и проба снова мертва.
+  const inverted = redactLite(payload.slice(0, 80));
+  if (!/FAKE/.test(inverted)) {
+    fail(`МУТАНТ-ЗЕЛЁН clipDiag: инверсия порядка (срез → redact) не течёт (${JSON.stringify(inverted)}) — проба мертва`);
+  }
+  const noRedact = payload.slice(0, 80);
+  if (!/FAKE/.test(noRedact)) {
+    fail(`МУТАНТ-ЗЕЛЁН clipDiag: снятие redact не течёт (${JSON.stringify(noRedact)}) — проба мертва`);
   }
   if (clipDiag("abc", 2) !== "ab") {
     fail("clipDiag: параметр n не уважается");
@@ -335,6 +349,6 @@ for (const [literal, what] of [
   }
 }
 
-const cases = REDACT_CASES.length + CURATOR_CASES.length + GATE_CASES.length + 3; // +3 кейса clipDiag
+const cases = REDACT_CASES.length + CURATOR_CASES.length + GATE_CASES.length + 5; // +5 кейсов clipDiag: эталон, длина, инверсия, снятие redact, n
 console.log(`функций: ${EXTRACT.length}, кейсов: ${cases}, упало: ${failed}`);
 process.exit(failed === 0 ? 0 : 1);
