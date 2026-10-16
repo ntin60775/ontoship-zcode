@@ -82,8 +82,8 @@ execution; guessing about a one-way door is a worse one.
    challenger run of step 4 plus its date — or the operator's explicit
    opt-out naming the rejected passes —
    `Провенанс: opt-out оператора — отклонено: <пассы>` (the live list:
-   юнит-чек — the unit check, step 7; DoD-pass — step 7; дайджест — step 5).
-   An artifact without the record is
+   challenger — step 4; юнит-чек — the unit check, step 7; DoD-pass — step 7;
+   дайджест — step 5). An artifact without the record is
    byte-identical to silently skipped grilling; `to-tickets` (step 0)
    refuses such a plan by name — this line is what the guarantee rides on.
    The `Context` also carries the **quote carrier** (behavior-reel): a

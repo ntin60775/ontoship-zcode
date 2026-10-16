@@ -3,7 +3,7 @@ node_type: reference
 title: GitMark ontology — a knowledge model over code
 service: _platform
 status: active
-updated: 2026-10-08
+updated: 2026-10-16
 tags: [ontology, palantir, node-type, links, frontmatter]
 links:
   relates_to: [README.md, reference/commands.md]
