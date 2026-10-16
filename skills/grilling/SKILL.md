@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Ends with a single-slice plan contract (docs/plans/<slug>.md) approved via the native plan gate, or — when the contract's Done promises more than one independently shippable deliverable (multi-slice) — with the tickets the same session publishes by running /to-tickets in full (the plan gate plus the operator's ticket quiz are the approvals). Use when the user says "погрилл", "grill this", "прогони гриллинг", or runs /grilling.
+description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Every request to shape a plan enters this flow — "погрилл", "grill this", "прогони гриллинг", /grilling, «оформи план» said in conversation, and the triage of open issues («триаж ишью») are equal entry points, taken at the ready-draft stage; a plan is never published without its grill (the only bypass is the operator's explicit opt-out, recorded in the contract's Context). Ends with a single-slice plan contract (docs/plans/<slug>.md) approved via the native plan gate, or — when the unit is built by more than one slice (multi-slice, step 7) — with the tickets the same session publishes by running /to-tickets in full (the plan gate plus the operator's ticket quiz are the approvals).
 ---
 
 # Grilling — autonomous decisions, one approval gate
@@ -30,7 +30,12 @@ execution; guessing about a one-way door is a worse one.
    write outside the KB.
 2. **Research the frontier.** Expand the idea into the questions that must be answered
    before code exists. For each: `kb-search`'s gitmark search, read the code, run cheap
-   read-only commands. Facts you find are yours to use.
+   read-only commands. Facts you find are yours to use. Every entry sweeps the open
+   issues — list `.zcode/ontoship/issues/*.md` (a missing folder means nothing to
+   sweep; the flow runs on): an open issue is frontier input like any other finding,
+   the «триаж ишью» entry is this sweep named as the door. A triaged issue's content
+   moves into the contract and its file is deleted (git keeps the history); an issue
+   left out of this plan stays open for the next triage.
 3. **Resolve autonomously.** For every two-way-door question: state the options, pick
    the best against the plan's stated criteria, and record
    `{question, choice, rationale, evidence, reversible}`. **Evidence invariant:** every
@@ -71,8 +76,17 @@ execution; guessing about a one-way door is a worse one.
    approval.** Write `docs/plans/<slug>.md`
    (`node_type: plan`, per `kb-curate`: Goal / Done / Scope / Constraints / Context)
    and crystallised terms into `CONTEXT.md` (if the project keeps one) and
-   `docs/decisions/`. The contract's
-   `Context` carries the **quote carrier** (behavior-reel): a
+   `docs/decisions/`. The contract's `Context` carries the **provenance
+   line** — exactly one, the plan's entry record (flow-semantics): either
+   the grill trace — `Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`, the
+   challenger run of step 4 plus its date — or the operator's explicit
+   opt-out naming the rejected passes —
+   `Провенанс: opt-out оператора — отклонено: <пассы>` (the live list:
+   challenger — step 4; юнит-чек — the unit check, step 7; DoD-pass — step 7;
+   дайджест — step 5). An artifact without the record is
+   byte-identical to silently skipped grilling; `to-tickets` (step 0)
+   refuses such a plan by name — this line is what the guarantee rides on.
+   The `Context` also carries the **quote carrier** (behavior-reel): a
    `### Цитаты оператора (дословно)` block with every goal-shaping wording the
    operator produced in this session, verbatim, one `- «…»` bullet per wording —
    never reworded, translated, or silently dropped. A topic-run (grilling a
@@ -86,22 +100,40 @@ execution; guessing about a one-way door is a worse one.
    **definition-of-done pass over the contract**: every `Scope` deliverable is
    covered by a `Done` criterion stating an observable fact a third party can
    verify — a criterion naming an activity or a degree («improve», «clean up»)
-   is rewritten until it names one. Then present the plan via **ExitPlanMode** —
+   is rewritten until it names one. **The unit check — before presenting.**
+   The contract supplies exactly one unit: whole and minimally indivisible.
+   Its anchor is non-circular — one line:
+   **the unit = the set of plan acceptance criteria in `Done`**
+   (the observable facts the finished unit makes true), independent of the
+   slice criteria its tickets will carry. If that set
+   decomposes into two non-empty independent groups — either group's
+   criteria could be met and shipped without the other — the draft is two
+   units: cut it into two plans now, before publication; epics are issues,
+   never one plan. A doc-plan's unit is a verifiable knowledge artifact: its
+   criteria state what a reader can check. Several deliverables under one
+   non-decomposable criteria set is still one unit — the deliverable count
+   is not the unit test. Then present the plan via **ExitPlanMode** —
    the contract plus the digest. The native approval covers the whole package
    — nothing in it is re-asked afterwards: a rejection names the disputed
    item, you re-decide only that item and re-present. After the approval the
-   flow continues by itself (flow-continuity): a **multi-slice contract
-   continues into a full `/to-tickets` run (steps 0–6) in this same
-   session** — no manual command between the approval and the ticket quiz
-   (for that package the approvals are two: this gate plus the ticket quiz).
-   Multi-slice is decided from the contract you have just written, not left
-   to a later reader: its `Done` promises **more than one independently
-   shippable deliverable** — each would become its own ticket; the natural
-   test is «would this ship as one `/ship` slice?». Exactly one deliverable —
-   a single-slice contract — stops here, as before. An interrupted session is
-   the one legitimate gap: the operator then launches `/to-tickets` by hand
-   on the written contract — the documented fallback. `/ship` is never
-   started by you — the operator launches it by hand.
+   flow continues by itself (flow-continuity): when **the unit is built by
+   more than one slice** (multi-slice), the contract continues into a full
+   `/to-tickets` run (steps 0–6) in this same session — no manual command
+   between the approval and the ticket quiz (for that package the approvals
+   are two: this gate plus the ticket quiz). The predicate is the unit's,
+   decided from the contract you have just written, not left to a later
+   reader: multi-slice means the one unit's plan criteria are reached
+   through several working-state slices, each sized by the natural test
+   «would this ship as one `/ship` slice?»; the retired predicate —
+   counting independently shippable deliverables — is not the unit test (a
+   unit may legitimately ship several deliverables on its way). A unit one
+   slice builds — a single-slice contract — ends the chain here: the
+   closing report names exactly one road (the operator's hand-run `/ship`
+   on the file plan) and offers no manual `/to-tickets`. An interrupted
+   session is the one legitimate gap: the operator then launches
+   `/to-tickets` by hand on the written contract — the documented fallback,
+   and its step 0 reads the provenance line this contract carries. `/ship`
+   is never started by you — the operator launches it by hand.
 
 ## Variants
 
