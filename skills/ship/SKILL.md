@@ -218,9 +218,10 @@ outside the KB (the KB invariants stay untouched), the body in three blocks —
 from: this run, a review lens, the operator), **почему отложено** (why it is
 deferred, not fixed here). A file migrated from a retired ticket plan
 carries two extra blocks — **критерии приёмки** and **статус**; the status
-block line reads `**Статус.**` — this exact spelling (capital, the period
-inside the bold) is what the snapshot counter's filter matches — and a
-status reading «Закрыт» is an archive entry, not open work, and never
+block line reads `**Статус.** Закрыт` — this exact spelling (capital label
+with the period inside the bold, the value following the label directly
+after a single ASCII space) is what the snapshot counter's filter matches
+— and a status of «Закрыт» is an archive entry, not open work, and never
 returns to planning. `NN` continues from the folder's max; no folder
 yet — start at `01`. Issues return to planning through triage: grilling
 sweeps `.zcode/ontoship/issues/` at its entry (the «триаж ишью» input), a
