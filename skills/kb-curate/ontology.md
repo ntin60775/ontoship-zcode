@@ -25,7 +25,7 @@ Each document has exactly one `node_type` — its "table" in the ontology.
 | `gotcha` | a pitfall + how to avoid it | `docs/ops/` |
 | `decision` | an architectural/product decision (ADR) | `docs/decisions/` |
 | `plan` | a plan/design before implementation — the ship contract | `docs/plans/<slug>.md` (file; `to-tickets` promotes it to `docs/plans/<slug>/README.md`) |
-| `ticket` | a tracer-bullet vertical slice of a plan, one `/ship` run each | `docs/plans/<slug>/NN-<ticket>.md` |
+| `ticket` | a tracer-bullet vertical slice of a plan, one `/ship` run each | `docs/plans/<slug>/NN-<ticket-slug>.md` |
 | `guide` | how to use something (clients, public API) | varies |
 | `index` | a folder's table of contents | any `README.md` |
 | `schema` | a card schema: the required fields and allowed values of the cards in its folder | the cards' folder, next to them |
@@ -113,18 +113,24 @@ A plan is a **file** `docs/plans/<slug>.md` (`node_type: plan`) until it is brok
 tickets. `to-tickets` is the only step that creates the **folder form**
 `docs/plans/<slug>/`: it moves the file to the folder's `README.md` (history
 preserved, links rewritten for the extra depth) and adds the **tickets**
-(`NN-<ticket>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
+(`NN-<ticket-slug>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
 the tickets that block it.
 
 The plan contract carries the fields the entry skills produce and the dev-flow
 consumes:
 
 - `Goal` — why this change (one clear goal)
-- `Done` — the observable done-criterion
+- `Done` — the unit's plan acceptance criteria: the observable facts a finished
+  unit makes true (the unit anchor, grilling step 7 — one unit per plan,
+  independent of the slice criteria its tickets carry)
 - `Scope` — files/services touched (required)
 - `Constraints` — stop-points: `stop-before-commit`, `stop-after-mr`, `no-deploy`
 - `Context` — what the entry phase already established (root cause, prototype verdict,
-  resolved design-tree branches)
+  resolved design-tree branches), the quote carrier (`### Цитаты оператора (дословно)`
+  — behavior-reel), plus exactly one **provenance line** — the grill
+  trace (`Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`) or the operator's explicit
+  opt-out (`Провенанс: opt-out оператора — отклонено: <пассы>`); `to-tickets`
+  (step 0) refuses a plan without it by name (flow-semantics)
 - `Tickets` — the decomposition, in order, with status (folder form only, added by `to-tickets`)
 
 Each ticket carries: `What to build` (the end-to-end behaviour the slice makes work),

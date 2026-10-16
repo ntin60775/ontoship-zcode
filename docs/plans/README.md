@@ -28,6 +28,7 @@ regenerate — never edit the table by hand.
 | [evidence-discipline/](evidence-discipline/README.md) | archived | 3/3 |
 | [external-dependencies/](external-dependencies/README.md) | archived | 4/4 |
 | [flow-continuity.md](flow-continuity.md) | archived | — |
+| [flow-semantics/](flow-semantics/README.md) | draft | 0/3 |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
 | [gate-risk-scaling.md](gate-risk-scaling.md) | archived | — |
@@ -40,7 +41,7 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
-| [queue-3/](queue-3/README.md) | draft | 3/6 |
+| [queue-3/](queue-3/README.md) | draft | 4/6 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
 | [roles-per-agent/](roles-per-agent/README.md) | archived | 2/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
@@ -125,6 +126,20 @@ regenerate — never edit the table by hand.
    записывает, что в проекте значат «проверки»; файл-план варианта 3
    (профиль-файл + вопрос init) собран без грилла по прецеденту
    external-dependencies. Порядок относительно queue-3 не назначен.
+
+13. **flow-semantics — семантика планирования** (решение оператора
+   2026-10-16): план ⇒ грилл (гарантию несёт артефакт, провенанс в Context),
+   ишью-контур (тикеты только из плана, находки вне границ — файлы в
+   `.zcode/ontoship/issues/`, триаж на входе грилла), план = один юнит
+   (якорь — план-критерии приёмки), план-приёмка — пост-фактум аккорд;
+   queue-3 упраздняется (04–06 → ишью). Прогрилен 2026-10-16 (challenger
+   dwfrun-6d3a363a: 8 решений, 7 substantial пере-решены, эскалации —
+   носитель ишью и роль приёмки — закрыты оператором; контрслой
+   dwfrun-eb97eb2e: 12 враждебных случаев приняты в ленты тикетов);
+   тикеты линейны 01→02→03 — один класс файлов на тикет (01: grilling/
+   to-tickets/kb-curate; 02: ship; 03: KB и миграция), тикет 03
+   финализирует пункт 11 этой секции; checks-profile прогрилливается перед
+   своим шипом как первый ретро-клиент.
 
 Расширение инвариантов/реестров сверх моратория — только от записанного
 инцидента гнили.
