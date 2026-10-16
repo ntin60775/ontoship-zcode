@@ -20,6 +20,21 @@ run, strictly sequential.
 | what + why + done-criteria | ad-hoc run — write the contract down in the run report |
 | *(empty)* | the most recent plan (file or folder, by `updated:`) |
 
+**The provenance check — the run's first action on a plan input, before any
+work** (flow-semantics): read the plan contract's `Context` (for a ticket
+argument — the parent plan's `README.md`) and find the provenance record —
+exactly one line of one of the two forms grilling step 7 writes: the grill
+trace `Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`, or the operator's
+explicit opt-out `Провенанс: opt-out оператора — отклонено: <пассы>`. No
+such line — **refuse the plan by name and stop**: «отказ: нет записи
+грилла/opt-out в Context — шип не начинается; провенанс-строку пишет грилл
+(skills/grilling/SKILL.md, шаг 7)». Nothing is researched, no worktree is
+created; the operator either grills the plan (the ready-draft entry) or
+records an explicit opt-out. An artifact without the record is
+byte-identical to a silently skipped grill — that is what this check
+refuses. An ad-hoc run (what + why + done-criteria) has no plan contract —
+the check does not apply to it.
+
 ## The loop — track it as a TodoWrite checklist from step 1
 
 1. **Research** — facts, not guesses: read the code, logs, traces; reproduce before
@@ -155,18 +170,51 @@ run, strictly sequential.
 9. **Ship** — merge to `main` (a light-contour ticket merged it in step 7
    already) and deploy per the plan's deploy procedure (a doc-only ticket has
    no deploy — `deploy.json` maps no `docs/` path); mark the
-   ticket `status: archived` (`updated: today`, via `kb-curate`); a plan folder whose
-   tickets are all archived becomes `status: archived`. Then auto-write the rolling
+   ticket `status: archived` (`updated: today`, via `kb-curate`). **The plan
+   acceptance chord** (план-приёмка, flow-semantics): when the ticket just
+   archived is the plan's **last** one, run a live pass over every plan
+   acceptance criterion — the contract's `Done`, each as an observable check
+   on the tree this run just shipped. All green → the plan folder becomes
+   `status: archived`. Any criterion red → the plan is **not** archived; open
+   the repair — a new ticket or a re-opened one — and name it in the run
+   report and the snapshot: a red criterion is never swallowed into a green
+   archive. **A file plan** ships as a single slice on its `Goal`/`Done`: the
+   chord degenerates into the run itself — say so explicitly in the run
+   report and the snapshot («план-приёмка вырождена: файл-план, спека среза
+   = Goal/Done»). **Administrative archiving** — retiring a mechanism with no
+   live behavior left to accept (the unit is abolished, e.g. queue-3) — is a
+   named class: the plan is archived with the reason recorded in its
+   `Context`; no chord runs. Then auto-write the rolling
    snapshot `.scratch/handoff-current.md` per the handoff skill — the same fixed file
    `/handoff` writes, full regenerate, provenance stamps from the handoff skill's own
    sources (the `.session-id` marker and the current commit) — from the run's facts:
    the ticket, the release tag and short hashes of the landed commits (feature, dev
    merge, main merge, release; a doc-only ticket has neither dev merge nor release —
    the snapshot writes «доковый мерж, без dev-hash» and the short hashes of the doc
-   commits in main), the plan's Open, concrete Next. A shift that ended on
+   commits in main), the plan's Open, concrete Next, and the **count of open
+   issues** — `ls .zcode/ontoship/issues/*.md`, a missing folder counts as
+   zero — named in the snapshot's `Open` (the issue contour's between-runs
+   visibility). A shift that ended on
    a closed ticket still hands the next session a current snapshot; this write is
    part of shipping, not an optional extra, and is independent of the deploy
    procedure.
+
+## Findings outside the plan's bounds — issue files, not tickets
+
+A ship-run never creates tickets: tickets come only from plans
+(flow-semantics). A finding the run can and should fix within the plan's
+bounds is fixed in the run — the review's verified findings (step 6) are
+exactly this class. A finding outside them — observed behavior worth
+recording, but not to be fixed inside this plan — is written as an
+**issue file** `.zcode/ontoship/issues/NN-<slug>.md`: no frontmatter,
+outside the KB (the KB invariants stay untouched), the body in three blocks —
+**наблюдаемое поведение** (what was observed), **источник** (where it came
+from: this run, a review lens, the operator), **почему отложено** (why it is
+deferred, not fixed here). `NN` continues from the folder's max; no folder
+yet — start at `01`. Issues return to planning through triage: grilling
+sweeps `.zcode/ontoship/issues/` at its entry (the «триаж ишью» input), a
+triaged issue's content moves into the contract and its file is deleted
+(git keeps the history).
 
 ## Stop-points and confirmations
 
