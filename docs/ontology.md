@@ -134,11 +134,16 @@ The plan contract carries the fields the entry skills produce and the dev-flow
 consumes:
 
 - `Goal` — why this change (one clear goal)
-- `Done` — the observable done-criterion
+- `Done` — the unit's plan acceptance criteria: the observable facts a finished
+  unit makes true (the unit anchor, grilling step 7 — one unit per plan,
+  independent of the slice criteria its tickets carry)
 - `Scope` — files/services touched (required)
 - `Constraints` — stop-points: `stop-before-commit`, `stop-after-mr`, `no-deploy`
 - `Context` — what the entry phase already established (root cause, prototype verdict,
-  resolved design-tree branches)
+  resolved design-tree branches), plus exactly one **provenance line** — the grill
+  trace (`Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`) or the operator's explicit
+  opt-out (`Провенанс: opt-out оператора — отклонено: <пассы>`); `to-tickets`
+  (step 0) refuses a plan without it by name (flow-semantics)
 - `Tickets` — the decomposition, in order, with status (folder form only, added by `to-tickets`)
 
 Each ticket carries: `What to build` (the end-to-end behaviour the slice makes work),

@@ -5,8 +5,12 @@ description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into trac
 
 # /to-tickets — break a plan into tickets
 
-Break a plan, spec, or conversation into a set of **tickets**: tracer-bullet vertical
-slices, each declaring the tickets that **block** it.
+Break a plan into a set of **tickets**: tracer-bullet vertical
+slices, each declaring the tickets that **block** it. A spec, a conversation, or
+a bare topic is not an input: tickets come only from plans (operator rule,
+flow-semantics), and shaping any of those into a plan is grilling's door
+(«оформи план» / «триаж ишью» / /grilling) — route it there, never break it
+down directly.
 
 Two entry modes: **by hand** — the operator names the plan in the argument —
 or **chained from grilling**: the same session that just got a contract
@@ -17,7 +21,7 @@ nothing else — every step below runs the same way, and every run opens with
 the step 0 provenance check.
 
 Argument: `$ARGUMENTS` — a plan path (`docs/plans/<slug>.md`, `docs/plans/<slug>/`, or
-its `README.md`) or a topic. **Empty** → the most recent plan (a file
+its `README.md`). **Empty** → the most recent plan (a file
 `docs/plans/<slug>.md` or a folder `docs/plans/<slug>/`, by `updated:`); the
 grilling chain works on the contract it has just written, no argument needed.
 
@@ -146,8 +150,10 @@ it can start. A ticket with no blockers can start immediately.
 
 Every run whose plan carries a contract runs the **counter-layer** over the
 drafts BEFORE the quiz (operator decision 2026-10-13: the counter-layer is
-mandatory on every run with a contract). A topic-run without a contract does
-not start it — there every `Цель` is a marked paraphrase by the step 1 rule.
+mandatory on every run with a contract). Flow-semantics removed the
+no-contract case: a spec, conversation, or topic no longer enters this skill
+at all, and every plan that passes the step 0 check was authored by grilling
+or carries the operator's recorded opt-out.
 
 Assemble the run's three inputs — the masking is visible in the run's args:
 
