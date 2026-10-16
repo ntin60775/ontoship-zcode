@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table, and embedded into the global execution order (docs/plans/README.md «Порядок выполнения»). Launched by grilling right after the plan approval of a multi-slice contract — the full run, steps 0–6, in the same session — or by hand on any plan; use when the user says "разбей на тикеты" or runs /to-tickets. /ship consumes one ticket per run and is never started by this skill.
+description: Break a plan (docs/plans/<slug>.md or docs/plans/<slug>/) into tracer-bullet tickets with blocking edges, carried down to indivisible units by granularity criteria before the operator sees them — published as docs/plans/<slug>/NN-<ticket>.md plus a README table, and embedded into the global execution order (docs/plans/README.md «Порядок выполнения»). Launched by grilling right after the plan approval of a contract whose unit is built by more than one slice — the full run, steps 0–6, in the same session — or by hand on a plan that carries its provenance record in Context (a grill trace or the operator's explicit opt-out); a plan without the record is refused at entry by name, the breakdown does not start. Use when the user says "разбей на тикеты" or runs /to-tickets. /ship consumes one ticket per run and is never started by this skill.
 ---
 
 # /to-tickets — break a plan into tickets
@@ -9,12 +9,12 @@ Break a plan, spec, or conversation into a set of **tickets**: tracer-bullet ver
 slices, each declaring the tickets that **block** it.
 
 Two entry modes: **by hand** — the operator names the plan in the argument —
-or **chained from grilling**: the same session that just got a multi-slice
-contract approved (its `Done` promises more than one independently shippable
-deliverable — the predicate is defined in grilling step 7) runs this skill on
-it in full, with no manual command in between (flow-continuity). The chain
-changes who starts the run, nothing else — every step below runs the same
-way.
+or **chained from grilling**: the same session that just got a contract
+approved whose unit is built by more than one slice (the predicate is
+defined in grilling step 7) runs this skill on it in full, with no manual
+command in between (flow-continuity). The chain changes who starts the run,
+nothing else — every step below runs the same way, and every run opens with
+the step 0 provenance check.
 
 Argument: `$ARGUMENTS` — a plan path (`docs/plans/<slug>.md`, `docs/plans/<slug>/`, or
 its `README.md`) or a topic. **Empty** → the most recent plan (a file
@@ -23,7 +23,21 @@ grilling chain works on the contract it has just written, no argument needed.
 
 ## Process
 
-### 0. Promote a file plan to a folder
+### 0. Provenance check, then promote a file plan to a folder
+
+**The provenance check is the run's first action — before any promotion.**
+Read the plan's `Context` and find the provenance record (flow-semantics):
+exactly one line of one of the two forms grilling step 7 writes — the grill
+trace `Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`, or the operator's
+explicit opt-out `Провенанс: opt-out оператора — отклонено: <пассы>`. No
+such line — **refuse the plan by name and stop**: «отказ: нет записи
+грилла/opt-out в Context — разбивка не начинается; провенанс-строку пишет
+грилл (skills/grilling/SKILL.md, шаг 7)». Nothing is promoted, nothing is
+drafted; the operator either runs the grill on the draft or records an
+explicit opt-out. An artifact without the record is byte-identical to a
+silently skipped grill — that is what this check refuses. The chained entry
+passes by construction: the contract the same session has just grilled
+carries its trace.
 
 A plan is a **file** (`docs/plans/<slug>.md`) until this skill runs. If the target plan
 is a file, first promote it to the folder form — the folder is created **only here**:
@@ -66,6 +80,17 @@ Break the work into **tracer bullet** tickets.
 - Each slice cuts a narrow but COMPLETE path through every layer (schema, API, UI,
   tests): vertical, NOT a horizontal slice of one layer.
 - A completed slice is demoable or verifiable on its own.
+- **Every slice is a working state of the consumer's system** («каждый срез —
+  рабочее состояние потребителя», flow-semantics): a slice lands green and
+  leaves the consumer working — a staging step that breaks the system until a
+  later slice arrives is not a slice. Intermediate slice releases are the
+  normal delivery mechanics, not an exception to apologise for; the slice's
+  criteria state what works for the consumer when it lands.
+- Slices build the one unit (grilling step 7): «independently shippable» is
+  the plan's property — the unit ships as a whole when its plan criteria
+  are met — never a per-ticket demand. A slice belongs to its unit's
+  contract; a ticket whose promise only makes sense together with another
+  unit's work is an undeclared dependency (item 2 below).
 - Each slice is sized to fit in a single fresh context window — one `/ship` run.
 - Any prefactoring should be its own first ticket.
 - Each ticket with observable behavior carries its **Reel** — the behavior examples

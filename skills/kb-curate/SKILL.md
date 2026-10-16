@@ -63,10 +63,20 @@ a file plan is shipped as a single slice.
 Plan contract body fields:
 
 - `Goal` — why (one clear goal)
-- `Done` — observable done-criterion
+- `Done` — the unit's **plan acceptance criteria**: the observable facts a
+  finished unit makes true (grilling step 7). The unit is anchored right
+  here — one unit per plan, defined by this criteria set and nothing else,
+  independent of the slice criteria the tickets carry; a set that
+  decomposes into two non-empty independent groups is two plans, and the
+  grill cuts before publication
 - `Scope` — files/services touched (required)
 - `Constraints` — stop-points: `stop-before-commit`, `stop-after-mr`, `no-deploy`
-- `Context` — what the entry phase established (root cause, prototype verdict, resolved branches)
+- `Context` — what the entry phase established (root cause, prototype
+  verdict, resolved branches), plus exactly one **provenance line** — the
+  grill trace (`Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`) or the
+  operator's explicit opt-out (`Провенанс: opt-out оператора — отклонено:
+  <пассы>`); `to-tickets` (step 0) refuses a plan without it by name
+  (flow-semantics)
 - `Tickets` — the decomposition, in order, with status (added by `to-tickets`, folder form only)
 
 Ticket body fields: `What to build` (end-to-end behaviour), `Blocked by` (ticket
