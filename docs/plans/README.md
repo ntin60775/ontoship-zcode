@@ -41,7 +41,7 @@ regenerate — never edit the table by hand.
 | [onto-doc-parity.md](onto-doc-parity.md) | archived | — |
 | [ontology-i7-zcode-paths.md](ontology-i7-zcode-paths.md) | archived | — |
 | [queue-2/](queue-2/README.md) | archived | 17/17 |
-| [queue-3/](queue-3/README.md) | draft | 4/6 |
+| [queue-3/](queue-3/README.md) | archived | 3/3 |
 | [roles-fallback-substrate/](roles-fallback-substrate/README.md) | archived | 4/4 |
 | [roles-per-agent/](roles-per-agent/README.md) | archived | 2/2 |
 | [run-args-discipline.md](run-args-discipline.md) | archived | — |
@@ -114,12 +114,13 @@ regenerate — never edit the table by hand.
    флоу-правки; хвост гейта (kb-curate:96 «I1–I9» при движке I1–I10) —
    тикетом queue-3/03.
 
-11. **queue-3 — парковка хвостов и продуктов шипов** (решение оператора
-   2026-10-15): стартовые тикеты — redactLite (из roles-per-agent/02) и
-   валидация path-аргумента lint (из behavior-reel/04); проблемы шипа
-   `flow-continuity` едут в эту очередь первыми по правилу пополнения
-   (тикет в день находки, с источником). Тикеты очереди независимы, если не
-   объявят `Blocked by` сами.
+11. ✅ **queue-3 — упразднена** (2026-10-16, flow-semantics/03): парковка
+   хвостов и продуктов шипов заменена ишью-контуром — находка вне границ
+   плана живёт ишью-файлом `.zcode/ontoship/issues/` и возвращается
+   планированию триажом на входе грилла (решение оператора 2026-10-16,
+   план flow-semantics). Тикеты 04–06 мигрированы в ишью-файлы 02–04
+   (содержание, критерии и статус сохранены), тикеты 01–03 — архив плана;
+   queue-3 archived — административная архивация, причина в Context плана.
 
 12. **checks-profile — профиль проверок проекта** (решение оператора
    2026-10-15, разговор о подъёме онтошипа в «ЕРП мини»): бутстрапп спрашивает и
@@ -132,7 +133,7 @@ regenerate — never edit the table by hand.
    ишью-контур (тикеты только из плана, находки вне границ — файлы в
    `.zcode/ontoship/issues/`, триаж на входе грилла), план = один юнит
    (якорь — план-критерии приёмки), план-приёмка — пост-фактум аккорд;
-   queue-3 упраздняется (04–06 → ишью). Прогрилен 2026-10-16 (challenger
+   queue-3 упразднена 2026-10-16 (04–06 → ишью 02–04). Прогрилен 2026-10-16 (challenger
    dwfrun-6d3a363a: 8 решений, 7 substantial пере-решены, эскалации —
    носитель ишью и роль приёмки — закрыты оператором; контрслой
    dwfrun-eb97eb2e: 12 враждебных случаев приняты в ленты тикетов);
