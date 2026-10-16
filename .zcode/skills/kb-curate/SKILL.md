@@ -28,7 +28,7 @@ If the topic already exists — **edit the existing doc**, don't create a second
 2. **Put it in the right folder** (type → folder): service-specific →
    `docs/services/<svc>/`; cross-cutting → `docs/reference/`; ops procedure →
    `docs/ops/`; plan → `docs/plans/<slug>.md` (a file; `to-tickets` promotes it to
-   the folder `docs/plans/<slug>/` with `README.md` + `NN-<ticket>.md`); decision →
+   the folder `docs/plans/<slug>/` with `README.md` + `NN-<ticket-slug>.md`); decision →
    `docs/decisions/`.
 3. **Add frontmatter** (min `node_type`; for load-bearing docs also `title`, `service`,
    `status: active`, `updated: YYYY-MM-DD`):
@@ -56,17 +56,28 @@ tickets. `to-tickets` is the only step that creates the **folder form**
 tracked file by `git mv`, history preserved; a fresh untracked contract — the
 auto-chain's normal case — by `mv` + `git add`; links rewritten for the extra
 depth) and adds the **tickets**
-(`NN-<ticket>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
+(`NN-<ticket-slug>.md`, `node_type: ticket`) — tracer-bullet vertical slices, each declaring
 the tickets that block it. `/ship` executes one ticket at a time, strictly sequentially;
 a file plan is shipped as a single slice.
 
 Plan contract body fields:
 
 - `Goal` — why (one clear goal)
-- `Done` — observable done-criterion
+- `Done` — the unit's **plan acceptance criteria**: the observable facts a
+  finished unit makes true (grilling step 7). The unit is anchored right
+  here — one unit per plan, defined by this criteria set and nothing else,
+  independent of the slice criteria the tickets carry; a set that
+  decomposes into two non-empty independent groups is two plans, and the
+  grill cuts before publication
 - `Scope` — files/services touched (required)
 - `Constraints` — stop-points: `stop-before-commit`, `stop-after-mr`, `no-deploy`
-- `Context` — what the entry phase established (root cause, prototype verdict, resolved branches)
+- `Context` — what the entry phase established (root cause, prototype
+  verdict, resolved branches), the quote carrier (`### Цитаты оператора
+  (дословно)` — behavior-reel), plus exactly one **provenance line** — the
+  grill trace (`Провенанс: грилл — dwfrun-<id>, YYYY-MM-DD`) or the
+  operator's explicit opt-out (`Провенанс: opt-out оператора — отклонено:
+  <пассы>`); `to-tickets` (step 0) refuses a plan without it by name
+  (flow-semantics)
 - `Tickets` — the decomposition, in order, with status (added by `to-tickets`, folder form only)
 
 Ticket body fields: `What to build` (end-to-end behaviour), `Blocked by` (ticket
