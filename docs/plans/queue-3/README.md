@@ -2,7 +2,7 @@
 node_type: plan
 title: Очередь 3 — хвосты и продукты шипов
 service: _platform
-status: draft
+status: archived
 updated: 2026-10-16
 tags: [plan, queue-3, followups]
 links:
@@ -18,9 +18,11 @@ links:
 | 01 | redactLite — редакция секретов в выводе lint/inventory/map | archived | — |
 | 02 | lint: несуществующий path-аргумент молча даёт полный прогон | archived | — |
 | 03 | kb-curate: комментарий к lint занижает покрытие — I1–I9 вместо I1–I10 | archived | — |
-| 04 | onto-doc-матрица: проба порядка redact → срез мертва (секрет за границей среза) | archived | — |
-| 05 | onto-doc: сырые String(e) исключений в abort-ветках — мимо redactLite | draft | — |
-| 06 | ship: критерий остановки гейт-лупа — кап 3 раунда | draft | — |
+
+Тикеты 04–06 мигрированы в ишью-контур
+(`.zcode/ontoship/issues/02-clipdiag-probe-dead-payload.md`,
+`03-onto-doc-abort-raw-exceptions.md`, `04-gate-loop-cap.md` — содержание,
+критерии и статус сохранены; история тикетных файлов в git).
 
 ## Goal
 
@@ -69,6 +71,14 @@ links:
 
 ## Context
 
+- **Архивировано 2026-10-16 — административная архивация
+  (flow-semantics/03): механизм заменён ишью-контуром**
+  (`.zcode/ontoship/issues/`, тикеты заводит только план, находки вне
+  границ — ишью-файлы, возврат через триаж на входе грилла — решение
+  оператора 2026-10-16, план flow-semantics). Открытые тикеты 05–06
+  мигрированы в ишью-файлы 03–04, закрытый 04 — в ишью-файл 02
+  (архивная запись с фактами поставки); план-приёмка-аккорд не
+  прогоняется — живого поведения у упразднённого механизма нет.
 - Тикет 01 — перенос «кандидата в отдельный фоллоу-ап по решению оператора»
   из Ship facts roles-per-agent/02 (2026-10-13): redactLite на
   lint/inventory/map выводе и humanZones, confirm-ран dwfrun-92e63bc9 доказал
