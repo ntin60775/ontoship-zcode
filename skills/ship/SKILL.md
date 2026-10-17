@@ -155,7 +155,7 @@ the check does not apply to it.
    disposition is the gate-loop cap block below — one clean confirm-run
    relaunch, then stop — and either way they are reported to the operator,
    never dropped.
-   **The gate loop and its cap** (gate-loop-cap): steps 5–6 form a loop; one
+   **The gate loop and its cap** (gate-loop-cap): this step forms a loop; one
    **round** = the review run + its confirm run + addressing every `verified`
    finding of the round. A **clean round** = 0 `verified` findings and no
    `unverified` ones (`unconfirmed` findings are reported to the operator and
