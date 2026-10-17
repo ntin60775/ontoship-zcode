@@ -151,8 +151,10 @@ the check does not apply to it.
    with evidence; `unconfirmed` findings are reported to the operator, never dropped.
    `unverified` findings are a failed check, not a refutation — the confirmer
    did not answer even after one retry (a failed ask is retried exactly once,
-   no cause sniffing; queue-2/17 owns cause classification); report them to
-   the operator next to `unconfirmed`, never dropped.
+   no cause sniffing; queue-2/17 owns cause classification); their round
+   disposition is the gate-loop cap block below — one clean confirm-run
+   relaunch, then stop — and either way they are reported to the operator,
+   never dropped.
    **The gate loop and its cap** (gate-loop-cap): steps 5–6 form a loop; one
    **round** = the review run + its confirm run + addressing every `verified`
    finding of the round. A **clean round** = 0 `verified` findings and no
@@ -173,8 +175,10 @@ the check does not apply to it.
    stop the run with a diagnostic naming the findings — a failed check is
    reported to the operator, never rounded away. When the cap is exhausted
    without a clean round, the «исчерпание капа» trigger of the
-   `stop-before-commit` stop-point fires (Stop-points section: the round
-   history and one AskUserQuestion). The ending conditions live in this item,
+   `stop-before-commit` stop-point fires — active as any stop-point bullet:
+   named in the plan's Constraints, or no stop-point named at all (the
+   default); Stop-points section: the round history and one AskUserQuestion.
+   The ending conditions live in this item,
    the stop mechanics in that section — one canon, the two reference each other.
 7. **Dev checks** — the contour from step 6 picks the merge path. Full contour:
    merge the worktree branch into `dev` with a local `--no-ff` merge; MR is not
@@ -292,7 +296,9 @@ From the plan contract's `Constraints`, enforced verbatim:
   options: «добить» — exactly one more round (an unclean round lands at this
   cap stop again), «принять остатки» — the run proceeds with the remaining
   findings named in the shipping note, «оформить хвосты ишью» — record the
-  remainder as issue files (`.zcode/ontoship/issues/`) and close the loop.
+  remainder as issue files (`.zcode/ontoship/issues/`) and close the loop;
+  that option is the operator's explicit exception at the cap stop to the
+  default fix-in-run class of step-6 verified findings.
   The loop's ending conditions live in step 6; this bullet owns the stop
   mechanics — the two reference each other, one canon.
   **Default when the contract names nothing.**
