@@ -153,6 +153,29 @@ the check does not apply to it.
    did not answer even after one retry (a failed ask is retried exactly once,
    no cause sniffing; queue-2/17 owns cause classification); report them to
    the operator next to `unconfirmed`, never dropped.
+   **The gate loop and its cap** (gate-loop-cap): steps 5–6 form a loop; one
+   **round** = the review run + its confirm run + addressing every `verified`
+   finding of the round. A **clean round** = 0 `verified` findings and no
+   `unverified` ones (`unconfirmed` findings are reported to the operator and
+   do not hold the loop). The loop ends on the first clean round; otherwise it
+   runs under the cap — «кап 3 раунда до стоп-поинта»; the cap is one budget
+   for both contours (the light one differs only in skipping the confirm run at
+   0 findings, its rounds count the same). A round beyond the cap opens only by
+   the operator's explicit decision — «каждый раунд сверх капа — только явным решением оператора, по одному»:
+   an unclean beyond-cap round lands at the cap stop-point again, a clean one
+   exits the loop normally. A relaunch of a dead or incomplete run is not a
+   round — «перезапуск умершего или неполного рана новым раундом не считается»
+   (the model-death relaunch above and the clean coverage relaunch above ride
+   outside the round count). «unverified не делает раунд чистым»: a round whose
+   confirm run returned `unverified` verdicts gets exactly one clean
+   confirm-run relaunch outside the round count (same args, new run, on the
+   confirmer's model as above); if that relaunch still returns `unverified`,
+   stop the run with a diagnostic naming the findings — a failed check is
+   reported to the operator, never rounded away. When the cap is exhausted
+   without a clean round, the «исчерпание капа» trigger of the
+   `stop-before-commit` stop-point fires (Stop-points section: the round
+   history and one AskUserQuestion). The ending conditions live in this item,
+   the stop mechanics in that section — one canon, the two reference each other.
 7. **Dev checks** — the contour from step 6 picks the merge path. Full contour:
    merge the worktree branch into `dev` with a local `--no-ff` merge; MR is not
    part of this flow — only when the plan or the project explicitly assigns one
@@ -260,7 +283,18 @@ From the plan contract's `Constraints`, enforced verbatim:
   or confirmation windows: the operator reads diffs himself, when he considers
   it necessary (docs/ops/git-flow.md, «Режим»); show the diff only on his
   explicit request. The «фактически» side is a command's observed output, not a
-  diff body — the ban covers source diffs, not live E2E output.
+  diff body — the ban covers source diffs, not live E2E output. A second
+  trigger lives in this stop-point — cap exhaustion («исчерпание капа»,
+  gate-loop-cap): when the step-6 loop has spent the cap (3 rounds) without a
+  clean round, starting a beyond-cap round is not the executor's call — report
+  the round history (per round: verified / unconfirmed / unverified, what was
+  fixed, what remains open) and ask one `AskUserQuestion` with exactly three
+  options: «добить» — exactly one more round (an unclean round lands at this
+  cap stop again), «принять остатки» — the run proceeds with the remaining
+  findings named in the shipping note, «оформить хвосты ишью» — record the
+  remainder as issue files (`.zcode/ontoship/issues/`) and close the loop.
+  The loop's ending conditions live in step 6; this bullet owns the stop
+  mechanics — the two reference each other, one canon.
   **Default when the contract names nothing.**
 - `stop-after-mr` — after step 7, stop for the operator's review.
 - `no-deploy` — skip the deploy in step 9; the rolling-snapshot write still
