@@ -25,8 +25,10 @@
 архива (queue-2/README:157 — та же проза после архивации) проза архива не
 правится, потому строка осталась как есть.
 
-**Источник.** Гейт шипа flow-semantics/03, раунд 2 — review
-dwfrun-93e4ed6d, confirm dwfrun-e0b47b63 (verified, все четыре + позиция).
+**Источник.** Гейт шипа flow-semantics/03: раунд 2 — review
+dwfrun-93e4ed6d, confirm dwfrun-e0b47b63 (verified, все четыре + позиция);
+раунд 3 — review dwfrun-62cb7c18, confirm dwfrun-63d67872 (verified,
+пятый якорь ontology.md:176–185, внесён фикс-ом ae24918).
 
 **Почему отложено.** Строки вне хунков диффа — правки не в границах среза
 flow-semantics/03; архивная проза queue-3 защищена конвенцией «архив без

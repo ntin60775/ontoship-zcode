@@ -192,9 +192,11 @@ the check does not apply to it.
    merge, main merge, release; a doc-only ticket has neither dev merge nor release —
    the snapshot writes «доковый мерж, без dev-hash» and the short hashes of the doc
    commits in main), the plan's Open, concrete Next, and the **count of open
-   issues** — `grep -LF "Статус.** Закрыт" .zcode/ontoship/issues/*.md`
-   (files without the closed-status line in the exact spelling the format
-   contract fixes count as open; a plain `ls`
+   issues** — `grep -LE '^\*\*Статус\.\*\* Закрыт'
+   .zcode/ontoship/issues/*.md` (a file is closed only by a status block
+   line starting with the exact contract spelling; a substring filter
+   without the line anchor would also swallow an open issue quoting the
+   phrase in prose, and a plain `ls`
    overcounts closed migrants, which triage skips), a missing folder
    counts as
    zero — named in the snapshot's `Open` (the issue contour's between-runs
@@ -226,8 +228,10 @@ returns to planning. `NN` continues from the folder's max; no folder
 yet — start at `01`. Issues return to planning through triage: grilling
 sweeps `.zcode/ontoship/issues/` at its entry (the «триаж ишью» input), a
 triaged issue's content moves into the contract and its file is deleted
-(git keeps the history). Triage skips a file whose status line reads
-«Закрыт» — an archive entry has nothing to plan and stays in the folder.
+(git keeps the history). Triage skips a file whose status block line
+starts with the same closed-status spelling `**Статус.** Закрыт` the
+counter matches — one rule for both consumers — because an archive entry
+has nothing to plan and stays in the folder.
 
 ## Stop-points and confirmations
 
