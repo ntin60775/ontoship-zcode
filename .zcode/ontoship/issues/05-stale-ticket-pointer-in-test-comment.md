@@ -19,3 +19,7 @@ dwfrun-be1aed85, confirm dwfrun-6d2e899f (verified).
 .zcode/ontoship/issues/02-clipdiag-probe-dead-payload.md; правка одного
 комментария отдельным планом не оправдана — вести список таких указателей
 здесь же, пока файл не тронут.
+
+**Статус.** Открыт — правка взята в срез плана
+docs/plans/onto-doc-abort-redact.md (ближайшее касание
+tests/onto_doc_matrix.mjs — по этому же триажу), 2026-10-18.
