@@ -29,14 +29,18 @@ interface Decision {
 }
 
 // BEGIN DECISION VALIDATION
-// Loud id validation before any subagent is named from the array: the live
+// Loud validation before any subagent is named from the array: the live
 // failure (ишью 09, dwfrun-62a83e74) was a host name collision —
 // «challenger-undefined is used twice» — and a single missing id among valid
 // ones does not fail at all (its objection would come back with id: undefined).
 // A broken id is the same caller bug as broken syntax: it aborts here, with
-// the broken positions named, instead of falling over in a foreign layer.
-// Plain JS in the body on purpose: the test slice runs it under node, no TS
-// stripping (tests/test_challenger_validation.py).
+// every broken position named, instead of falling over in a foreign layer.
+// The id must be canonical d1…dN (/^d\d+$/): anything else — spaces, case
+// drift, control characters — would flow into subagent names and abort text
+// as-is. Plain JS semantics in the body; the three TS annotations are
+// stripped verbatim by tests/test_challenger_validation.py, which pins them
+// by name — a new annotation reds that driver with its name, not as a raw
+// node SyntaxError.
 function validateDecisions(decisions: Decision[]) {
   const broken: string[] = [];
   const seen = new Map<string, number>();
@@ -49,6 +53,8 @@ function validateDecisions(decisions: Decision[]) {
     const id = d.id;
     if (typeof id !== "string" || id.length === 0) {
       broken.push(`${pos}: id отсутствует или пуст`);
+    } else if (!/^d\d+$/.test(id)) {
+      broken.push(`${pos}: id не каноничен — ожидается d1…dN (буква d и цифры)`);
     } else if (seen.has(id)) {
       broken.push(`${pos}: id "${id}" дублирует #${seen.get(id)}`);
     } else {
@@ -101,9 +107,10 @@ if (Array.isArray(raw)) {
       `JSON.parse: ${msg}; получено ${raw.length} симв.` +
       (head ? `, голова: "${head}", хвост: "${tail}"` : `, строка: "${tail}"`);
   }
-} else if (raw !== undefined) {
-  // null is loud on purpose: a required arg must not silently become an empty
-  // draft — that benign no-op is only for an explicitly passed empty array.
+} else {
+  // Missing and null are loud on purpose: a required arg must not silently
+  // become an empty draft — that benign no-op is only for an explicitly
+  // passed empty array (gate r1: undefined slipped through as one).
   unparsable = `не строка и не массив (${raw === null ? "null" : typeof raw}: ${String(raw).slice(0, 80)})`;
 }
 if (unparsable) {

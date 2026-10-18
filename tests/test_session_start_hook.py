@@ -58,16 +58,20 @@ def run_hook(proj: Path, args: tuple = (),
                           capture_output=True, text=True, timeout=120, env=env)
 
 
+ENTRY = "Вход-фразы «оформи»"
+
+
 def ctx_of(p: subprocess.CompletedProcess) -> str | None:
-    """None when the hook stayed silent; else the additionalContext string."""
+    """None when the hook stayed silent; else the additionalContext string.
+    Every KB-project emission carries the always-on grilling entry pointer
+    (grilling-contracts) — pinned here, so no newsful path can drop it."""
     if not p.stdout.strip():
         return None
     out = json.loads(p.stdout)
     assert out["hookSpecificOutput"]["hookEventName"] == "SessionStart"
-    return out["hookSpecificOutput"]["additionalContext"]
-
-
-ENTRY = "Вход-фразы «оформи»"
+    ctx = out["hookSpecificOutput"]["additionalContext"]
+    assert ENTRY in ctx, "entry pointer dropped from a newsful emission"
+    return ctx
 
 
 def entry_only(p: subprocess.CompletedProcess) -> str:
@@ -262,6 +266,7 @@ def test_legacy_handoff_within_ttl_is_announced(tmp_path: Path):
     assert p.returncode == 0
     ctx = ctx_of(p)
     assert ctx is not None
+    assert "Handoff: " in ctx  # positive pin: the literal entry_only's guard relies on
     assert "handoff-sess_old.md" in ctx
     assert "ReadSessionContext(sessionId=sess_old, strategy=handoff)" in ctx
 
@@ -370,6 +375,7 @@ def test_current_snapshot_announced_regardless_of_age(tmp_path: Path):
     assert p.returncode == 0
     ctx = ctx_of(p)
     assert ctx is not None
+    assert "Handoff: " in ctx  # the snapshot announcement carries the same literal
     assert "handoff-current.md" in ctx
     assert "слепок состояния проекта" in ctx
     assert "ReadSessionContext(sessionId=sess_old, strategy=handoff)" in ctx
@@ -491,7 +497,7 @@ def test_map_failure_is_not_announced(tmp_path: Path):
     entry_only(p)
 
 
-def test_junk_tail_after_iso_stamp_is_silent(tmp_path: Path):
+def test_junk_tail_after_iso_stamp_entry_pointer_only(tmp_path: Path):
     """The date token is an ISO stamp with at most a timezone tail: a log
     line carrying arbitrary text after the stamp matches nothing (gate 10 —
     the leaked-tail announcement was reproduced end-to-end)."""
@@ -532,7 +538,7 @@ def test_entry_pointer_names_grilling_routing(tmp_path: Path):
     assert p.returncode == 0
     ctx = entry_only(p)
     assert "скилл grilling" in ctx
-    assert "«оформи»" in ctx and "«погрилл»" in ctx and "«триаж ишью»" in ctx
+    assert "«погрилл»" in ctx and "«триаж ишью»" in ctx
     assert "флоу до грилла" in ctx
 
 

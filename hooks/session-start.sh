@@ -8,7 +8,8 @@
 # Never blocks a session: every path exits 0, speaks only through
 # SessionStart additionalContext.
 #   default — remind (the agent sees the command and decides);
-#   --rebuild — rebuild the index quietly; no output on success.
+#   --rebuild — rebuild the index quietly; no KB news on success (the grilling
+#   entry pointer still prints — it is unconditional in KB projects).
 # Session continuity: write .scratch/.session-id from the hook's own
 # ZCODE_SESSION_ID (no variable — write nothing, say nothing), and announce
 # the rolling snapshot .scratch/handoff-current.md by its explicit name
@@ -65,7 +66,12 @@ add_part() { msg="${msg:+${msg}
 # (handoff-<id>.md), so junk in would be path injection out.
 if [[ "${ZCODE_SESSION_ID:-}" =~ ^sess_[A-Za-z0-9._-]{1,128}$ ]]; then
   if mkdir -p "$scratch" 2>/dev/null; then
-    printf '%s\n' "$ZCODE_SESSION_ID" > "$scratch/.session-id" 2>/dev/null || true
+    # temp+rename: concurrent sessions of one checkout share this path, an
+    # in-place write interleaves into a torn two-line file (gate r1 stress:
+    # 7% torn at 8 writers) — the rename is atomic within the directory.
+    printf '%s\n' "$ZCODE_SESSION_ID" > "$scratch/.session-id.tmp.$$" 2>/dev/null \
+      && mv -f "$scratch/.session-id.tmp.$$" "$scratch/.session-id" 2>/dev/null \
+      || rm -f "$scratch/.session-id.tmp.$$" 2>/dev/null || true
   fi
 fi
 
