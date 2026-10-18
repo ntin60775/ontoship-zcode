@@ -175,9 +175,10 @@ the check does not apply to it.
    stop the run with a diagnostic naming the findings — a failed check is
    reported to the operator, never rounded away. When the cap is exhausted
    without a clean round, the «исчерпание капа» trigger of the
-   `stop-before-commit` stop-point fires — active as any stop-point bullet:
-   named in the plan's Constraints, or no stop-point named at all (the
-   default); Stop-points section: the round history and one AskUserQuestion.
+   `stop-before-commit` stop-point fires — it is not Constraints-selectable
+   like the ordinary bullets: whatever stop-points the plan names, the cap
+   stop still happens, the plan decides only what happens after it
+   (Stop-points section: the round history and one AskUserQuestion).
    The ending conditions live in this item,
    the stop mechanics in that section — one canon, the two reference each other.
 7. **Dev checks** — the contour from step 6 picks the merge path. Full contour:
@@ -290,7 +291,9 @@ From the plan contract's `Constraints`, enforced verbatim:
   diff body — the ban covers source diffs, not live E2E output. A second
   trigger lives in this stop-point — cap exhaustion («исчерпание капа»,
   gate-loop-cap): when the step-6 loop has spent the cap (3 rounds) without a
-  clean round, starting a beyond-cap round is not the executor's call — report
+  clean round, starting a beyond-cap round is not the executor's call — the
+  trigger is not Constraints-selectable (unlike the bullet it lives in): it
+  fires whatever stop-points the plan's Constraints name — report
   the round history (per round: verified / unconfirmed / unverified, what was
   fixed, what remains open) and ask one `AskUserQuestion` with exactly three
   options: «добить» — exactly one more round (an unclean round lands at this

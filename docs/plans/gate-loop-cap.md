@@ -68,6 +68,9 @@ ru_RU.UTF-8); якоря правятся тем же фикс-коммитом 
 - docs/plans/gate-loop-cap.md — этот файл-план (запись факта первого
   прогона — Done 9).
 - docs/plans/README.md — регенерация gitmark inventory.
+- .zcode/ontoship/issues/07-stale-grilling-anchor-in-ship-skill.md —
+  ишью-файл вне-граничной находки гейта r4; ишью-файлы ран пишет по
+  общему канону ship, вне моратория (как слепок шага 9).
 - Вендорные копии маппингов deploy.json руками не правятся — доедет
   self-update.
 
