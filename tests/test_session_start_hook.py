@@ -1,6 +1,7 @@
 """Tests for hooks/session-start.sh: stale-index notice at session start over
 the engine's whole markdown corpus (git ls-files, like gitmark indexes it),
-silence when fresh or outside a KB project, quiet --rebuild; plus the session
+the always-on grilling entry pointer in KB projects (grilling-contracts) —
+silence only outside a KB project —, quiet --rebuild; plus the session
 continuity half (ticket 08): the .session-id marker written from the hook's own
 environment, the handoff announcement with the ReadSessionContext hint — the
 rolling snapshot handoff-current.md announced by its explicit name whatever
@@ -66,6 +67,20 @@ def ctx_of(p: subprocess.CompletedProcess) -> str | None:
     return out["hookSpecificOutput"]["additionalContext"]
 
 
+ENTRY = "Вход-фразы «оформи»"
+
+
+def entry_only(p: subprocess.CompletedProcess) -> str:
+    """The always-on grilling pointer (grilling-contracts) is the only part:
+    no index, handoff or hygiene news rides along."""
+    ctx = ctx_of(p)
+    assert ctx is not None and ENTRY in ctx
+    assert "gitmark.py index" not in ctx
+    assert "Handoff:" not in ctx
+    assert "гигиен" not in ctx
+    return ctx
+
+
 def test_not_a_kb_project_is_silent(tmp_path: Path):
     proj = tmp_path / "empty"
     proj.mkdir()
@@ -97,13 +112,13 @@ def test_missing_index_suggests_building(tmp_path: Path):
     assert ctx is not None and "gitmark.py index" in ctx
 
 
-def test_fresh_index_is_silent(tmp_path: Path):
+def test_fresh_index_announces_entry_pointer_only(tmp_path: Path):
     proj = make_kb_project(tmp_path)
     build_index(proj)
     os.utime(proj / "docs" / "a.md", (0, 0))
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
 def test_stale_docs_get_a_notice(tmp_path: Path):
@@ -144,7 +159,7 @@ def test_gitignored_markdown_does_not_nag(tmp_path: Path):
     (private / "notes.md").write_text("secret v2\n", encoding="utf-8")
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
 def test_future_mtime_does_not_nag(tmp_path: Path):
@@ -155,7 +170,7 @@ def test_future_mtime_does_not_nag(tmp_path: Path):
     os.utime(proj / "docs" / "a.md", (future, future))
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
 def test_rebuild_flag_rebuilds_quietly(tmp_path: Path):
@@ -166,7 +181,7 @@ def test_rebuild_flag_rebuilds_quietly(tmp_path: Path):
     os.utime(db, (0, 0))
     p = run_hook(proj, args=("--rebuild",))
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
     assert db.stat().st_mtime >= md.stat().st_mtime
 
 
@@ -174,7 +189,7 @@ def test_rebuild_flag_on_missing_index_creates_it(tmp_path: Path):
     proj = make_kb_project(tmp_path)
     p = run_hook(proj, args=("--rebuild",))
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
     assert (proj / ".gitmark" / "index.db").is_file()
 
 
@@ -220,7 +235,7 @@ def test_session_id_marker_not_written_without_env(tmp_path: Path):
     os.utime(proj / "docs" / "a.md", (0, 0))
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
     assert not (proj / ".scratch").exists()
 
 
@@ -251,7 +266,7 @@ def test_legacy_handoff_within_ttl_is_announced(tmp_path: Path):
     assert "ReadSessionContext(sessionId=sess_old, strategy=handoff)" in ctx
 
 
-def test_legacy_ttl_boundary_exact_is_silent(tmp_path: Path):
+def test_legacy_ttl_boundary_exact_entry_pointer_only(tmp_path: Path):
     """The TTL is strict (<, not <=): a file at exactly now - 604800 s belongs
     to the skill's cleanup, not to the announcement. Deterministic even with
     the hook's own clock read racing ahead of ours — the measured age only
@@ -264,7 +279,7 @@ def test_legacy_ttl_boundary_exact_is_silent(tmp_path: Path):
     os.utime(f, (edge, edge))
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
 def test_legacy_ttl_just_inside_is_announced(tmp_path: Path):
@@ -282,7 +297,7 @@ def test_legacy_ttl_just_inside_is_announced(tmp_path: Path):
     assert ctx is not None and "handoff-sess_edge.md" in ctx
 
 
-def test_stale_handoff_is_silent(tmp_path: Path):
+def test_stale_handoff_entry_pointer_only(tmp_path: Path):
     proj = make_kb_project(tmp_path)
     build_index(proj)
     os.utime(proj / "docs" / "a.md", (0, 0))
@@ -291,7 +306,7 @@ def test_stale_handoff_is_silent(tmp_path: Path):
     os.utime(f, (old, old))
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
 def test_handoff_from_line_crlf_still_recognized(tmp_path: Path):
@@ -446,12 +461,12 @@ def test_failing_nightly_lint_is_announced(tmp_path: Path):
     assert "lint --strict" in ctx
 
 
-def test_clean_nightly_lint_is_silent(tmp_path: Path):
+def test_clean_nightly_lint_entry_pointer_only(tmp_path: Path):
     proj = fresh_indexed_project(tmp_path)
     write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=0 index=0 map=0")
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
 def test_nightly_index_failure_is_announced(tmp_path: Path):
@@ -473,7 +488,7 @@ def test_map_failure_is_not_announced(tmp_path: Path):
     write_hygiene_log(proj, "HYGIENE 2026-10-04T03:00:00+0300 lint=0 index=0 map=3")
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
 def test_junk_tail_after_iso_stamp_is_silent(tmp_path: Path):
@@ -485,24 +500,53 @@ def test_junk_tail_after_iso_stamp_is_silent(tmp_path: Path):
         proj, "HYGIENE 2026-10-04T03:00:00JUNK-КОНЕЦ-С-МУСОРОМ lint=1 index=0 map=0")
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
-def test_missing_hygiene_log_is_silent(tmp_path: Path):
+def test_missing_hygiene_log_entry_pointer_only(tmp_path: Path):
     proj = fresh_indexed_project(tmp_path)
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
 
 
-def test_foreign_hygiene_log_is_silent(tmp_path: Path):
+def test_foreign_hygiene_log_entry_pointer_only(tmp_path: Path):
     """The last line must be machine-shaped (scripts/hygiene.sh): a hand-edited
     or foreign log whose last line does not parse says nothing."""
     proj = fresh_indexed_project(tmp_path)
     write_hygiene_log(proj, "HYGIENE someday lint=1 index=0 map=0")
     p = run_hook(proj)
     assert p.returncode == 0
-    assert p.stdout == ""
+    entry_only(p)
+
+
+# --- the grilling entry pointer (grilling-contracts) ---
+
+
+def test_entry_pointer_names_grilling_routing(tmp_path: Path):
+    """The routing line: entry phrases point at the grilling skill — the one
+    carrier the agent sees before any skill invocation (skill texts load only
+    on the Skill call, while the «оформи» failure happens before it)."""
+    proj = fresh_indexed_project(tmp_path)
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = entry_only(p)
+    assert "скилл grilling" in ctx
+    assert "«оформи»" in ctx and "«погрилл»" in ctx and "«триаж ишью»" in ctx
+    assert "флоу до грилла" in ctx
+
+
+def test_entry_pointer_glues_with_stale_notice_into_one_json(tmp_path: Path):
+    proj = make_kb_project(tmp_path)
+    build_index(proj)
+    os.utime(proj / ".gitmark" / "index.db", (0, 0))
+    p = run_hook(proj)
+    assert p.returncode == 0
+    ctx = ctx_of(p)
+    assert ctx is not None
+    assert ENTRY in ctx
+    assert "gitmark.py index" in ctx
+    assert p.stdout.count("\n") == 1
 
 
 def test_nonzero_hygiene_date_is_part_of_the_message_not_a_command(tmp_path: Path):

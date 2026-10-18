@@ -28,6 +28,37 @@ interface Decision {
   reversible?: boolean;
 }
 
+// BEGIN DECISION VALIDATION
+// Loud id validation before any subagent is named from the array: the live
+// failure (ишью 09, dwfrun-62a83e74) was a host name collision —
+// «challenger-undefined is used twice» — and a single missing id among valid
+// ones does not fail at all (its objection would come back with id: undefined).
+// A broken id is the same caller bug as broken syntax: it aborts here, with
+// the broken positions named, instead of falling over in a foreign layer.
+// Plain JS in the body on purpose: the test slice runs it under node, no TS
+// stripping (tests/test_challenger_validation.py).
+function validateDecisions(decisions: Decision[]) {
+  const broken: string[] = [];
+  const seen = new Map<string, number>();
+  decisions.forEach((d, i) => {
+    const pos = `#${i + 1}`;
+    if (d === null || typeof d !== "object" || Array.isArray(d)) {
+      broken.push(`${pos}: решение — не объект`);
+      return;
+    }
+    const id = d.id;
+    if (typeof id !== "string" || id.length === 0) {
+      broken.push(`${pos}: id отсутствует или пуст`);
+    } else if (seen.has(id)) {
+      broken.push(`${pos}: id "${id}" дублирует #${seen.get(id)}`);
+    } else {
+      seen.set(id, i + 1);
+    }
+  });
+  return broken;
+}
+// END DECISION VALIDATION
+
 interface Objection {
   /** id of the decision this objection targets. */
   id: string;
@@ -79,6 +110,18 @@ if (unparsable) {
   throw new Error(
     `args.decisions не распарсились (${unparsable}) — ` +
       "красная команда не запускалась, гриллинг обязан остановиться на этом.",
+  );
+}
+// id validation runs after the parse abort and before the empty-array no-op:
+// an empty draft has nothing to break, and no agent name is built until every
+// id checks out (the abort names the broken positions — the caller-bug class
+// of ишью 09).
+const brokenIds = validateDecisions(decisions);
+if (brokenIds.length > 0) {
+  throw new Error(
+    `args.decisions не прошли валидацию id (${brokenIds.join("; ")}) — ` +
+      "красная команда не запускалась, гриллинг обязан остановиться на этом. " +
+      "Контракт решения — шаг 3 skills/grilling/SKILL.md: {id, question, choice, rationale, evidence, reversible}.",
   );
 }
 if (decisions.length === 0) {

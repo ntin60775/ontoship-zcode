@@ -25,7 +25,9 @@
 # caught by the freshness check — nothing is newer than the index; gate 10);
 # the map is cosmetic — the log and the script's exit code carry it.
 # Unparseable or missing log — silence. One-emit contract: index freshness,
-# hygiene, handoff announcement, or any mix — glued into exactly one JSON.
+# hygiene, handoff announcement, the grilling entry pointer (unconditional in
+# KB projects — the one carrier the agent sees before invoking a skill), or
+# any mix — glued into exactly one JSON.
 set -uo pipefail
 
 root="${ZCODE_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$PWD}}"
@@ -119,6 +121,12 @@ if [[ -f "$hygiene_log" ]]; then
     fi
   fi
 fi
+
+# Grilling entry pointer (grilling-contracts): the entry-phrase rule lives in
+# skill texts the agent reads only after invoking the skill, while the «оформи»
+# failure happens before any invocation — this line is the always-in-context
+# carrier. KB projects only (the guards above); part of the one-emit contract.
+add_part "Вход-фразы «оформи», «оформи план», «погрилл», «триаж ишью» — скилл grilling: флоу до грилла, не до артефакта."
 
 # Handoff announcement. The rolling snapshot .scratch/handoff-current.md —
 # the one file /handoff and /ship rewrite in full on every write — is

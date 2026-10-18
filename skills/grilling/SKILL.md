@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Every request to shape a plan enters this flow — "погрилл", "grill this", "прогони гриллинг", /grilling, «оформи план» said in conversation, and the triage of open issues («триаж ишью») are equal entry points, taken at the ready-draft stage; a plan is never published without its grill (the only bypass is the operator's explicit opt-out, recorded in the contract's Context). Ends with a single-slice plan contract (docs/plans/<slug>.md) approved via the native plan gate, or — when the unit is built by more than one slice (multi-slice, step 7) — with the tickets the same session publishes by running /to-tickets in full (the plan gate plus the operator's ticket quiz are the approvals).
+description: Autonomous stress-test of a plan, decision, or idea — the agent resolves the solvable questions itself (each with evidence), a red-team challenger on its own model attacks the draft, and the operator gets one readable digest to approve. Interactive questions only where the answer cannot be derived. Every request to shape a plan enters this flow — "погрилл", "grill this", "прогони гриллинг", /grilling, «оформи», «оформи план» said in conversation, and the triage of open issues («триаж ишью») are equal entry points, taken at the ready-draft stage; a plan is never published without its grill (the only bypass is the operator's explicit opt-out, recorded in the contract's Context). Ends with a single-slice plan contract (docs/plans/<slug>.md) approved via the native plan gate, or — when the unit is built by more than one slice (multi-slice, step 7) — with the tickets the same session publishes by running /to-tickets in full (the plan gate plus the operator's ticket quiz are the approvals).
 ---
 
 # Grilling — autonomous decisions, one approval gate
@@ -26,8 +26,13 @@ execution; guessing about a one-way door is a worse one.
 
 ## The flow
 
+Вход-фразы разговора — «оформи», «оформи план», синонимы — равные входы во флоу:
+остановка на файле-артефакте без грилла — ошибка маршрутизации, не завершение
+(skill texts load only on invocation, so this rule also ships in the session-start
+hook — the one carrier visible before this skill is ever invoked).
+
 1. **Enter plan mode** (the native read-only gate). Everything below happens before any
-   write outside the KB.
+write outside the KB.
 2. **Research the frontier.** Expand the idea into the questions that must be answered
    before code exists. For each: `kb-search`'s gitmark search, read the code, run cheap
    read-only commands. Facts you find are yours to use. Every entry sweeps the open
@@ -42,7 +47,10 @@ execution; guessing about a one-way door is a worse one.
    left out of this plan stays open for the next triage.
 3. **Resolve autonomously.** For every two-way-door question: state the options, pick
    the best against the plan's stated criteria, and record
-   `{question, choice, rationale, evidence, reversible}`. **Evidence invariant:** every
+   `{id, question, choice, rationale, evidence, reversible}` — `id`: короткий
+   уникальный идентификатор d1…dN, из него строится имя субагента челленджа;
+   дубль или пропуск id валит ран громко (the workflow validates ids before any
+   subagent starts). **Evidence invariant:** every
    autonomous decision cites facts — `file:line` from the KB/code or command output.
    A decision you cannot back with evidence is escalated automatically, no exceptions.
    This is what keeps autonomy from decaying into guessing.
@@ -149,6 +157,9 @@ execution; guessing about a one-way door is a worse one.
 ## Invariants
 
 - Evidence or escalate — for autonomous decisions, no third option.
+- Вход-фразы разговора («оформи», «оформи план», синонимы) запускают флоу целиком —
+  грилл включён; артефакт без записи грилла ловится именованным отказом
+  провенанс-контура (to-tickets step 0, /ship step 1).
 - The challenger's role model comes from the roles registry, fail-closed verified.
 - KB writes go through `kb-curate` (search first, no duplicates, frontmatter, links).
 - The stop-points in `Constraints` are machine-enforced downstream: write them as
