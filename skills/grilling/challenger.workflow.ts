@@ -28,6 +28,43 @@ interface Decision {
   reversible?: boolean;
 }
 
+// BEGIN DECISION VALIDATION
+// Loud validation before any subagent is named from the array: the live
+// failure (ишью 09, dwfrun-62a83e74) was a host name collision —
+// «challenger-undefined is used twice» — and a single missing id among valid
+// ones does not fail at all (its objection would come back with id: undefined).
+// A broken id is the same caller bug as broken syntax: it aborts here, with
+// every broken position named, instead of falling over in a foreign layer.
+// The id must be canonical d1…dN (/^d\d+$/): anything else — spaces, case
+// drift, control characters — would flow into subagent names and abort text
+// as-is. Plain JS semantics in the body; the three TS annotations are
+// stripped verbatim by tests/test_challenger_validation.py, which pins them
+// by name — a new annotation reds that driver with its name, not as a raw
+// node SyntaxError.
+function validateDecisions(decisions: Decision[]) {
+  const broken: string[] = [];
+  const seen = new Map<string, number>();
+  decisions.forEach((d, i) => {
+    const pos = `#${i + 1}`;
+    if (d === null || typeof d !== "object" || Array.isArray(d)) {
+      broken.push(`${pos}: решение — не объект`);
+      return;
+    }
+    const id = d.id;
+    if (typeof id !== "string" || id.length === 0) {
+      broken.push(`${pos}: id отсутствует или пуст`);
+    } else if (!/^d\d+$/.test(id)) {
+      broken.push(`${pos}: id не каноничен — ожидается d1…dN (буква d и цифры)`);
+    } else if (seen.has(id)) {
+      broken.push(`${pos}: id "${id}" дублирует #${seen.get(id)}`);
+    } else {
+      seen.set(id, i + 1);
+    }
+  });
+  return broken;
+}
+// END DECISION VALIDATION
+
 interface Objection {
   /** id of the decision this objection targets. */
   id: string;
@@ -39,6 +76,7 @@ interface Objection {
   whatWouldDecide: string;
 }
 
+// BEGIN ARGS CONTRACT
 // args.decisions arrives either as an already-parsed array or as a JSON string,
 // depending on the host — accept both. Unparsable input fails LOUD (an errored run
 // is what stops the grilling pass); an explicitly empty array is a benign no-op.
@@ -46,7 +84,10 @@ let decisions: Decision[] = [];
 let unparsable = "";
 const raw = args.decisions;
 if (Array.isArray(raw)) {
-  decisions = raw as Decision[];
+  // densify first: a sparse array (a host-side delete leaves holes) would
+  // let forEach skip the holes — positions neither validated nor challenged
+  // (gate r3).
+  decisions = Array.from(raw) as Decision[];
 } else if (typeof raw === "string") {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -70,9 +111,10 @@ if (Array.isArray(raw)) {
       `JSON.parse: ${msg}; получено ${raw.length} симв.` +
       (head ? `, голова: "${head}", хвост: "${tail}"` : `, строка: "${tail}"`);
   }
-} else if (raw !== undefined) {
-  // null is loud on purpose: a required arg must not silently become an empty
-  // draft — that benign no-op is only for an explicitly passed empty array.
+} else {
+  // Missing and null are loud on purpose: a required arg must not silently
+  // become an empty draft — that benign no-op is only for an explicitly
+  // passed empty array (gate r1: undefined slipped through as one).
   unparsable = `не строка и не массив (${raw === null ? "null" : typeof raw}: ${String(raw).slice(0, 80)})`;
 }
 if (unparsable) {
@@ -81,6 +123,19 @@ if (unparsable) {
       "красная команда не запускалась, гриллинг обязан остановиться на этом.",
   );
 }
+// id validation runs after the parse abort and before the empty-array no-op:
+// an empty draft has nothing to break, and no agent name is built until every
+// id checks out (the abort names the broken positions — the caller-bug class
+// of ишью 09).
+const brokenIds = validateDecisions(decisions);
+if (brokenIds.length > 0) {
+  throw new Error(
+    `args.decisions не прошли валидацию id (${brokenIds.join("; ")}) — ` +
+      "красная команда не запускалась, гриллинг обязан остановиться на этом. " +
+      "Контракт решения — шаг 3 skills/grilling/SKILL.md: {id, question, choice, rationale, evidence, reversible}.",
+  );
+}
+// END ARGS CONTRACT
 if (decisions.length === 0) {
   return {
     conclusion: "Черновик решений пуст — оспаривать нечего.",
