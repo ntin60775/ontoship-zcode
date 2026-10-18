@@ -132,6 +132,7 @@ def args_contract_source() -> str:
 def run_args_contract(decisions_literal: str) -> tuple:
     driver = (
         "const args = { decisions: " + decisions_literal + " };\n"
+        + validator_source() + "\n"
         + args_contract_source()
         + '\nconsole.log("PASSED");\n'
     )
