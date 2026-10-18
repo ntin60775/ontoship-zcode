@@ -2,8 +2,8 @@
 node_type: plan
 title: 'Семантика планирования: план ⇒ грилл, ишью-контур, один юнит, план-приёмка'
 service: _platform
-status: draft
-updated: 2026-10-16
+status: archived
+updated: 2026-10-17
 links:
   documents: [../../../skills/grilling/SKILL.md, ../../../skills/to-tickets/SKILL.md, ../../../skills/ship/SKILL.md, ../../../skills/kb-curate/SKILL.md]
   relates_to: [../queue-3/README.md, ../checks-profile.md, ../../decisions/invariant-moratorium.md]
