@@ -8,7 +8,9 @@
 # Never blocks a session: every path exits 0, speaks only through
 # SessionStart additionalContext.
 #   default — remind (the agent sees the command and decides);
-#   --rebuild — rebuild the index quietly; no output on success.
+#   --rebuild — rebuild the index quietly; a successful rebuild adds no index
+#   news (hygiene/handoff news and the grilling entry pointer still print —
+#   none of them is gated by the flag).
 # Session continuity: write .scratch/.session-id from the hook's own
 # ZCODE_SESSION_ID (no variable — write nothing, say nothing), and announce
 # the rolling snapshot .scratch/handoff-current.md by its explicit name
@@ -25,7 +27,9 @@
 # caught by the freshness check — nothing is newer than the index; gate 10);
 # the map is cosmetic — the log and the script's exit code carry it.
 # Unparseable or missing log — silence. One-emit contract: index freshness,
-# hygiene, handoff announcement, or any mix — glued into exactly one JSON.
+# hygiene, handoff announcement, the grilling entry pointer (unconditional in
+# KB projects — the one carrier the agent sees before invoking a skill), or
+# any mix — glued into exactly one JSON.
 set -uo pipefail
 
 root="${ZCODE_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$PWD}}"
@@ -63,7 +67,31 @@ add_part() { msg="${msg:+${msg}
 # (handoff-<id>.md), so junk in would be path injection out.
 if [[ "${ZCODE_SESSION_ID:-}" =~ ^sess_[A-Za-z0-9._-]{1,128}$ ]]; then
   if mkdir -p "$scratch" 2>/dev/null; then
-    printf '%s\n' "$ZCODE_SESSION_ID" > "$scratch/.session-id" 2>/dev/null || true
+    # temp+rename (mktemp: an unpredictable name — a guessed
+    # .session-id.tmp.<pid> symlink once got followed by the redirect, gate
+    # r2, reproduced end-to-end): concurrent sessions of one checkout share
+    # this path, an in-place write interleaves into a torn two-line file
+    # (gate r1 stress: 7% torn at 8 writers). The EXIT trap cleans the tmp
+    # on TERM/INT; a SIGKILL inside the window still leaves an orphan —
+    # rare, invisible to readers, content only the validated id.
+    tmp="$(mktemp "$scratch/.session-id.tmp.XXXXXX" 2>/dev/null)" || tmp=""
+    if [[ -n "$tmp" ]]; then
+      trap 'rm -f "$tmp" 2>/dev/null' EXIT
+      # skip a non-file target: mv -f would move the tmp INTO a directory
+      # named .session-id with exit 0 — the marker silently lost, garbage
+      # accumulating inside (gate r3, reproduced)
+      if [[ ! -e "$scratch/.session-id" || -f "$scratch/.session-id" ]]; then
+        printf '%s\n' "$ZCODE_SESSION_ID" > "$tmp" 2>/dev/null &&
+          mv -f "$tmp" "$scratch/.session-id" 2>/dev/null
+      fi
+      # cleanup runs on every path — failure, skip, success — so a failed
+      # printf/mv leaves no orphan either (gate r3: three reproductions);
+      # the trap only has to survive the window (TERM/INT fire it, confirmed
+      # on bash 5.2), and a SIGKILL inside it still leaves an orphan —
+      # rare, invisible to readers, content only the validated id.
+      rm -f "$tmp" 2>/dev/null
+      trap - EXIT
+    fi
   fi
 fi
 
@@ -119,6 +147,12 @@ if [[ -f "$hygiene_log" ]]; then
     fi
   fi
 fi
+
+# Grilling entry pointer (grilling-contracts): the entry-phrase rule lives in
+# skill texts the agent reads only after invoking the skill, while the «оформи»
+# failure happens before any invocation — this line is the always-in-context
+# carrier. KB projects only (the guards above); part of the one-emit contract.
+add_part "Вход-фразы «оформи», «оформи план», «погрилл», «триаж ишью» — скилл grilling: флоу до грилла, не до артефакта."
 
 # Handoff announcement. The rolling snapshot .scratch/handoff-current.md —
 # the one file /handoff and /ship rewrite in full on every write — is
