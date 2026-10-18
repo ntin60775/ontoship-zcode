@@ -8,8 +8,9 @@
 # Never blocks a session: every path exits 0, speaks only through
 # SessionStart additionalContext.
 #   default — remind (the agent sees the command and decides);
-#   --rebuild — rebuild the index quietly; no KB news on success (the grilling
-#   entry pointer still prints — it is unconditional in KB projects).
+#   --rebuild — rebuild the index quietly; a successful rebuild adds no index
+#   news (hygiene/handoff news and the grilling entry pointer still print —
+#   none of them is gated by the flag).
 # Session continuity: write .scratch/.session-id from the hook's own
 # ZCODE_SESSION_ID (no variable — write nothing, say nothing), and announce
 # the rolling snapshot .scratch/handoff-current.md by its explicit name
@@ -66,12 +67,20 @@ add_part() { msg="${msg:+${msg}
 # (handoff-<id>.md), so junk in would be path injection out.
 if [[ "${ZCODE_SESSION_ID:-}" =~ ^sess_[A-Za-z0-9._-]{1,128}$ ]]; then
   if mkdir -p "$scratch" 2>/dev/null; then
-    # temp+rename: concurrent sessions of one checkout share this path, an
-    # in-place write interleaves into a torn two-line file (gate r1 stress:
-    # 7% torn at 8 writers) — the rename is atomic within the directory.
-    printf '%s\n' "$ZCODE_SESSION_ID" > "$scratch/.session-id.tmp.$$" 2>/dev/null \
-      && mv -f "$scratch/.session-id.tmp.$$" "$scratch/.session-id" 2>/dev/null \
-      || rm -f "$scratch/.session-id.tmp.$$" 2>/dev/null || true
+    # temp+rename (mktemp: an unpredictable name — a guessed
+    # .session-id.tmp.<pid> symlink once got followed by the redirect, gate
+    # r2, reproduced end-to-end): concurrent sessions of one checkout share
+    # this path, an in-place write interleaves into a torn two-line file
+    # (gate r1 stress: 7% torn at 8 writers). The EXIT trap cleans the tmp
+    # on TERM/INT; a SIGKILL inside the window still leaves an orphan —
+    # rare, invisible to readers, content only the validated id.
+    tmp="$(mktemp "$scratch/.session-id.tmp.XXXXXX" 2>/dev/null)" || tmp=""
+    if [[ -n "$tmp" ]]; then
+      trap 'rm -f "$tmp" 2>/dev/null' EXIT
+      printf '%s\n' "$ZCODE_SESSION_ID" > "$tmp" 2>/dev/null \
+        && mv -f "$tmp" "$scratch/.session-id" 2>/dev/null || true
+      trap - EXIT
+    fi
   fi
 fi
 

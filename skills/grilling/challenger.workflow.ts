@@ -76,6 +76,7 @@ interface Objection {
   whatWouldDecide: string;
 }
 
+// BEGIN ARGS CONTRACT
 // args.decisions arrives either as an already-parsed array or as a JSON string,
 // depending on the host — accept both. Unparsable input fails LOUD (an errored run
 // is what stops the grilling pass); an explicitly empty array is a benign no-op.
@@ -131,6 +132,7 @@ if (brokenIds.length > 0) {
       "Контракт решения — шаг 3 skills/grilling/SKILL.md: {id, question, choice, rationale, evidence, reversible}.",
   );
 }
+// END ARGS CONTRACT
 if (decisions.length === 0) {
   return {
     conclusion: "Черновик решений пуст — оспаривать нечего.",

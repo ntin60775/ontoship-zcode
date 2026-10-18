@@ -59,6 +59,8 @@ def run_hook(proj: Path, args: tuple = (),
 
 
 ENTRY = "Вход-фразы «оформи»"
+ENTRY_FULL = ("Вход-фразы «оформи», «оформи план», «погрилл», "
+              "«триаж ишью» — скилл grilling: флоу до грилла, не до артефакта.")
 
 
 def ctx_of(p: subprocess.CompletedProcess) -> str | None:
@@ -76,12 +78,12 @@ def ctx_of(p: subprocess.CompletedProcess) -> str | None:
 
 def entry_only(p: subprocess.CompletedProcess) -> str:
     """The always-on grilling pointer (grilling-contracts) is the only part:
-    no index, handoff or hygiene news rides along."""
+    the emission is exactly the entry line — no index/handoff/hygiene news
+    and no hook chatter (the equality keeps the strictness the former
+    `stdout == ""` assertions had)."""
     ctx = ctx_of(p)
-    assert ctx is not None and ENTRY in ctx
-    assert "gitmark.py index" not in ctx
-    assert "Handoff:" not in ctx
-    assert "гигиен" not in ctx
+    assert ctx == ENTRY_FULL, (
+        f"ожидалась только строка входа, получено: {ctx!r}")
     return ctx
 
 

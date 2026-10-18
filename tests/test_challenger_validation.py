@@ -51,6 +51,9 @@ CASES = [
     # (an early-exit mutant that names only the first one reds here).
     ([{"question": "q"}, {"id": "d1"}, {"id": "d1"}, {"id": "d2"}],
      ["#1: id отсутствует или пуст", '#3: id "d1" дублирует #2']),
+    # a chain of duplicates: every extra occurrence named, not just the first
+    ([{"id": "d1"}, {"id": "d1"}, {"id": "d1"}],
+     ['#2: id "d1" дублирует #1', '#3: id "d1" дублирует #1']),
 ]
 
 
@@ -87,10 +90,86 @@ def broken_of(decisions) -> list:
     with tempfile.TemporaryDirectory() as td:
         driver_path = Path(td) / "driver.mjs"
         driver_path.write_text(driver, encoding="utf-8")
-        r = subprocess.run(["node", str(driver_path)],
-                           capture_output=True, text=True)
+        r = subprocess.run(["node", str(driver_path)], capture_output=True,
+                           text=True, encoding="utf-8")
     assert r.returncode == 0, f"node упал на срезе валидатора:\n{r.stderr}"
     return json.loads(r.stdout)
+
+
+# The TS annotations the ARGS CONTRACT section legitimately carries — same
+# named-stripping convention as STRIP above.
+ARGS_STRIP = [
+    (": Decision[]", ""),
+    (" as Decision[]", ""),
+    (": unknown", ""),
+]
+
+
+def args_contract_source() -> str:
+    """The parse+validation section of the shipped workflow between the ARGS
+    CONTRACT markers — the wiring probe runs it as-is under node with only
+    the TS annotations stripped by name (same named-failure convention as
+    validator_source)."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    m = re.search(r"// BEGIN ARGS CONTRACT.*?\n(.*?)// END ARGS CONTRACT",
+                  text, re.S)
+    assert m, "ARGS CONTRACT block lost its markers in challenger.workflow.ts"
+    src = m.group(1)
+    for literal, replacement in ARGS_STRIP:
+        assert literal in src, (
+            f"аннотация {literal!r} не найдена в секции args-контракта — "
+            "дрейф формата; обнови ARGS_STRIP явно")
+        src = src.replace(literal, replacement)
+    leftovers = re.search(
+        r":\s*(Decision|string|number|boolean|unknown)\b|\bas\s+[A-Z]", src)
+    assert not leftovers, (
+        f"новая TS-аннотация ({leftovers.group(0)!r}) в секции "
+        "args-контракта — драйвер упал бы сырым SyntaxError; "
+        "добавь литерал в ARGS_STRIP")
+    return src
+
+
+def run_args_contract(decisions_literal: str) -> tuple:
+    driver = (
+        "const args = { decisions: " + decisions_literal + " };\n"
+        + args_contract_source()
+        + '\nconsole.log("PASSED");\n'
+    )
+    with tempfile.TemporaryDirectory() as td:
+        driver_path = Path(td) / "driver.mjs"
+        driver_path.write_text(driver, encoding="utf-8")
+        r = subprocess.run(["node", str(driver_path)], capture_output=True,
+                           text=True, encoding="utf-8")
+    return r.returncode, (r.stdout or "") + (r.stderr or "")
+
+
+def test_args_contract_wiring():
+    """Behavioral probe of the call site: the validation result is bound to
+    the abort, so a dead-condition mutant reds here instead of letting the
+    dwfrun-62a83e74 regression (a broken draft reaches subagent naming)
+    survive. Also pins the loud missing/null class — the undefined case
+    slipped through as a benign no-op before gate r1, and gate r2 found no
+    test covering it."""
+    rc, out = run_args_contract('[{"id": "d1"}, {"id": "d1"}]')
+    assert rc != 0 and "не прошли валидацию id" in out, out
+    rc, out = run_args_contract("null")
+    assert rc != 0 and "не строка и не массив" in out, out
+    rc, out = run_args_contract("undefined")
+    assert rc != 0 and "не строка и не массив" in out, out
+    rc, out = run_args_contract("[]")
+    assert rc == 0 and "PASSED" in out, out
+    rc, out = run_args_contract('[{"id": "d1"}]')
+    assert rc == 0 and "PASSED" in out, out
+
+
+def pin_index(text: str, literal: str, what: str) -> int:
+    """str.index with a named failure: a renamed pin reports which anchor
+    was lost instead of a bare ValueError (the file's own convention)."""
+    try:
+        return text.index(literal)
+    except ValueError:
+        raise AssertionError(
+            f"потерян якорь {what} ({literal!r}) в challenger.workflow.ts")
 
 
 def test_matrix():
@@ -107,16 +186,19 @@ def test_broken_positions_named_verbatim():
 
 
 def test_call_site_is_wired():
-    """Mutation probe: the validator must be called after the parse abort and
-    before the first subagent name is built, and the abort must name the
-    contract. Removing the call, reordering it after naming, or deleting the
-    marker block reds this file — not a live grill."""
+    """Structural pins of the call site: the marker blocks exist, validation
+    is called between the parse abort and the first subagent name, and the
+    abort names the contract. The behavioral binding (a broken draft actually
+    aborts) is test_args_contract_wiring's probe — this test only pins the
+    anchors by name, so a rename reports the lost anchor."""
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "// BEGIN DECISION VALIDATION" in text
     assert "// END DECISION VALIDATION" in text
-    call = text.index("validateDecisions(decisions)")
-    assert text.index("if (unparsable)") < call, \
-        "validation must follow the parse abort"
-    assert call < text.index("challenger-${d.id}"), \
-        "validation must precede subagent naming"
+    assert "// BEGIN ARGS CONTRACT" in text
+    assert "// END ARGS CONTRACT" in text
+    call = pin_index(text, "validateDecisions(decisions)", "вызов валидатора")
+    parse_abort = pin_index(text, "if (unparsable)", "parse abort")
+    naming = pin_index(text, "challenger-${d.id}", "раздача имён субагентов")
+    assert parse_abort < call, "validation must follow the parse abort"
+    assert call < naming, "validation must precede subagent naming"
     assert "не прошли валидацию id" in text
