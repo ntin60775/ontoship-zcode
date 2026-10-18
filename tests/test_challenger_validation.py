@@ -74,7 +74,9 @@ def validator_source() -> str:
             f"аннотация {literal!r} не найдена в маркерном блоке — дрейф формата; "
             "обнови STRIP явно")
         src = src.replace(literal, replacement)
-    leftovers = re.search(r":\s*(Decision|string|number|boolean)\b|new Map<", src)
+    leftovers = re.search(
+        r":\s*(Decision|string|number|boolean|unknown)\b|new Map<|\bas\s+[A-Z]",
+        src)
     assert not leftovers, (
         f"в маркерном блоке новая TS-аннотация ({leftovers.group(0)!r}) — "
         "драйвер упал бы сырым SyntaxError; добавь литерал в STRIP")
@@ -90,8 +92,11 @@ def broken_of(decisions) -> list:
     with tempfile.TemporaryDirectory() as td:
         driver_path = Path(td) / "driver.mjs"
         driver_path.write_text(driver, encoding="utf-8")
-        r = subprocess.run(["node", str(driver_path)], capture_output=True,
-                           text=True, encoding="utf-8")
+        try:
+            r = subprocess.run(["node", str(driver_path)], capture_output=True,
+                               text=True, encoding="utf-8", timeout=60)
+        except subprocess.TimeoutExpired:
+            raise AssertionError("node-драйвер валидатора завис (вечный цикл?)")
     assert r.returncode == 0, f"node упал на срезе валидатора:\n{r.stderr}"
     return json.loads(r.stdout)
 
@@ -139,8 +144,11 @@ def run_args_contract(decisions_literal: str) -> tuple:
     with tempfile.TemporaryDirectory() as td:
         driver_path = Path(td) / "driver.mjs"
         driver_path.write_text(driver, encoding="utf-8")
-        r = subprocess.run(["node", str(driver_path)], capture_output=True,
-                           text=True, encoding="utf-8")
+        try:
+            r = subprocess.run(["node", str(driver_path)], capture_output=True,
+                               text=True, encoding="utf-8", timeout=60)
+        except subprocess.TimeoutExpired:
+            raise AssertionError("node-драйвер args-контракта завис")
     return r.returncode, (r.stdout or "") + (r.stderr or "")
 
 
@@ -148,11 +156,13 @@ def test_args_contract_wiring():
     """Behavioral probe of the call site: the validation result is bound to
     the abort, so a dead-condition mutant reds here instead of letting the
     dwfrun-62a83e74 regression (a broken draft reaches subagent naming)
-    survive. Also pins the loud missing/null class — the undefined case
-    slipped through as a benign no-op before gate r1, and gate r2 found no
-    test covering it."""
+    survive. Covers both shapes the host delivers — an already-parsed array
+    and a JSON string (the string branch stayed dead under the suite until
+    gate r3) — and pins that the broken-positions list reaches the abort
+    text, not just the headline."""
     rc, out = run_args_contract('[{"id": "d1"}, {"id": "d1"}]')
     assert rc != 0 and "не прошли валидацию id" in out, out
+    assert '#2: id "d1" дублирует #1' in out, "перечень позиций не дошёл до abort"
     rc, out = run_args_contract("null")
     assert rc != 0 and "не строка и не массив" in out, out
     rc, out = run_args_contract("undefined")
@@ -161,16 +171,41 @@ def test_args_contract_wiring():
     assert rc == 0 and "PASSED" in out, out
     rc, out = run_args_contract('[{"id": "d1"}]')
     assert rc == 0 and "PASSED" in out, out
+    rc, out = run_args_contract('[{"id": "d1"}, {"id": "d2"}]')
+    assert rc == 0 and "PASSED" in out, out
+    # the string branch: parse abort, non-array abort, broken draft as a
+    # string, and a valid draft as a string
+    rc, out = run_args_contract(json.dumps("не json"))
+    assert rc != 0 and "JSON.parse" in out, out
+    rc, out = run_args_contract(json.dumps('{"a": 1}'))
+    assert rc != 0 and "не массив" in out, out
+    rc, out = run_args_contract(json.dumps('[{"id": "d1"}, {"id": "d1"}]'))
+    assert rc != 0 and "не прошли валидацию id" in out, out
+    assert '#2: id "d1" дублирует #1' in out, "перечень позиций не дошёл до abort"
+    rc, out = run_args_contract(json.dumps('[{"id": "d1"}, {"id": "d2"}]'))
+    assert rc == 0 and "PASSED" in out, out
+    # a sparse array (a host-side hole) densifies before validation — the
+    # hole becomes a named broken position instead of an unchallenged slot
+    rc, out = run_args_contract(
+        '(() => { const a = JSON.parse(\'[{"id": "d1"}]\'); '
+        "a.length = 2; return a; })()")
+    assert rc != 0 and "не прошли валидацию id" in out, out
+    assert "#2: решение — не объект" in out, out
 
 
-def pin_index(text: str, literal: str, what: str) -> int:
-    """str.index with a named failure: a renamed pin reports which anchor
-    was lost instead of a bare ValueError (the file's own convention)."""
-    try:
-        return text.index(literal)
-    except ValueError:
-        raise AssertionError(
-            f"потерян якорь {what} ({literal!r}) в challenger.workflow.ts")
+def code_index(text: str, literal: str, what: str) -> int:
+    """Line index of the first NON-comment occurrence: a pin by text.index is
+    blind to a literal quoted in a comment — a reordered call site passed the
+    whole file green that way (gate r3, mutant C)."""
+    for i, line in enumerate(text.splitlines()):
+        stripped = line.lstrip()
+        if stripped.startswith("//"):
+            continue
+        if literal in line:
+            return i
+    raise AssertionError(
+        f"потерян якорь {what} ({literal!r}) вне комментариев "
+        "в challenger.workflow.ts")
 
 
 def test_matrix():
@@ -189,17 +224,18 @@ def test_broken_positions_named_verbatim():
 def test_call_site_is_wired():
     """Structural pins of the call site: the marker blocks exist, validation
     is called between the parse abort and the first subagent name, and the
-    abort names the contract. The behavioral binding (a broken draft actually
-    aborts) is test_args_contract_wiring's probe — this test only pins the
-    anchors by name, so a rename reports the lost anchor."""
+    abort names the contract. Pins match non-comment lines only (a literal
+    quoted in a comment once made a reordered call site pass the whole file
+    green — gate r3, mutant C); the behavioral binding is
+    test_args_contract_wiring's probe."""
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "// BEGIN DECISION VALIDATION" in text
     assert "// END DECISION VALIDATION" in text
     assert "// BEGIN ARGS CONTRACT" in text
     assert "// END ARGS CONTRACT" in text
-    call = pin_index(text, "validateDecisions(decisions)", "вызов валидатора")
-    parse_abort = pin_index(text, "if (unparsable)", "parse abort")
-    naming = pin_index(text, "challenger-${d.id}", "раздача имён субагентов")
+    call = code_index(text, "validateDecisions(decisions)", "вызов валидатора")
+    parse_abort = code_index(text, "if (unparsable)", "parse abort")
+    naming = code_index(text, "challenger-${d.id}", "раздача имён субагентов")
     assert parse_abort < call, "validation must follow the parse abort"
     assert call < naming, "validation must precede subagent naming"
     assert "не прошли валидацию id" in text

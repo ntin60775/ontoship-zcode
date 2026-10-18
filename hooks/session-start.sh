@@ -77,8 +77,19 @@ if [[ "${ZCODE_SESSION_ID:-}" =~ ^sess_[A-Za-z0-9._-]{1,128}$ ]]; then
     tmp="$(mktemp "$scratch/.session-id.tmp.XXXXXX" 2>/dev/null)" || tmp=""
     if [[ -n "$tmp" ]]; then
       trap 'rm -f "$tmp" 2>/dev/null' EXIT
-      printf '%s\n' "$ZCODE_SESSION_ID" > "$tmp" 2>/dev/null \
-        && mv -f "$tmp" "$scratch/.session-id" 2>/dev/null || true
+      # skip a non-file target: mv -f would move the tmp INTO a directory
+      # named .session-id with exit 0 — the marker silently lost, garbage
+      # accumulating inside (gate r3, reproduced)
+      if [[ ! -e "$scratch/.session-id" || -f "$scratch/.session-id" ]]; then
+        printf '%s\n' "$ZCODE_SESSION_ID" > "$tmp" 2>/dev/null &&
+          mv -f "$tmp" "$scratch/.session-id" 2>/dev/null
+      fi
+      # cleanup runs on every path — failure, skip, success — so a failed
+      # printf/mv leaves no orphan either (gate r3: three reproductions);
+      # the trap only has to survive the window (TERM/INT fire it, confirmed
+      # on bash 5.2), and a SIGKILL inside it still leaves an orphan —
+      # rare, invisible to readers, content only the validated id.
+      rm -f "$tmp" 2>/dev/null
       trap - EXIT
     fi
   fi

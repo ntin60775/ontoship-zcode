@@ -1,7 +1,8 @@
 """Tests for hooks/session-start.sh: stale-index notice at session start over
 the engine's whole markdown corpus (git ls-files, like gitmark indexes it),
 the always-on grilling entry pointer in KB projects (grilling-contracts) —
-silence only outside a KB project —, quiet --rebuild; plus the session
+silence only outside a KB project —, --rebuild quiet on index news; plus the
+session
 continuity half (ticket 08): the .session-id marker written from the hook's own
 environment, the handoff announcement with the ReadSessionContext hint — the
 rolling snapshot handoff-current.md announced by its explicit name whatever
@@ -179,7 +180,7 @@ def test_future_mtime_does_not_nag(tmp_path: Path):
     entry_only(p)
 
 
-def test_rebuild_flag_rebuilds_quietly(tmp_path: Path):
+def test_rebuild_flag_rebuilds_index_entry_pointer_only(tmp_path: Path):
     proj = make_kb_project(tmp_path)
     build_index(proj)
     db = proj / ".gitmark" / "index.db"
@@ -213,7 +214,10 @@ def test_extra_positional_arg_ignored(tmp_path: Path):
     proj = make_kb_project(tmp_path)
     p = run_hook(proj, args=("whatever",))
     assert p.returncode == 0
-    assert ctx_of(p) is not None
+    ctx = ctx_of(p)
+    # the noindex news survived the junk argument — an emission alone does
+    # not prove it, the entry pointer is unconditional in KB projects
+    assert ctx is not None and "gitmark.py index" in ctx
 
 
 def write_handoff(proj: Path, name: str, body: str) -> Path:
@@ -268,7 +272,7 @@ def test_legacy_handoff_within_ttl_is_announced(tmp_path: Path):
     assert p.returncode == 0
     ctx = ctx_of(p)
     assert ctx is not None
-    assert "Handoff: " in ctx  # positive pin: the literal entry_only's guard relies on
+    assert "Handoff: " in ctx  # pins the announcement literal itself
     assert "handoff-sess_old.md" in ctx
     assert "ReadSessionContext(sessionId=sess_old, strategy=handoff)" in ctx
 
@@ -502,7 +506,8 @@ def test_map_failure_is_not_announced(tmp_path: Path):
 def test_junk_tail_after_iso_stamp_entry_pointer_only(tmp_path: Path):
     """The date token is an ISO stamp with at most a timezone tail: a log
     line carrying arbitrary text after the stamp matches nothing (gate 10 —
-    the leaked-tail announcement was reproduced end-to-end)."""
+    the leaked-tail announcement was reproduced end-to-end); the emission is
+    exactly the entry pointer."""
     proj = fresh_indexed_project(tmp_path)
     write_hygiene_log(
         proj, "HYGIENE 2026-10-04T03:00:00JUNK-КОНЕЦ-С-МУСОРОМ lint=1 index=0 map=0")
@@ -520,7 +525,8 @@ def test_missing_hygiene_log_entry_pointer_only(tmp_path: Path):
 
 def test_foreign_hygiene_log_entry_pointer_only(tmp_path: Path):
     """The last line must be machine-shaped (scripts/hygiene.sh): a hand-edited
-    or foreign log whose last line does not parse says nothing."""
+    or foreign log whose last line does not parse emits only the entry
+    pointer."""
     proj = fresh_indexed_project(tmp_path)
     write_hygiene_log(proj, "HYGIENE someday lint=1 index=0 map=0")
     p = run_hook(proj)
@@ -534,14 +540,12 @@ def test_foreign_hygiene_log_entry_pointer_only(tmp_path: Path):
 def test_entry_pointer_names_grilling_routing(tmp_path: Path):
     """The routing line: entry phrases point at the grilling skill — the one
     carrier the agent sees before any skill invocation (skill texts load only
-    on the Skill call, while the «оформи» failure happens before it)."""
+    on the Skill call, while the «оформи» failure happens before it). The
+    content is pinned by entry_only's equality with ENTRY_FULL."""
     proj = fresh_indexed_project(tmp_path)
     p = run_hook(proj)
     assert p.returncode == 0
-    ctx = entry_only(p)
-    assert "скилл grilling" in ctx
-    assert "«погрилл»" in ctx and "«триаж ишью»" in ctx
-    assert "флоу до грилла" in ctx
+    entry_only(p)
 
 
 def test_entry_pointer_glues_with_stale_notice_into_one_json(tmp_path: Path):
@@ -552,7 +556,7 @@ def test_entry_pointer_glues_with_stale_notice_into_one_json(tmp_path: Path):
     assert p.returncode == 0
     ctx = ctx_of(p)
     assert ctx is not None
-    assert ENTRY in ctx
+    assert ENTRY_FULL in ctx
     assert "gitmark.py index" in ctx
     assert p.stdout.count("\n") == 1
 

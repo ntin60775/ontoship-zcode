@@ -84,7 +84,10 @@ let decisions: Decision[] = [];
 let unparsable = "";
 const raw = args.decisions;
 if (Array.isArray(raw)) {
-  decisions = raw as Decision[];
+  // densify first: a sparse array (a host-side delete leaves holes) would
+  // let forEach skip the holes — positions neither validated nor challenged
+  // (gate r3).
+  decisions = Array.from(raw) as Decision[];
 } else if (typeof raw === "string") {
   try {
     const parsed: unknown = JSON.parse(raw);

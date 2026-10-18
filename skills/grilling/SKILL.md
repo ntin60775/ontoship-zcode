@@ -47,10 +47,10 @@ hook — the one carrier visible before this skill is ever invoked).
    left out of this plan stays open for the next triage.
 3. **Resolve autonomously.** For every two-way-door question: state the options, pick
    the best against the plan's stated criteria, and record
-   `{id, question, choice, rationale, evidence, reversible}` — `id`: короткий
-   уникальный идентификатор d1…dN, из него строится имя субагента челленджа;
-   дубль или пропуск id валит ран громко (the workflow validates ids before any
-   subagent starts). **Evidence invariant:** every
+   `{id, question, choice, rationale, evidence, reversible}` —
+   `id`: короткий уникальный идентификатор d1…dN, из него строится имя
+   субагента челленджа; дубль или пропуск id валит ран громко (the workflow
+   validates ids before any subagent starts). **Evidence invariant:** every
    autonomous decision cites facts — `file:line` from the KB/code or command output.
    A decision you cannot back with evidence is escalated automatically, no exceptions.
    This is what keeps autonomy from decaying into guessing.
