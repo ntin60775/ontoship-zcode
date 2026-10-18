@@ -31,7 +31,7 @@ regenerate — never edit the table by hand.
 | [flow-semantics/](flow-semantics/README.md) | archived | 3/3 |
 | [gate-followups/](gate-followups/README.md) | archived | 2/2 |
 | [gate-followups-2/](gate-followups-2/README.md) | archived | 7/7 |
-| [gate-loop-cap.md](gate-loop-cap.md) | draft | — |
+| [gate-loop-cap.md](gate-loop-cap.md) | archived | — |
 | [gate-risk-scaling.md](gate-risk-scaling.md) | archived | — |
 | [handoff-snapshot/](handoff-snapshot/README.md) | archived | 3/3 |
 | [kb-service-doc.md](kb-service-doc.md) | archived | — |
